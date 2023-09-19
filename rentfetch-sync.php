@@ -29,3 +29,30 @@ define ( 'RENTFETCHSYNC_VERSION', '0.1' );
 // Plugin directory
 define( 'RENTFETCHSYNC_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RENTFETCHSYNC_PATH', plugin_dir_url( __FILE__ ) );
+
+//////////////////////////////
+// INCLUDE ACTION SCHEDULER //
+//////////////////////////////
+
+require_once( plugin_dir_path( __FILE__ ) . 'vendor/action-scheduler/action-scheduler.php' );
+
+///////////////////
+// FILE INCLUDES //
+///////////////////
+
+function rfs_require_files_recursive($directory) {
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::LEAVES_ONLY
+    );
+
+    foreach ($iterator as $file) {
+        if ($file->isFile() && $file->getExtension() === 'php') {
+            require_once $file->getPathname();
+        }
+    }
+}
+
+// require_once all files in /lib and its subdirectories
+rfs_require_files_recursive(RENTFETCHSYNC_DIR . 'lib');
+
