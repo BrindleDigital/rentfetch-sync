@@ -56,3 +56,15 @@ function rfs_require_files_recursive($directory) {
 // require_once all files in /lib and its subdirectories
 rfs_require_files_recursive(RENTFETCHSYNC_DIR . 'lib');
 
+// start the engine
+add_action( 'wp_loaded', 'rfs_perform_syncs' );
+
+// sync a single property manually
+function rfs_start_sync_single_property() {
+    
+	// define what to sync
+	rfs_sync_single_property( $property_id = 'p1634483', $integration = 'yardi' );
+    
+}
+// add_action( 'wp_loaded', 'rfs_start_sync_single_property' );
+

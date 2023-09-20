@@ -1,40 +1,46 @@
 <?php
 
-// for testing, let's grab one of them and do that.
-add_action( 'admin_init', 'rfs_init' );
-function rfs_init() {
+function rfs_sync_single_property( $property_id, $integration ) {
+		
+	// bail if there's no property id
+	if ( !$property_id )
+		return;
+		
+	// bail if there's no integration
+	if ( !$integration )
+		return;
 	
 	//! Yardi notes
 	// any fake property id return a 1020 error
 	// p0556894 returns a 1050 error
 	
 	$args = [
-		'integration' => 'yardi',
-		'property_id' => 'p1158248',
+		'integration' => $integration,
+		'property_id' => $property_id,
 		'credentials' => rfs_get_credentials(),
 		'floorplan_id' => null,
 	];
 	
-	rfs_do_sync( $args );
+	do_action( 'rfs_do_sync', $args );
 }
 
-// for testing, let's try grabbing 10 of them at a time (just to see how fast the API responds)
-// add_action( 'admin_footer', 'rfs_init2' );
-function rfs_init2() {
+function rfs_perform_syncs() {
 	
+	// if data syncing is not enabled, kill all the scheduled actions and bail
+	$data_sync_enabled = get_option( 'options_data_sync' );
+	if ( $data_sync_enabled != 'updatesync' ) {
+		as_unschedule_all_actions( 'rfs_do_sync' );
+		return;
+	}
+		
+	// get the properties for yardi, then turn it into an array
 	$properties = get_option( 'options_yardi_integration_creds_yardi_property_code' );
-	
-	// remove spaces
 	$properties = str_replace( ' ', '', $properties );
-	
-	// split into array
 	$properties = explode( ',', $properties );
 	
 	// limit array to first 10 items
-	$properties = array_slice( $properties, 0, 10 );
+	// $properties = array_slice( $properties, 0, 3 );
 	
-	console_log( $properties );
-
 	foreach( $properties as $property ) {
 		$args = [
 			'integration' => 'yardi',
@@ -42,13 +48,21 @@ function rfs_init2() {
 			'credentials' => rfs_get_credentials(),
 		];
 		
-		rfs_do_sync( $args );
+		if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
+			// need to pass the $args inside an array
+			// as_enqueue_async_action( 'rfs_do_sync', array( $args ), 'rentfetch' );
+			as_schedule_recurring_action( time(), '3600', 'rfs_do_sync', array( $args ), 'rentfetch' );
+		}
+		
+		// do_action( 'rfs_do_sync', $args );
+	
 	}
 	
 }
 
-function rfs_do_sync( $args ) {
-
+add_action( 'rfs_do_sync', 'rfs_sync', 10, 1 );
+function rfs_sync( $args ) {
+	
 	// bail if there's no integration
 	if ( !isset($args['integration']) || !$args['integration'] )
 		return;
@@ -60,42 +74,13 @@ function rfs_do_sync( $args ) {
 	switch ( $args['integration'] ) {
 		case 'yardi':
 			
-			//~ With just the property ID, we can get property data, property images, and the floorplan data.
-			$propertydata = rfs_yardi_get_property_data( $args );
-			
-			// TODO process the property data
-			
-			$property_images = rfs_yard_get_property_images( $args );
-			
-			// TODO process the property images
-			
-			$floorplandata = rfs_yardi_get_floorplan_data( $args );	
-			
-			// TODO process the floorplan data
+			rfs_do_yardi_sync( $args );
 						
-			//~ We'll need the floorplan ID to get the availablility information
-			foreach ( $floorplandata as $floorplan ) {
-				
-				// skip if there's no floorplan id
-				if ( !isset( $floorplan['FloorplanId'] ) )
-					continue;
-					
-				$floorplan_id = $floorplan['FloorplanId'];
-				
-				$args['floorplan_id'] = $floorplan_id;
-				
-				$availabilitydata = rfs_yardi_get_floorplan_availability( $args );
-				
-				// TODO add the units based on the availability data
-				
-				// TODO process the availability data and add that to the floorplans
-								
-			}
-			
-			
 			break;
 		case 'entrata':
-			rfs_entrata_get_property_data( $args );
+			
+			// TODO do the entrata sync
+			
 			break;
 		default:
 			// Handle other integration cases or show an error message.
@@ -103,9 +88,4 @@ function rfs_do_sync( $args ) {
 			
 	}
 	
-}
-
-function rfs_entrata_get_property_data( $args ) {
-	// Implement the entrata integration logic here.
-	// var_dump( $args );
 }
