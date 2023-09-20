@@ -9,11 +9,7 @@ function rfs_sync_single_property( $property_id, $integration ) {
 	// bail if there's no integration
 	if ( !$integration )
 		return;
-	
-	//! Yardi notes
-	// any fake property id return a 1020 error
-	// p0556894 returns a 1050 error
-	
+		
 	$args = [
 		'integration' => $integration,
 		'property_id' => $property_id,

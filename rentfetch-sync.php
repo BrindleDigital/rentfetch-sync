@@ -62,8 +62,12 @@ add_action( 'wp_loaded', 'rfs_perform_syncs' );
 // sync a single property manually
 function rfs_start_sync_single_property() {
     
+    //! Yardi notes
+	// any fake property id return a 1020 error
+	// p0556894 returns a 1050 error
+    
 	// define what to sync
-	rfs_sync_single_property( $property_id = 'p0218346', $integration = 'yardi' );
+	rfs_sync_single_property( $property_id = 'testproperty', $integration = 'yardi' );
     
 }
 // add_action( 'wp_loaded', 'rfs_start_sync_single_property' );
