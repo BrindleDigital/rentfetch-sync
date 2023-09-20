@@ -54,10 +54,7 @@ function rfs_maybe_create_property( $args ) {
     
     $new_property_post_id = wp_insert_post( $new_property_post );
     
-    $args[] = [
-        'wordpress_post_id' => $new_property_post_id,
-    ];
-    
+    $args['wordpress_post_id'] = $new_property_post_id;
     return $args;
         
 }

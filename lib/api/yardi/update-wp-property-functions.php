@@ -4,20 +4,20 @@
  * Update the propety metadata
  *
  * @param   [array]  $args          includes everything needed to update the property
- * @param   [array]  $propertydata  includes the data to update
+ * @param   [array]  $property_data  includes the data to update
  *
  */
-function rfs_yardi_update_property_meta( $args, $propertydata ) {
+function rfs_yardi_update_property_meta( $args, $property_data ) {
     
     // bail if we don't have the data to update this
-    if ( !isset( $propertydata['PropertyData'] ) || !$propertydata['PropertyData'] )
+    if ( !isset( $property_data['PropertyData'] ) || !$property_data['PropertyData'] )
         return;
         
     // bail if we don't have the wordpress post ID
     if ( !isset( $args['wordpress_post_id'] ) || !$args['wordpress_post_id'] )
         return;
     
-    $data = $propertydata['PropertyData'];
+    $data = $property_data['PropertyData'];
     $property_id = $args['property_id'];
     $integration = $args['integration'];
     
@@ -29,6 +29,7 @@ function rfs_yardi_update_property_meta( $args, $propertydata ) {
     $post_info = array(
         'ID' => $args['wordpress_post_id'],
         'post_title' => $data['name'],
+        'post_name' => sanitize_title( $data['name'] ), // update the permalink to match the new title
     );
     
     wp_update_post( $post_info );
@@ -62,7 +63,7 @@ function rfs_yardi_update_property_meta( $args, $propertydata ) {
  * @param   [string]  $property_images  includes the images json string to update
  */
 function rfs_yardi_update_property_images( $args, $property_images ) {
-    
+        
     // bail if we don't have the images to update this
     if ( !$property_images )
         return;

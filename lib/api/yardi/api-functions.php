@@ -2,22 +2,22 @@
 
 function rfs_do_yardi_sync( $args ) {
 	
-	// create a new post if needed, adding the post ID to the args if we do
-	$args = rfs_maybe_create_property( $args );
-	
 	//~ With just the property ID, we can get property data, property images, and the floorplan data.
+	// create a new post if needed, adding the post ID to the args if we do (don't need any API calls for this)
+	$args = rfs_maybe_create_property( $args );	
+	
+	// perform the API calls to get the data
 	$property_data = rfs_yardi_get_property_data( $args );
-		
-	// update the property post 
+	
+	// get the data, then update the property post 
 	rfs_yardi_update_property_meta( $args, $property_data );
 	
-	// get the images for this property
 	$property_images = rfs_yard_get_property_images( $args );
 	
-	// update the images for this property
+	// get the images, then update the images for this property
 	rfs_yardi_update_property_images( $args, $property_images );
 	
-	$floorplandata = rfs_yardi_get_floorplan_data( $args );	
+	$floorplandata = rfs_yardi_get_floorplan_data( $args );
 
 	// TODO process the floorplan data
 				

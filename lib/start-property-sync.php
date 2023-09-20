@@ -52,10 +52,7 @@ function rfs_perform_syncs() {
 			// need to pass the $args inside an array
 			// as_enqueue_async_action( 'rfs_do_sync', array( $args ), 'rentfetch' );
 			as_schedule_recurring_action( time(), '3600', 'rfs_do_sync', array( $args ), 'rentfetch' );
-		}
-		
-		// do_action( 'rfs_do_sync', $args );
-	
+		}	
 	}
 	
 }

@@ -63,7 +63,7 @@ add_action( 'wp_loaded', 'rfs_perform_syncs' );
 function rfs_start_sync_single_property() {
     
 	// define what to sync
-	rfs_sync_single_property( $property_id = 'p1634483', $integration = 'yardi' );
+	rfs_sync_single_property( $property_id = 'p0218346', $integration = 'yardi' );
     
 }
 // add_action( 'wp_loaded', 'rfs_start_sync_single_property' );
