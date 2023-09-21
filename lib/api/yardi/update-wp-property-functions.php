@@ -10,14 +10,14 @@
 function rfs_yardi_update_property_meta( $args, $property_data ) {
 	
 	// bail if we don't have the wordpress post ID
-	if ( !isset( $args['wordpress_post_id'] ) || !$args['wordpress_post_id'] )
+	if ( !isset( $args['wordpress_property_post_id'] ) || !$args['wordpress_property_post_id'] )
 		return;
 	
 	// bail if we don't have the data to update this, updating the meta to give the error
 	if ( !isset( $property_data['PropertyData'] ) || !$property_data['PropertyData'] ) {
 		$property_data_string = json_encode( $property_data );
-		$success = update_post_meta( $args['wordpress_post_id'], 'updated', current_time('mysql') );
-		$success = update_post_meta( $args['wordpress_post_id'], 'api_error', $property_data_string );
+		$success = update_post_meta( $args['wordpress_property_post_id'], 'updated', current_time('mysql') );
+		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_error', $property_data_string );
 		
 		return;
 	}
@@ -32,7 +32,7 @@ function rfs_yardi_update_property_meta( $args, $property_data ) {
 	
 	//* Update the title
 	$post_info = array(
-		'ID' => $args['wordpress_post_id'],
+		'ID' => $args['wordpress_property_post_id'],
 		'post_title' => $data['name'],
 		'post_name' => sanitize_title( $data['name'] ), // update the permalink to match the new title
 	);
@@ -57,8 +57,8 @@ function rfs_yardi_update_property_meta( $args, $property_data ) {
 	];
 	
 	foreach ( $meta as $key => $value ) { 
-		$success = update_post_meta( $args['wordpress_post_id'], $key, $value );
-	}  
+		$success = update_post_meta( $args['wordpress_property_post_id'], $key, $value );
+	}
 	
 }
 
@@ -75,10 +75,10 @@ function rfs_yardi_update_property_images( $args, $property_images ) {
 		return;
 		
 	// bail if we don't have the wordpress post ID
-	if ( !isset( $args['wordpress_post_id'] ) || !$args['wordpress_post_id'] )
+	if ( !isset( $args['wordpress_property_post_id'] ) || !$args['wordpress_property_post_id'] )
 		return;
 	
 	//* Update the meta
-	$success = update_post_meta( $args['wordpress_post_id'], 'yardi_property_images', $property_images );
+	$success = update_post_meta( $args['wordpress_property_post_id'], 'yardi_property_images', $property_images );
 		
 }

@@ -1,7 +1,7 @@
 <?php
 
 function rfs_do_yardi_sync( $args ) {
-	
+		
 	//~ With just the property ID, we can get property data, property images, and the floorplan data.
 	// create a new post if needed, adding the post ID to the args if we do (don't need any API calls for this)
 	$args = rfs_maybe_create_property( $args );	
@@ -17,30 +17,54 @@ function rfs_do_yardi_sync( $args ) {
 	// get the images, then update the images for this property
 	rfs_yardi_update_property_images( $args, $property_images );
 	
-	$floorplandata = rfs_yardi_get_floorplan_data( $args );
-
-	// TODO process the floorplan data
-				
+	// TODO add the amenities
+	
+	// get all the floorplan data for this property
+	$floorplans_data = rfs_yardi_get_floorplan_data( $args );
+					
 	//~ We'll need the floorplan ID to get the availablility information
-	foreach ( $floorplandata as $floorplan ) {
+	foreach ( $floorplans_data as $floorplan ) {
 		
 		// skip if there's no floorplan id
 		if ( !isset( $floorplan['FloorplanId'] ) )
 			continue;
 			
 		$floorplan_id = $floorplan['FloorplanId'];
-		
 		$args['floorplan_id'] = $floorplan_id;
 		
-		$availabilitydata = rfs_yardi_get_floorplan_availability( $args );
+		// now that we have the floorplan ID, we can create that if needed, or just get the post ID if it already exists (returned in $args)
+		$args = rfs_maybe_create_floorplan( $args );
 		
-		// TODO add the units based on the availability data
+		rfs_yardi_update_floorplan_meta( $args, $floorplan );
 		
-		// TODO process the availability data and add that to the floorplans
+		$availability_data = rfs_yardi_get_floorplan_availability( $args );
+		
+		rfs_yardi_update_floorplan_availability( $args, $availability_data );
+		
+		//~ The availability data includes the units, so we can update the units for this floorplan
+		foreach( $availability_data as $unit ) {
+			
+			// TODO add the units based on the availability data
+			
+			// continue if we don't have a unit ID
+			
+			// get the unit ID
+			
+			// maybe create unit
+			
+			// update the unit/unit availability
+			
+		}
+		
+		// TODO remove the orphan floorplans (need to fix the rfs_delete_orphan_yardi_floorplans function)
 						
 	}
 }
 
+/**
+ * Get the property meta information
+ *
+ */
 function rfs_yardi_get_property_data( $args ) {
 	
 	$yardi_api_key = $args['credentials']['yardi']['apikey'];
@@ -61,6 +85,31 @@ function rfs_yardi_get_property_data( $args ) {
 	
 }
 
+/**
+ * Get the property images (separate API from the other property data)
+ *
+ */
+function rfs_yard_get_property_images( $args ) {
+	
+	$yardi_api_key = $args['credentials']['yardi']['apikey'];
+	$property_id = $args['property_id']; 
+	
+	// Do the API request
+    $url = sprintf( 
+		'https://api.rentcafe.com/rentcafeapi.aspx?requestType=images&type=propertyImages&apiToken=%s&PropertyCode=%s', 
+		$yardi_api_key, 
+		$property_id 
+	);
+	
+    $property_images = file_get_contents( $url );
+	return $property_images;
+	
+}
+
+/**
+ * Get the floorplan data
+ *
+ */
 function rfs_yardi_get_floorplan_data( $args ) {
 	
 	$yardi_api_key = $args['credentials']['yardi']['apikey'];
@@ -81,6 +130,10 @@ function rfs_yardi_get_floorplan_data( $args ) {
 	
 }
 
+/**
+ * Get availability information for the floorplan
+ *
+ */
 function rfs_yardi_get_floorplan_availability( $args ) {
 	
 	$yardi_api_key = $args['credentials']['yardi']['apikey'];
@@ -101,22 +154,5 @@ function rfs_yardi_get_floorplan_availability( $args ) {
     $availability = json_decode( $data );  
 	
 	return $availability;
-	
-}
-
-function rfs_yard_get_property_images( $args ) {
-	
-	$yardi_api_key = $args['credentials']['yardi']['apikey'];
-	$property_id = $args['property_id']; 
-	
-	// Do the API request
-    $url = sprintf( 
-		'https://api.rentcafe.com/rentcafeapi.aspx?requestType=images&type=propertyImages&apiToken=%s&PropertyCode=%s', 
-		$yardi_api_key, 
-		$property_id 
-	);
-	
-    $property_images = file_get_contents( $url );
-	return $property_images;
 	
 }
