@@ -44,15 +44,18 @@ function rfs_do_yardi_sync( $args ) {
 		//~ The availability data includes the units, so we can update the units for this floorplan
 		foreach( $availability_data as $unit ) {
 			
-			// TODO add the units based on the availability data
-			
-			// continue if we don't have a unit ID
-			
-			// get the unit ID
-			
-			// maybe create unit
-			
-			// update the unit/unit availability
+			// skip if there's no floorplan id
+			if ( !property_exists( $unit, 'ApartmentId' ) || !$unit->ApartmentId )
+				continue;
+				
+			$unit_id = $unit->ApartmentId;
+			$args['unit_id'] = $unit_id;
+						
+			$args = rfs_maybe_create_unit( $args );
+						
+			rfs_yardi_update_unit_meta( $args, $unit );
+						
+			// TODO update the unit/unit availability
 			
 		}
 		

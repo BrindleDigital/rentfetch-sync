@@ -1,7 +1,7 @@
 <?php
 
 /**
- * [rfs_maybe_create_property description]
+ * Create a property if it's needed, return the args with the wordpress property post ID added either way
  *
  * @param   [type]  $args  [$args description]
  *
