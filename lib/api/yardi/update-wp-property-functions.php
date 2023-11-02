@@ -15,9 +15,22 @@ function rfs_yardi_update_property_meta( $args, $property_data ) {
 	
 	// bail if we don't have the data to update this, updating the meta to give the error
 	if ( !isset( $property_data['PropertyData'] ) || !$property_data['PropertyData'] ) {
+		
 		$property_data_string = json_encode( $property_data );
-		$success = update_post_meta( $args['wordpress_property_post_id'], 'updated', current_time('mysql') );
-		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_error', $property_data_string );
+		// $success = update_post_meta( $args['wordpress_property_post_id'], 'updated', current_time('mysql') );
+		// $success = update_post_meta( $args['wordpress_property_post_id'], 'api_error', $property_data_string );
+		
+		$api_response = get_post_meta( $args['wordpress_property_post_id'], 'api_response', true );
+		
+		if ( !is_array( $api_response ) )
+			$api_response = [];
+	
+		$api_response['properties_api'] = [
+			'updated' => current_time('mysql'),
+			'api_response' => $property_data_string,
+		];
+		
+		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
 		
 		return;
 	}
@@ -39,6 +52,16 @@ function rfs_yardi_update_property_meta( $args, $property_data ) {
 	
 	wp_update_post( $post_info );
 	
+	$api_response = get_post_meta( $args['wordpress_property_post_id'], 'api_response', true );
+	
+	if ( !is_array( $api_response ) )
+		$api_response = [];
+	
+	$api_response['properties_api'] = [
+		'updated' => current_time('mysql'),
+		'api_response' => 'Updated successfully',
+	];
+		
 	//* Update the meta
 	$meta = [
 		'property_id' => esc_html( $property_id ),
@@ -53,7 +76,7 @@ function rfs_yardi_update_property_meta( $args, $property_data ) {
 		'latitude' => esc_html( $data['Latitude'] ),
 		'longitude' => esc_html( $data['Longitude'] ),
 		'updated' => current_time('mysql'),
-		'api_error' => 'Updated successfully',
+		'api_response' => $api_response,
 	];
 	
 	foreach ( $meta as $key => $value ) { 
@@ -71,14 +94,57 @@ function rfs_yardi_update_property_meta( $args, $property_data ) {
 function rfs_yardi_update_property_images( $args, $property_images ) {
 		
 	// bail if we don't have the images to update this
-	if ( !$property_images )
+	if ( !$property_images ) {
+		
+		$api_response = get_post_meta( $args['wordpress_property_post_id'], 'api_response', true );
+	
+		if ( !is_array( $api_response ) )
+			$api_response = [];
+		
+		$api_response['property_images_api'] = [
+			'updated' => current_time('mysql'),
+			'api_response' => 'No response from API',
+		];
+		
 		return;
+	}
+	
 		
 	// bail if we don't have the wordpress post ID
 	if ( !isset( $args['wordpress_property_post_id'] ) || !$args['wordpress_property_post_id'] )
 		return;
 	
 	//* Update the meta
-	$success = update_post_meta( $args['wordpress_property_post_id'], 'yardi_property_images', $property_images );
+	
+	
+	$api_response = get_post_meta( $args['wordpress_property_post_id'], 'api_response', true );
+	
+	// check if $property_images includes 'error'
+	if ( strpos( $property_images, 'Error' ) !== false ) {
+			
+		if ( !is_array( $api_response ) )
+			$api_response = [];
+		
+		$api_response['property_images_api'] = [
+			'updated' => current_time('mysql'),
+			'api_response' => $property_images,
+		];
+		
+		return;
+		
+	} else {
+		$success = update_post_meta( $args['wordpress_property_post_id'], 'yardi_property_images', $property_images );		
+		
+		if ( !is_array( $api_response ) )
+			$api_response = [];
+		
+		$api_response['property_images_api'] = [
+			'updated' => current_time('mysql'),
+			'api_response' => 'Updated successfully',
+		];
+		
+		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		
+	}
 		
 }

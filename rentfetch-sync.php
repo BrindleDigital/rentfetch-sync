@@ -67,7 +67,7 @@ function rfs_start_sync_single_property() {
 	// p0556894 returns a 1050 error
     
 	// define what to sync
-	rfs_sync_single_property( $property_id = 'asdfkjadsflkj', $integration = 'yardi' );
+	rfs_sync_single_property( $property_id = 'asdfasf', $integration = 'yardi' );
     
 }
 // add_action( 'wp_loaded', 'rfs_start_sync_single_property' );

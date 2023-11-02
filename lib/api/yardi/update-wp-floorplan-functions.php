@@ -11,13 +11,25 @@ function rfs_yardi_update_floorplan_meta( $args, $floorplan_data ) {
 	// bail if we don't have the wordpress post ID
 	if ( !isset( $args['wordpress_floorplan_post_id'] ) || !$args['wordpress_floorplan_post_id'] )
 		return;
-	
+        	
 	// bail if we don't have the data to update this, updating the meta to give the error
 	if ( !$floorplan_data['FloorplanId'] ) {
 		$floorplan_data_string = json_encode( $floorplan_data );
-		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'updated', current_time('mysql') );
-		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_error', $floorplan_data_string );
+		// $success = update_post_meta( $args['wordpress_floorplan_post_id'], 'updated', current_time('mysql') );
+		// $success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_error', $floorplan_data_string );
+        
+        $api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
 		
+		if ( !is_array( $api_response ) )
+			$api_response = [];
+	
+		$api_response['floorplans_api'] = [
+			'updated' => current_time('mysql'),
+			'api_response' => $floorplan_data_string,
+		];
+        		
+		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
+        		
 		return;
 	}
 
@@ -33,7 +45,17 @@ function rfs_yardi_update_floorplan_meta( $args, $floorplan_data ) {
 	);
 	
 	wp_update_post( $post_info );
+    
+    $api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
 	
+	if ( !is_array( $api_response ) )
+		$api_response = [];
+	
+	$api_response['floorplans_api'] = [
+		'updated' => current_time('mysql'),
+		'api_response' => 'Updated successfully',
+	];
+    	
 	//* Update the meta
 	$meta = [
 		'availability_url' => esc_url( $floorplan_data['AvailabilityURL'] ),
@@ -53,12 +75,16 @@ function rfs_yardi_update_floorplan_meta( $args, $floorplan_data ) {
 		'property_show_specials' => esc_html( $floorplan_data['PropertyShowsSpecials'] ),
 		'unit_type_mapping' => esc_html( $floorplan_data['UnitTypeMapping'] ),
 		'updated' => current_time('mysql'), 
-		'api_error' => 'Updated successfully', 
+		'api_error' => 'Updated successfully',
+        'api_response' => $api_response,
 	];
 	
 	foreach ( $meta as $key => $value ) { 
 		$success = update_post_meta( $args['wordpress_floorplan_post_id'], $key, $value );
 	}
+    
+    
+    
 }
 
 /**
@@ -70,10 +96,25 @@ function rfs_yardi_update_floorplan_availability( $args, $availability_data ) {
 	// bail if we don't have the wordpress post ID
 	if ( !isset( $args['wordpress_floorplan_post_id'] ) || !$args['wordpress_floorplan_post_id'] )
 		return;
-			
+        			
 	// bail if we don't have the availability data to update this
-	if ( !$availability_data )
-		return;
+	if ( !$availability_data ) {
+        
+        $api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
+		
+		if ( !is_array( $api_response ) )
+			$api_response = [];
+            	
+		$api_response['apartmentavailability_api'] = [
+			'updated' => current_time('mysql'),
+			'api_response' => 'Availability data not found',
+		];
+		
+		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
+        
+        return;
+        
+    }
 		
 	$available_dates = array();
     $soonest_date = null;
@@ -106,6 +147,18 @@ function rfs_yardi_update_floorplan_availability( $args, $availability_data ) {
 	
 	//* Update the meta
 	$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'availability_date', $available_date );
+    
+    $api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
+	
+	if ( !is_array( $api_response ) )
+		$api_response = [];
+	
+	$api_response['apartmentavailability_api'] = [
+		'updated' => current_time('mysql'),
+		'api_response' => 'Updated successfully',
+	];
+    
+    $success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
 			
 }
 

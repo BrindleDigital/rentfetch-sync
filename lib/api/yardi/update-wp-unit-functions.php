@@ -18,6 +18,19 @@ function rfs_yardi_update_unit_meta( $args, $unit ) {
 		$success = update_post_meta( $args['wordpress_unit_post_id'], 'updated', current_time('mysql') );
 		$success = update_post_meta( $args['wordpress_unit_post_id'], 'api_error', $unit_data_string );
 		
+		$api_response = get_post_meta( $args['wordpress_unit_post_id'], 'api_response', true );
+		
+		if ( !is_array( $api_response ) )
+			$api_response = [];
+            	
+		$api_response['apartmentavailability_api'] = [
+			'updated' => current_time('mysql'),
+			'api_response' => $unit_data_string,
+		];
+		
+		$success = update_post_meta( $args['wordpress_unit_post_id'], 'api_response', $api_response );
+
+		
 		return;
 	}
 
@@ -43,6 +56,17 @@ function rfs_yardi_update_unit_meta( $args, $unit ) {
             $UnitImageURLs[] = esc_url($url);
         }
     }
+	
+	$api_response = get_post_meta( $args['wordpress_unit_post_id'], 'api_response', true );
+	
+	if ( !is_array( $api_response ) )
+		$api_response = [];
+	
+	$api_response['apartmentavailability_api'] = [
+		'updated' => current_time('mysql'),
+		'api_response' => 'Updated successfully',
+	];
+    
         
 	//* Update the meta
 	$meta = [
@@ -64,6 +88,7 @@ function rfs_yardi_update_unit_meta( $args, $unit ) {
 		'unit_source' => 'yardi',
 		'updated' => current_time('mysql'), 
 		'api_error' => 'Updated successfully', 
+		'api_response' => $api_response, 
 	];
 	
 	foreach ( $meta as $key => $value ) { 

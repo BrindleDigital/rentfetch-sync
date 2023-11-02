@@ -18,6 +18,7 @@ function rfs_do_yardi_sync( $args ) {
 	rfs_yardi_update_property_images( $args, $property_images );
 	
 	// TODO add the amenities
+	rfs_yardi_update_property_amenities( $args, $property_data );
 	
 	// get all the floorplan data for this property
 	$floorplans_data = rfs_yardi_get_floorplan_data( $args );
@@ -157,5 +158,42 @@ function rfs_yardi_get_floorplan_availability( $args ) {
     $availability = json_decode( $data );  
 	
 	return $availability;
+	
+}
+
+function rfs_yardi_update_property_amenities( $args, $property_data ) {
+		
+	// bail if we don't have Amenities in the data	
+	if ( !isset( $property_data['Amenities'] ) )
+		return;
+		
+	$amenities = $property_data['Amenities'];
+		
+	// bail if we don't have the property ID
+	if ( !isset( $args['wordpress_property_post_id'] ) )
+		return;
+	
+	$property_id = $args['wordpress_property_post_id'];
+	$taxonomy = 'amenities';
+	
+    // remove all of the current terms from $property_id
+    $term_ids = wp_get_object_terms( $property_id, $taxonomy, array( 'fields' => 'ids' ) );
+	$term_ids = array_map( 'intval', $term_ids );
+	wp_remove_object_terms( $property_id, $term_ids, $taxonomy );
+	
+	// wp_delete_object_term_relationships( $property_id, array( 'amenities' ) );
+	
+	// for each of those amenities, grab the name, then add it
+    foreach ( $amenities as $amenity ) {
+		
+		if ( !isset( $amenity['CustomAmenityName'] ) )
+			continue;
+        
+        // get the name
+        $name = $amenity['CustomAmenityName'];
+                
+        // this function checks if the amenity exists, creates it if not, then adds it to the post
+        rentfetch_set_post_term( $property_id, $name, 'amenities' );
+    }
 	
 }
