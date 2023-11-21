@@ -123,7 +123,7 @@ function rent_fetch_settings_sync() {
 			<div class="white-box">
 				<label for="rentfetch_options_yardi_integration_creds_yardi_voyager_code">Yardi Voyager Codes</label>
 				<textarea rows="10" style="width: 100%;" name="rentfetch_options_yardi_integration_creds_yardi_voyager_code" id="rentfetch_options_yardi_integration_creds_yardi_voyager_code"><?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_voyager_code' ) ); ?></textarea>
-				<p class="description">Multiple property codes should be entered separated by commas</p>
+				<p class="description">Multiple property codes should be entered separated by commas. Please note that on save, these will be automatically converted to property codes. If you have hundreds, this can take a minute or two.</p>
 			</div>
 			<div class="white-box">
 				<label for="rentfetch_options_yardi_integration_creds_yardi_property_code">Yardi Property Codes</label>

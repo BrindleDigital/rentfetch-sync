@@ -4,7 +4,9 @@
 add_action( 'admin_footer', 'rfs_convert_voyager_codes' );
 function rfs_convert_voyager_codes() {
 	
-	$voyagers = get_option( 'options_yardi_integration_creds_yardi_voyager_code' );
+	$voyagers = get_option( 'rentfetch_options_yardi_integration_creds_yardi_voyager_code' );
+	
+	var_dump( $voyagers);
 	
 	if ( !$voyagers )
 		return;
@@ -36,7 +38,7 @@ function rfs_convert_voyager_codes() {
 	}
 	
 	// get the previous property codes
-	$previous_property_codes = get_option( 'options_yardi_integration_creds_yardi_property_code' );
+	$previous_property_codes = get_option( 'rentfetch_options_yardi_integration_creds_yardi_property_code' );
 	
 	// make the previous property codes into an array
 	$previous_property_codes_array = explode( ',', $previous_property_codes );
@@ -51,9 +53,9 @@ function rfs_convert_voyager_codes() {
 	$property_codes = implode( ', ', $property_codes );
 	
 	// update the option
-	update_option( 'options_yardi_integration_creds_yardi_property_code', $property_codes );
+	update_option( 'rentfetch_options_yardi_integration_creds_yardi_property_code', $property_codes );
 	
 	// remove the voyager codes
-	update_option( 'options_yardi_integration_creds_yardi_voyager_code', null );
+	update_option( 'rentfetch_options_yardi_integration_creds_yardi_voyager_code', null );
 	
 }
