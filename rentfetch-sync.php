@@ -3,7 +3,7 @@
 	Plugin Name: Rent Fetch Sync
 	Plugin URI: https://github.com/jonschr/rentfetch-sync
     Description: An addon for Rent Fetch that syncs properties 
-	Version: 0.1
+	Version: 0.1.1
     Author: Brindle Digital
     Author URI: https://www.brindledigital.com/
 
