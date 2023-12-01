@@ -23,14 +23,14 @@ function rfs_sync_single_property( $property_id, $integration ) {
 function rfs_perform_syncs() {
 	
 	// if data syncing is not enabled, kill all the scheduled actions and bail
-	$data_sync_enabled = get_option( 'options_data_sync' );
+	$data_sync_enabled = get_option( 'rentfetch_options_data_sync' );
 	if ( $data_sync_enabled != 'updatesync' ) {
 		as_unschedule_all_actions( 'rfs_do_sync' );
 		return;
 	}
 		
 	// get the properties for yardi, then turn it into an array
-	$properties = get_option( 'options_yardi_integration_creds_yardi_property_code' );
+	$properties = get_option( 'rentfetch_options_yardi_integration_creds_yardi_property_code' );
 	$properties = str_replace( ' ', '', $properties );
 	$properties = explode( ',', $properties );
 	

@@ -4,7 +4,7 @@
  * Remove the notice about premium functionality
  */
 function rent_fetch_remove_premium_functionality_notice() {
-    remove_action( 'rent_fetch_do_settings_general', 'rent_fetch_settings_sync_functionality_notice', 25 );
+	remove_action( 'rent_fetch_do_settings_general', 'rent_fetch_settings_sync_functionality_notice', 25 );
 }
 add_action( 'wp_loaded', 'rent_fetch_remove_premium_functionality_notice' );
  
@@ -13,8 +13,8 @@ add_action( 'wp_loaded', 'rent_fetch_remove_premium_functionality_notice' );
  */
 add_action( 'rent_fetch_do_settings_general', 'rent_fetch_settings_sync', 25 );
 function rent_fetch_settings_sync() {
-    ?>
-    <div class="row">
+	?>
+	<div class="row">
 		<div class="column">
 			<label for="rentfetch_options_data_sync">Data Sync</label>
 			<p class="description">When you start syncing from data from your management software, it generally takes 5-15 seconds per property to sync. <strong>Rome wasn't built in a day.</strong></p>
@@ -219,5 +219,5 @@ function rent_fetch_settings_sync() {
 			</div>
 		</div>
 	</div>
-    <?php
+	<?php
 }

@@ -11,7 +11,7 @@ function rfs_yardi_update_unit_meta( $args, $unit ) {
 	// bail if we don't have the wordpress post ID
 	if ( !isset( $args['wordpress_unit_post_id'] ) || !$args['wordpress_unit_post_id'] )
 		return;
-        	
+			
 	// bail if we don't have the data to update this, updating the meta to give the error
 	if ( !$unit->ApartmentId ) {
 		$unit_data_string = json_encode( $unit );
@@ -22,7 +22,7 @@ function rfs_yardi_update_unit_meta( $args, $unit ) {
 		
 		if ( !is_array( $api_response ) )
 			$api_response = [];
-            	
+				
 		$api_response['apartmentavailability_api'] = [
 			'updated' => current_time('mysql'),
 			'api_response' => $unit_data_string,
@@ -47,15 +47,15 @@ function rfs_yardi_update_unit_meta( $args, $unit ) {
 	);
 	
 	wp_update_post( $post_info );
-    
-    // escape the array of image urls
-    if (isset($unit->UnitImageURLs) && is_array($unit->UnitImageURLs)) {
-        $UnitImageURLs = array();
+	
+	// escape the array of image urls
+	if (isset($unit->UnitImageURLs) && is_array($unit->UnitImageURLs)) {
+		$UnitImageURLs = array();
 
-        foreach ($unit->UnitImageURLs as $url) {
-            $UnitImageURLs[] = esc_url($url);
-        }
-    }
+		foreach ($unit->UnitImageURLs as $url) {
+			$UnitImageURLs[] = esc_url($url);
+		}
+	}
 	
 	$api_response = get_post_meta( $args['wordpress_unit_post_id'], 'api_response', true );
 	
@@ -66,8 +66,8 @@ function rfs_yardi_update_unit_meta( $args, $unit ) {
 		'updated' => current_time('mysql'),
 		'api_response' => 'Updated successfully',
 	];
-    
-        
+	
+		
 	//* Update the meta
 	$meta = [
 		'amenities' => esc_url( $unit->Amenities ),
