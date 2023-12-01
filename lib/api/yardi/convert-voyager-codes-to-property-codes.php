@@ -5,9 +5,7 @@ add_action( 'admin_footer', 'rfs_convert_voyager_codes' );
 function rfs_convert_voyager_codes() {
 	
 	$voyagers = get_option( 'rentfetch_options_yardi_integration_creds_yardi_voyager_code' );
-	
-	var_dump( $voyagers);
-	
+		
 	if ( !$voyagers )
 		return;
 		
@@ -22,6 +20,10 @@ function rfs_convert_voyager_codes() {
 	foreach( $voyagers as $voyager ) {
 		
 		$credentials = rfs_get_credentials();
+		
+		if ( !isset( $credentials['yardi']['apikey'] ) )
+			return;
+		
 		$yardi_api_key = $credentials['yardi']['apikey'];
 		
 		// Do the API request

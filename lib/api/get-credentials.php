@@ -4,6 +4,11 @@ function rfs_get_credentials() {
 	$credentials = [];
 	
 	$enabled = get_option( 'options_enabled_integrations' );
+	if ( $enabled == false ) {
+		$enabled = [];
+	}
+	
+	console_log( $enabled );
 		
 	if ( in_array( 'yardi', $enabled ) ) {
 		$credentials['yardi'] = [
