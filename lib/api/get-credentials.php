@@ -7,9 +7,7 @@ function rfs_get_credentials() {
 	if ( $enabled == false ) {
 		$enabled = [];
 	}
-	
-	console_log( $enabled );
-		
+			
 	if ( in_array( 'yardi', $enabled ) ) {
 		$credentials['yardi'] = [
 			'apikey' => get_option( 'rentfetch_options_yardi_integration_creds_yardi_api_key' ),
