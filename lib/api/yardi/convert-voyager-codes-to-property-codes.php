@@ -6,6 +6,7 @@ function rfs_convert_voyager_codes() {
 	
 	$voyagers = get_option( 'rentfetch_options_yardi_integration_creds_yardi_voyager_code' );
 		
+	// bail if no voyagers
 	if ( !$voyagers )
 		return;
 		
@@ -19,8 +20,10 @@ function rfs_convert_voyager_codes() {
 	
 	foreach( $voyagers as $voyager ) {
 		
+		// get the creds
 		$credentials = rfs_get_credentials();
 		
+		// bail if no credentials
 		if ( !isset( $credentials['yardi']['apikey'] ) )
 			return;
 		
