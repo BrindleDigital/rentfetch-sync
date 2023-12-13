@@ -17,7 +17,7 @@ function rfs_do_yardi_sync( $args ) {
 	// get the images, then update the images for this property
 	rfs_yardi_update_property_images( $args, $property_images );
 	
-	// TODO add the amenities
+	// add the amenities
 	rfs_yardi_update_property_amenities( $args, $property_data );
 	
 	// get all the floorplan data for this property
@@ -48,15 +48,13 @@ function rfs_do_yardi_sync( $args ) {
 			// skip if there's no floorplan id
 			if ( !property_exists( $unit, 'ApartmentId' ) || !$unit->ApartmentId )
 				continue;
-				
+			
 			$unit_id = $unit->ApartmentId;
 			$args['unit_id'] = $unit_id;
-						
+			
 			$args = rfs_maybe_create_unit( $args );
-						
+			
 			rfs_yardi_update_unit_meta( $args, $unit );
-						
-			// TODO update the unit/unit availability
 			
 		}
 		

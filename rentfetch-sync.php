@@ -3,7 +3,7 @@
 	Plugin Name: Rent Fetch Sync
 	Plugin URI: https://github.com/jonschr/rentfetch-sync
 	Description: An addon for Rent Fetch that syncs properties 
-	Version: 0.1.3
+	Version: 0.2
 	Author: Brindle Digital
 	Author URI: https://www.brindledigital.com/
 
@@ -24,7 +24,7 @@ if ( !defined( 'ABSPATH' ) ) {
 }
 
 // Define the version of the plugin
-define ( 'RENTFETCHSYNC_VERSION', '0.1.3' );
+define ( 'RENTFETCHSYNC_VERSION', '0.2' );
 
 // Plugin directory
 define( 'RENTFETCHSYNC_DIR', plugin_dir_path( __FILE__ ) );
@@ -66,8 +66,12 @@ function rfs_start_sync_single_property() {
 	// any fake property id return a 1020 error
 	// p0556894 returns a 1050 error
 	
+	//! RealPage notes
+	// there's a SiteID and a PmcID. The SiteID is the property ID, and the PmcID is the rental company ID
+	// RealPage doesn't have any property information or photos
+	
 	// define what to sync
-	rfs_sync_single_property( $property_id = 'asdfasf', $integration = 'yardi' );
+	rfs_sync_single_property( $property_id = '4818644', $integration = 'realpage' );
 	
 }
 // add_action( 'wp_loaded', 'rfs_start_sync_single_property' );

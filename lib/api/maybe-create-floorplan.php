@@ -57,7 +57,7 @@ function rfs_maybe_create_floorplan( $args ) {
 		return $args;
 	}
 		
-	// if we're here, we need to create the property post
+	// if we're here, we need to create the floorplan post
 	$new_floorplan_post = array(
 		'post_title' => $floorplan_id,
 		'post_type' => 'floorplans',

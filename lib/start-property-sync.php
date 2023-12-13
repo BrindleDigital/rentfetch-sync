@@ -28,28 +28,59 @@ function rfs_perform_syncs() {
 		as_unschedule_all_actions( 'rfs_do_sync' );
 		return;
 	}
-		
-	// get the properties for yardi, then turn it into an array
-	$properties = get_option( 'rentfetch_options_yardi_integration_creds_yardi_property_code' );
-	$properties = str_replace( ' ', '', $properties );
-	$properties = explode( ',', $properties );
 	
-	// limit array to first 10 items
-	// $properties = array_slice( $properties, 0, 3 );
+	// Get the enabled integrations
+	$enabled_integrations = get_option( 'rentfetch_options_enabled_integrations' );	
 	
-	foreach( $properties as $property ) {
-		$args = [
-			'integration' => 'yardi',
-			'property_id' => $property,
-			'credentials' => rfs_get_credentials(),
-		];
+	//* Yardi
+	
+	if ( in_array( 'yardi', $enabled_integrations ) ) {
 		
-		if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
-			// need to pass the $args inside an array
-			// as_enqueue_async_action( 'rfs_do_sync', array( $args ), 'rentfetch' );
-			as_schedule_recurring_action( time(), '3600', 'rfs_do_sync', array( $args ), 'rentfetch' );
-		}	
+		// get the properties for yardi, then turn it into an array
+		$yardi_properties = get_option( 'rentfetch_options_yardi_integration_creds_yardi_property_code' );
+		$yardi_properties = str_replace( ' ', '', $yardi_properties );
+		$yardi_properties = explode( ',', $yardi_properties );
+			
+		foreach( $yardi_properties as $yardi_property ) {
+			$args = [
+				'integration' => 'yardi',
+				'property_id' => $yardi_property,
+				'credentials' => rfs_get_credentials(),
+			];
+			
+			if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
+				// need to pass the $args inside an array
+				// as_enqueue_async_action( 'rfs_do_sync', array( $args ), 'rentfetch' );
+				as_schedule_recurring_action( time(), '3600', 'rfs_do_sync', array( $args ), 'rentfetch' );
+			}	
+		}
+		
 	}
+	
+	//* Realpage
+	
+	if ( in_array( 'realpage', $enabled_integrations ) ) {
+		
+		// get the properties for yardi, then turn it into an array
+		$realpage_properties = get_option( 'rentfetch_options_realpage_integration_creds_realpage_site_ids' );
+		$realpage_properties = str_replace( ' ', '', $realpage_properties );
+		$realpage_properties = explode( ',', $realpage_properties );
+			
+		foreach( $realpage_properties as $realpage_property ) {
+			$args = [
+				'integration' => 'realpage',
+				'property_id' => $realpage_property,
+				'credentials' => rfs_get_credentials(),
+			];
+			
+			if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
+				// need to pass the $args inside an array
+				// as_enqueue_async_action( 'rfs_do_sync', array( $args ), 'rentfetch' );
+				as_schedule_recurring_action( time(), '3600', 'rfs_do_sync', array( $args ), 'rentfetch' );
+			}	
+		}
+	}
+	
 	
 }
 
@@ -68,6 +99,11 @@ function rfs_sync( $args ) {
 		case 'yardi':
 			
 			rfs_do_yardi_sync( $args );
+						
+			break;
+		case 'realpage':
+			
+			rfs_do_realpage_sync( $args );
 						
 			break;
 		case 'entrata':

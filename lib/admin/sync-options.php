@@ -137,14 +137,14 @@ function rent_fetch_settings_sync() {
 				</label>
 				<p class="description">Adds a lightbox form on the single properties template which can send leads directly to the Yardi API.</p>
 			</div> -->
-			<div class="white-box">
+			<!-- <div class="white-box">
 				<label for="rentfetch_options_yardi_integration_creds_yardi_username">Yardi Username</label>
 				<input type="text" name="rentfetch_options_yardi_integration_creds_yardi_username" id="rentfetch_options_yardi_integration_creds_yardi_username" value="<?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_username' ) ); ?>">
 			</div>
 			<div class="white-box">
 				<label for="rentfetch_options_yardi_integration_creds_yardi_password">Yardi Password</label>
 				<input type="text" name="rentfetch_options_yardi_integration_creds_yardi_password" id="rentfetch_options_yardi_integration_creds_yardi_password" value="<?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_password' ) ); ?>">
-			</div>
+			</div> -->
 		</div>
 	</div>
 	

@@ -1,3 +1,7 @@
+## 0.2
+
+-   Adding base functionality for RealPage (floorplans sync, units sync pulls in units but is not yet updating meta information)
+
 ## 0.1.3
 
 -   Removing a few unused fields from syncing
