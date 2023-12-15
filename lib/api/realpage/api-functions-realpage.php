@@ -2,7 +2,7 @@
 
 function rfs_do_realpage_sync( $args ) {
 	
-	//~ With just the property ID, we can get property data, property images, and the floorplan data.
+	//~ With just the property ID, we can figure out if we need to make a new post
 	// create a new post if needed, adding the post ID to the args if we do (don't need any API calls for this)
 	$args = rfs_maybe_create_property( $args );
 	
@@ -30,21 +30,14 @@ function rfs_do_realpage_sync( $args ) {
 	
 	// We have a units API that returns all of the units for a property, so we can just cycle through those
 	$units_data = rfs_realpage_get_unit_data( $args );
-	
-	// console_log( $units_data );
-	
+		
 	foreach ( $units_data as $unit ) {
-		
-		console_log( $unit );
-		
-		
+				
 		if ( !isset( $unit['FloorPlan']['FloorPlanID'] ) )
 			continue;
 				
 		$args['floorplan_id'] = intval( $unit['FloorPlan']['FloorPlanID'] );
-		
-		console_log( $args );
-		
+				
 		// skip if there's no unit id
 		if ( !isset( $unit['Address']['UnitID'] ) )
 			continue;
@@ -54,9 +47,15 @@ function rfs_do_realpage_sync( $args ) {
 		
 		$args = rfs_maybe_create_unit( $args );
 		
-		// rfs_realpage_update_unit_meta( $args, $unit );
+		// TODO update the unit meta
+		rfs_realpage_update_unit_meta( $args, $unit );
 		
 	}
+	
+	// we've already updated the units, but we need to update the floorplan availability based on the units
+	rfs_realpage_update_floorplan_availability_from_units( $args, $units_data );
+	
+	
 }
 
 function rfs_realpage_get_floorplan_data( $args ) {
