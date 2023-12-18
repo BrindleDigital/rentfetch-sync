@@ -1,0 +1,3 @@
+[submodule "vendor/surecart"]
+	path = vendor/surecart
+	url = https://github.com/surecart/wordpress-sdk.git
