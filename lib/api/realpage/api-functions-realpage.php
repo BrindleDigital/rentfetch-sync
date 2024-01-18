@@ -175,6 +175,11 @@ function rfs_realpage_get_unit_data( $args ) {
 	$json = json_encode($xml);
 	$responseArray = json_decode($json,true);
 	$units_data = $responseArray['soapBody']['ListResponse']['ListResult']['UnitObject'];
+	
+	// the API returns a single unit as an array, but multiple units as an array of arrays, so we need to make sure we're always working with an array of arrays
+	// So if it's giving us a singe unit, turn it into an array of one unit
+	if ( isset( $units_data['PropertyNumberID'] ) )
+		$units_data = array( $units_data );
 		
 	return $units_data;
 

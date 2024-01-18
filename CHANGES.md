@@ -1,3 +1,7 @@
+## 0.3.3
+
+-   Bugfix: The Realpage API returns an array of arrays for units when there are multiple for properties, but inconsistently it returns a single array (not nested) there's just one. This was causing our logic to fail when saving availability data. Added code to detect this and convert it into an array of arrays.
+
 ## 0.3.2
 
 -   Bugfix: Floorplans not saving their available units when being synced from RealPage
