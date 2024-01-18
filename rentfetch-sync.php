@@ -3,7 +3,7 @@
 	Plugin Name: Rent Fetch Sync
 	Plugin URI: https://github.com/jonschr/rentfetch-sync
 	Description: An addon for Rent Fetch that syncs properties, floorplans, and units 
-	Version: 0.3.1
+	Version: 0.3.2
 	Author: Brindle Digital
 	Author URI: https://www.brindledigital.com/
 
@@ -24,7 +24,7 @@ if ( !defined( 'ABSPATH' ) ) {
 }
 
 // Define the version of the plugin
-define ( 'RENTFETCHSYNC_VERSION', '0.3.1' );
+define ( 'RENTFETCHSYNC_VERSION', '0.3.2' );
 
 // Plugin directory
 define( 'RENTFETCHSYNC_DIR', plugin_dir_path( __FILE__ ) );
@@ -115,7 +115,7 @@ function rfs_start_sync_single_property() {
 	// RealPage doesn't have any property information or photos
 	
 	// define what to sync
-	rfs_sync_single_property( $property_id = '4818644', $integration = 'realpage' );
+	rfs_sync_single_property( $property_id = '4818710', $integration = 'realpage' );
 	
 }
 // add_action( 'wp_loaded', 'rfs_start_sync_single_property' );

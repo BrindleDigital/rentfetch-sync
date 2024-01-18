@@ -1,3 +1,8 @@
+## 0.3.2
+
+-   Bugfix: Floorplans not saving their available units when being synced from RealPage
+-   Bugfix: Floorplans not saving their available units as 0 when there are no units in the unitslist API (null value breaks some searches)
+
 ## 0.3
 
 -   Adding Surecart functionality

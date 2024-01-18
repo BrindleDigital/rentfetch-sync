@@ -64,6 +64,7 @@ function rfs_realpage_update_floorplan_meta( $args, $floorplan_data ) {
 		'maximum_rent' => floatval( $floorplan_data['RentMax'] ),
 		'maximum_sqft' => floatval( $floorplan_data['GrossSquareFootage'] ),
 		'minimum_sqft' => floatval( $floorplan_data['RentableSquareFootage'] ),
+		'available_units' => 0,
 		'updated' => current_time('mysql'),
 		'api_error' => 'Updated successfully',
 		'api_response' => $api_response,
@@ -149,6 +150,7 @@ function rfs_realpage_update_unit_meta( $args, $unit ) {
 		'deposit' => floatval( $unit['DepositAmount'] ),
 		'sqrft' => floatval( $unit['UnitDetails']['RentSqFtCount'] ),
 		'api_response' => $api_response,
+		'unit_source' => 'realpage',
 	];
 	
 	foreach ( $meta as $key => $value ) { 
@@ -189,9 +191,7 @@ function rfs_realpage_update_floorplan_availability_from_units( $args, $units_da
 			}
 		}
 	}
-	
-	console_log( $floorplan_data );
-	
+		
 	// let's first set the availability and date of all of the floorplans for this property to have null availability and date
 	$floorplans_args = array(
 		'post_type' => 'floorplans',
@@ -199,7 +199,7 @@ function rfs_realpage_update_floorplan_availability_from_units( $args, $units_da
 		'meta_query' => array(
 			'relation' => 'AND',
 			array(
-				'key' => 'integration',
+				'key' => 'floorplan_source',
 				'value' => 'realpage',
 			),
 			array(
@@ -210,20 +210,22 @@ function rfs_realpage_update_floorplan_availability_from_units( $args, $units_da
 	);
 	
 	$floorplans_query = new WP_Query( $floorplans_args );
-		
+			
 	if( $floorplans_query->have_posts() ) {
 		
 		while( $floorplans_query->have_posts() ): $floorplans_query->the_post();
 		
 			// get the floorplan ID
 			$floorplan_id = get_post_meta( get_the_ID(), 'floorplan_id', true );
-			
+						
 			// look at the array of floorplan data and see if there's a match
 			if ( isset( $floorplan_data[ $floorplan_id ] ) ) {
+				$available_units = $floorplan_data[ $floorplan_id ]['available_units'];
+				$availability_date = $floorplan_data[ $floorplan_id ]['availability_date'];
 				
 				// if there is, update the post meta with the availability and date
-				$success = update_post_meta( get_the_ID(), 'available_units', $floorplan_data[ $floorplan_id ]['available_units'] );
-				$success = update_post_meta( get_the_ID(), 'availability_date', $floorplan_data[ $floorplan_id ]['availability_date'] );
+				$success = update_post_meta( get_the_ID(), 'available_units', $available_units );
+				$success = update_post_meta( get_the_ID(), 'availability_date', $availability_date );
 				
 			} else {
 				
