@@ -26,6 +26,8 @@ function rfs_perform_syncs() {
 	$data_sync_enabled = get_option( 'rentfetch_options_data_sync' );
 	if ( $data_sync_enabled != 'updatesync' ) {
 		as_unschedule_all_actions( 'rfs_do_sync' );
+		as_unschedule_all_actions( 'rfs_yardi_delete_orphans' );
+		
 		return;
 	}
 	
@@ -40,7 +42,13 @@ function rfs_perform_syncs() {
 		$yardi_properties = get_option( 'rentfetch_options_yardi_integration_creds_yardi_property_code' );
 		$yardi_properties = str_replace( ' ', '', $yardi_properties );
 		$yardi_properties = explode( ',', $yardi_properties );
-			
+				
+		// remove orphaned properties, floorplans, and units (this only deletes properties that are no longer in the settings and their associated floorplans and units)
+		if ( false === as_has_scheduled_action( 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' ) ) {
+			as_schedule_recurring_action( time(), '3600', 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' );
+		}	
+		
+		// cycle through the properties and schedule a sync for each one			
 		foreach( $yardi_properties as $yardi_property ) {
 			$args = [
 				'integration' => 'yardi',

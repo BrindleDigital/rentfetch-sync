@@ -1,3 +1,7 @@
+## 0.3.4
+
+-   Fixed an issue where properties, units, and floorplans weren't being properly deleted when the property ID no longer appeared in the settings
+
 ## 0.3.3
 
 -   Bugfix: The Realpage API returns an array of arrays for units when there are multiple for properties, but inconsistently it returns a single array (not nested) there's just one. This was causing our logic to fail when saving availability data. Added code to detect this and convert it into an array of arrays.

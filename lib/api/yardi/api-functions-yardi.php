@@ -22,6 +22,9 @@ function rfs_do_yardi_sync( $args ) {
 	
 	// get all the floorplan data for this property
 	$floorplans_data = rfs_yardi_get_floorplan_data( $args );
+	
+	// remove availability for floorplans that no longer are found in the API (we don't delete these because Yardi sometimes doesn't show floorplans with zero availability)
+	rfs_remove_availability_orphan_yardi_floorplans( $floorplans_data, $property_data );
 					
 	//~ We'll need the floorplan ID to get the availablility information
 	foreach ( $floorplans_data as $floorplan ) {
@@ -58,7 +61,6 @@ function rfs_do_yardi_sync( $args ) {
 			
 		}
 		
-		// TODO remove the orphan floorplans (need to fix the rfs_delete_orphan_yardi_floorplans function)
 						
 	}
 }

@@ -166,7 +166,13 @@ function rfs_yardi_update_floorplan_availability( $args, $availability_data ) {
  * Remove any orphaned floorplans from WordPress
  *
  */
-function rfs_delete_orphan_yardi_floorplans( $floorplans, $property ) {
+function rfs_remove_availability_orphan_yardi_floorplans( $floorplans, $property ) {
+	
+	// console_log( 'Floorplans:');
+	// console_log( $floorplans );
+	
+	// console_log( 'Property:' );
+	// console_log( $property['PropertyData']['PropertyCode'] );
 		
 	//* get a list of floorplans that show up in the API
 	$floorplan_ids_from_api = array();
@@ -174,6 +180,13 @@ function rfs_delete_orphan_yardi_floorplans( $floorplans, $property ) {
 		$floorplan_ids_from_api[] = $floorplan[ 'FloorplanId' ];
 	}
 	
+	if ( isset( $property['PropertyData']['PropertyCode'] ) ) {
+		$property_id = $property['PropertyData']['PropertyCode'];
+	} else {
+		// if we don't actually have a property ID, bail (we can't do anything without it)
+		return;
+	}
+		
 	//* get a list of floorplans currently in WordPress
 	$floorplan_query_args = array(
 		'post_type' => 'floorplans',
@@ -187,8 +200,8 @@ function rfs_delete_orphan_yardi_floorplans( $floorplans, $property ) {
 					'value' => 'yardi',
 				),
 				array(
-					'key'   => 'voyager_property_code',
-					'value' => $property,
+					'key'   => 'property_id',
+					'value' => $property_id,
 				),
 			),
 		),
@@ -197,13 +210,13 @@ function rfs_delete_orphan_yardi_floorplans( $floorplans, $property ) {
 	$floorplans_in_wordpress = get_posts( $floorplan_query_args );
 		
 	// //* Testing
-	// echo 'From API: <br/>';
-	// var_dump( $floorplan_ids_from_api );
+	// console_log( 'From API:' );
+	// console_log( $floorplan_ids_from_api );
 	
-	// echo 'From WordPress: <br/>';
+	// console_log( 'From WordPress:' );
 	// foreach( $floorplans_in_wordpress as $floorplan_in_wordpress ) {
 	//     $floorplan_id_in_wordpress = get_post_meta( $floorplan_in_wordpress->ID, 'floorplan_id', true );
-	//     echo $floorplan_id_in_wordpress . '<br/>';
+	//     console_log( $floorplan_id_in_wordpress );
 	// }
 	
 	//* loop through each of those in WordPress and delete any that aren't in the API
@@ -220,4 +233,99 @@ function rfs_delete_orphan_yardi_floorplans( $floorplans, $property ) {
 		}
 	}
 		
+}
+
+/**
+ * Remove any orphaned properties, floorplans, and units from WordPress (which aren't in the settings)
+ */
+add_action( 'rfs_yardi_do_delete_orphans', 'rfs_yardi_delete_orphans', 10, 1 );
+function rfs_yardi_delete_orphans( $yardi_properties_in_settings_box ) {
+		
+	if ( !is_array( $yardi_properties_in_settings_box ) )
+		return;
+	
+	//* Properties
+	$property_deletion_query_args = array(
+		'post_type' => 'properties',
+		'posts_per_page' => -1,
+		'post_status' => 'publish',
+		'meta_query' => array(
+			array(
+				'relation' => 'AND',
+				array(
+					'key' => 'property_source',
+					'value' => 'yardi',
+				),
+				array(
+					'key'   => 'property_id',
+					'value' => $yardi_properties_in_settings_box,
+					'compare' => 'NOT IN',
+				),
+			),
+		),
+	);
+	
+	// delete all properties found
+	$properties_in_wordpress_not_in_settings = get_posts( $property_deletion_query_args );
+	
+	foreach ( $properties_in_wordpress_not_in_settings as $post_in_wordpress ) {
+		wp_delete_post( $post_in_wordpress->ID, true );
+	}
+	
+	//* Floorplans
+	$floorplan_deletion_query_args = array(
+		'post_type' => 'floorplans',
+		'posts_per_page' => -1,
+		'post_status' => 'publish',
+		'meta_query' => array(
+			array(
+				'relation' => 'AND',
+				array(
+					'key' => 'floorplan_source',
+					'value' => 'yardi',
+				),
+				array(
+					'key'   => 'property_id',
+					'value' => $yardi_properties_in_settings_box,
+					'compare' => 'NOT IN',
+				),
+			),
+		),
+	);
+	
+	// delete all floorplans found
+	$floorplans_in_wordpress_not_in_settings = get_posts( $floorplan_deletion_query_args );
+	
+	foreach ( $floorplans_in_wordpress_not_in_settings as $post_in_wordpress ) {
+		wp_delete_post( $post_in_wordpress->ID, true );
+	}
+	
+	//* Units
+	$unit_deletion_query_args = array(
+		'post_type' => 'units',
+		'posts_per_page' => -1,
+		'post_status' => 'publish',
+		'meta_query' => array(
+			array(
+				'relation' => 'AND',
+				array(
+					'key' => 'unit_source',
+					'value' => 'yardi',
+				),
+				array(
+					'key'   => 'property_id',
+					'value' => $yardi_properties_in_settings_box,
+					'compare' => 'NOT IN',
+				),
+			),
+		),
+	);
+	
+	// delete all units found
+	$units_in_wordpress_not_in_settings = get_posts( $unit_deletion_query_args );
+	
+	foreach ( $units_in_wordpress_not_in_settings as $post_in_wordpress ) {
+		wp_delete_post( $post_in_wordpress->ID, true );
+	}
+	
 }
