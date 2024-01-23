@@ -29,6 +29,6 @@ add_action( 'wp_loaded', 'rentfetch_check_actionscheduler_tables' );
 
 function rentfetch_database_tables_missing_notice() {
 	echo '<div class="notice notice-error is-dismissible">';
-	echo '<p>' . __( '<strong>Rent Fetch:</strong> The Action Scheduler tables appear to be missing. Please <a href="/wp-admin/tools.php?page=action-scheduler">vist the Action Scheduler admin page</a> to regenerate those.', 'rentfetch' ) . '</p>';
+	echo '<p>' . esc_html__( '<strong>Rent Fetch:</strong> The Action Scheduler tables appear to be missing. Please <a href="/wp-admin/tools.php?page=action-scheduler">vist the Action Scheduler admin page</a> to regenerate those.', 'rentfetch' ) . '</p>';
 	echo '</div>';
 }
