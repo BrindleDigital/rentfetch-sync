@@ -1,3 +1,7 @@
+## 0.3.5
+
+-   Updating prefixes and page names
+
 ## 0.3.4
 
 -   Fixed an issue where properties, units, and floorplans weren't being properly deleted when the property ID no longer appeared in the settings
