@@ -54,7 +54,7 @@ $client->set_textdomain( 'rentfetch-sync' );
 $client->settings()->add_page( 
 	[
 	'type'                 => 'submenu', // Can be: menu, options, submenu.
-	'parent_slug'          => 'rent_fetch_options', // add your plugin menu slug.
+	'parent_slug'          => 'rentfetch-options', // add your plugin menu slug.
 	'page_title'           => 'Manage License',
 	'menu_title'           => 'Manage License',
 	'capability'           => 'manage_options',
@@ -62,7 +62,7 @@ $client->settings()->add_page(
 	'icon_url'             => '',
 	'position'             => null,
 	'parent_slug'          => '',
-	'activated_redirect'   => admin_url( 'admin.php?page=rent_fetch_options' ), // should you want to redirect on activation of license.
+	'activated_redirect'   => admin_url( 'admin.php?page=rentfetch-options' ), // should you want to redirect on activation of license.
 	// 'deactivated_redirect' => admin_url( 'admin.php?page=my-plugin-deactivation-page' ), // should you want to redirect on detactivation of license.
 	] 
 );
@@ -71,7 +71,7 @@ $client->settings()->add_page(
 function rentfetch_sync_options_page() {
 	
 	add_submenu_page(
-		'rent_fetch_options', // Parent menu slug.
+		'rentfetch-options', // Parent menu slug.
 		'Rentfetch Sync Licensing', // Page title.
 		'Sync Licensing', // Menu title.
 		'manage_options', // Capability required to access the menu.
