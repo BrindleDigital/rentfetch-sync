@@ -1,3 +1,7 @@
+## 0.4.0
+
+-   Adding update capability
+
 ## 0.3.5
 
 -   Updating prefixes and page names
