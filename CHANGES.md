@@ -1,6 +1,12 @@
+## 0.4.1
+
+-   Updating RealPage sync to pull unit information.
+-   Updating RealPage sync to bubble unit pricing data up to the floorplan level.
+-   Starting on code standard review.
+
 ## 0.4.0
 
--   Adding update capability
+-   Adding update capability for the plugin (for Rent Fetch Sync).
 
 ## 0.3.5
 
