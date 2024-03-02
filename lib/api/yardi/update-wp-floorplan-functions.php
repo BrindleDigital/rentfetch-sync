@@ -168,11 +168,11 @@ function rfs_yardi_update_floorplan_availability( $args, $availability_data ) {
  */
 function rfs_remove_availability_orphan_yardi_floorplans( $floorplans, $property ) {
 	
-	// console_log( 'Floorplans:');
-	// console_log( $floorplans );
+	// rentfetch_console_log( 'Floorplans:');
+	// rentfetch_console_log( $floorplans );
 	
-	// console_log( 'Property:' );
-	// console_log( $property['PropertyData']['PropertyCode'] );
+	// rentfetch_console_log( 'Property:' );
+	// rentfetch_console_log( $property['PropertyData']['PropertyCode'] );
 		
 	//* get a list of floorplans that show up in the API
 	$floorplan_ids_from_api = array();
@@ -210,13 +210,13 @@ function rfs_remove_availability_orphan_yardi_floorplans( $floorplans, $property
 	$floorplans_in_wordpress = get_posts( $floorplan_query_args );
 		
 	// //* Testing
-	// console_log( 'From API:' );
-	// console_log( $floorplan_ids_from_api );
+	// rentfetch_console_log( 'From API:' );
+	// rentfetch_console_log( $floorplan_ids_from_api );
 	
-	// console_log( 'From WordPress:' );
+	// rentfetch_console_log( 'From WordPress:' );
 	// foreach( $floorplans_in_wordpress as $floorplan_in_wordpress ) {
 	//     $floorplan_id_in_wordpress = get_post_meta( $floorplan_in_wordpress->ID, 'floorplan_id', true );
-	//     console_log( $floorplan_id_in_wordpress );
+	//     rentfetch_console_log( $floorplan_id_in_wordpress );
 	// }
 	
 	//* loop through each of those in WordPress and delete any that aren't in the API
