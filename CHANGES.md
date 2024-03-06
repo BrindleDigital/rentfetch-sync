@@ -1,3 +1,7 @@
+## 0.4.2
+
+-   Updating Yardi sync to pull in unit-level amenities
+
 ## 0.4.1
 
 -   Updating RealPage sync to pull unit information.
