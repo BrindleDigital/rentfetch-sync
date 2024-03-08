@@ -1,3 +1,7 @@
+## 0.4.3
+
+-   Fixing a couple of php notices that could occur on units when no RentMatrix exist in the Realpage sync
+
 ## 0.4.2
 
 -   Updating Yardi sync to pull in unit-level amenities

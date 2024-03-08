@@ -186,18 +186,18 @@ function rfs_realpage_update_unit_meta( $args, $unit ) {
 	}
 
 	// * Set the maximum rent to update.
-	if ( $maximum_rent_best_tomorrow ) {
+	if ( isset( $maximum_rent_best_tomorrow ) ) {
 		$maximum_rent_to_update = $maximum_rent_best_tomorrow;
-	} elseif ( $maximum_rent_best_overall ) {
+	} elseif ( isset( $maximum_rent_best_overall ) ) {
 		$maximum_rent_to_update = $maximum_rent_best_overall;
 	} else {
 		$maximum_rent_to_update = $maximum_rent_base_rent;
 	}
 
 	// * Set the minimum rent to update (our default is tomorrow, because that's what the client is generally comparing against).
-	if ( $minimum_rent_best_tomorrow ) {
+	if ( isset( $minimum_rent_best_tomorrow ) ) {
 		$minimum_rent_to_update = $minimum_rent_best_tomorrow;
-	} elseif ( $minimum_rent_best_overall ) {
+	} elseif ( isset( $minimum_rent_best_overall ) ) {
 		$minimum_rent_to_update = $minimum_rent_best_overall;
 	} else {
 		$minimum_rent_to_update = $minimum_rent_base_rent;

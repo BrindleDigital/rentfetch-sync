@@ -115,10 +115,10 @@ function rfs_start_sync_single_property() {
 	// RealPage doesn't have any property information or photos
 	
 	// define what to sync
-	rfs_sync_single_property( $property_id = 'p1585665', $integration = 'yardi' );
+	rfs_sync_single_property( $property_id = '4818683', $integration = 'realpage' );
 	
 }
-// add_action( 'wp_loaded', 'rfs_start_sync_single_property' );
+// add_action( 'wp_footer', 'rfs_start_sync_single_property' );
 
 // Load Plugin Update Checker.
 require RENTFETCHSYNC_DIR . 'vendor/plugin-update-checker/plugin-update-checker.php';
