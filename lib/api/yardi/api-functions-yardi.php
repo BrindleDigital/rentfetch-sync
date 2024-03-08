@@ -78,14 +78,14 @@ function rfs_yardi_get_property_data( $args ) {
 	$property_id = $args['property_id']; // Add this line to get the property_id
 
 	// Do the API request
-    $url = sprintf( 
+	$url = sprintf( 
 		'https://api.rentcafe.com/rentcafeapi.aspx?requestType=property&type=marketingData&apiToken=%s&PropertyCode=%s',
 		$yardi_api_key, 
 		$property_id
 	);
-    
-    $data = file_get_contents( $url ); // put the contents of the file into a variable        
-    $propertydata = json_decode( $data, true ); // decode the JSON feed
+	
+	$data = file_get_contents( $url ); // put the contents of the file into a variable        
+	$propertydata = json_decode( $data, true ); // decode the JSON feed
 
 	// we only want the first item in the array because this always returns everything inside an array
 	return $propertydata[0];
@@ -102,13 +102,13 @@ function rfs_yard_get_property_images( $args ) {
 	$property_id = $args['property_id']; 
 	
 	// Do the API request
-    $url = sprintf( 
+	$url = sprintf( 
 		'https://api.rentcafe.com/rentcafeapi.aspx?requestType=images&type=propertyImages&apiToken=%s&PropertyCode=%s', 
 		$yardi_api_key, 
 		$property_id 
 	);
 	
-    $property_images = file_get_contents( $url );
+	$property_images = file_get_contents( $url );
 	return $property_images;
 	
 }
@@ -123,14 +123,14 @@ function rfs_yardi_get_floorplan_data( $args ) {
 	$property_id = $args['property_id']; // Add this line to get the property_id
 
 	// Do the API request
-    $url = sprintf( 
+	$url = sprintf( 
 		'https://api.rentcafe.com/rentcafeapi.aspx?requestType=floorplan&apiToken=%s&PropertyCode=%s', 
 		$yardi_api_key, 
 		$property_id 
 	);
 	
-    $data = file_get_contents( $url ); // put the contents of the file into a variable        
-    $floorplandata = json_decode( $data, true ); // decode the JSON feed
+	$data = file_get_contents( $url ); // put the contents of the file into a variable        
+	$floorplandata = json_decode( $data, true ); // decode the JSON feed
 
 	// we only want the first item in the array because this always returns everything inside an array
 	return $floorplandata;
@@ -148,17 +148,17 @@ function rfs_yardi_get_floorplan_availability( $args ) {
 	$floorplan_id = $args['floorplan_id'];
 		
 	// Do the API request
-    $url = sprintf( 
+	$url = sprintf( 
 		'https://api.rentcafe.com/rentcafeapi.aspx?requestType=apartmentavailability&floorplanId=%s&apiToken=%s&PropertyCode=%s', 
 		$floorplan_id, 
 		$yardi_api_key, 
 		$property_id 
 	); // path to your JSON file
 	
-    $data = file_get_contents( $url ); // put the contents of the file into a variable        
-    
-    // process the data to get the date in yardi's format
-    $availability = json_decode( $data );  
+	$data = file_get_contents( $url ); // put the contents of the file into a variable        
+	
+	// process the data to get the date in yardi's format
+	$availability = json_decode( $data );  
 	
 	return $availability;
 	
@@ -179,25 +179,25 @@ function rfs_yardi_update_property_amenities( $args, $property_data ) {
 	$property_id = $args['wordpress_property_post_id'];
 	$taxonomy = 'amenities';
 	
-    // remove all of the current terms from $property_id
-    $term_ids = wp_get_object_terms( $property_id, $taxonomy, array( 'fields' => 'ids' ) );
+	// remove all of the current terms from $property_id
+	$term_ids = wp_get_object_terms( $property_id, $taxonomy, array( 'fields' => 'ids' ) );
 	$term_ids = array_map( 'intval', $term_ids );
 	wp_remove_object_terms( $property_id, $term_ids, $taxonomy );
 	
 	// wp_delete_object_term_relationships( $property_id, array( 'amenities' ) );
 	
 	// for each of those amenities, grab the name, then add it
-    foreach ( $amenities as $amenity ) {
+	foreach ( $amenities as $amenity ) {
 		
 		if ( !isset( $amenity['CustomAmenityName'] ) )
 			continue;
-        
-        // get the name
-        $name = $amenity['CustomAmenityName'];
-                
-        // this function checks if the amenity exists, creates it if not, then adds it to the post
-        rentfetch_set_post_term( $property_id, $name, 'amenities' );
-    }
+		
+		// get the name
+		$name = $amenity['CustomAmenityName'];
+				
+		// this function checks if the amenity exists, creates it if not, then adds it to the post
+		rentfetch_set_post_term( $property_id, $name, 'amenities' );
+	}
 	
 }
 
