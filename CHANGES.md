@@ -1,6 +1,7 @@
 ## 0.4.3
 
 -   Fixing a couple of php notices that could occur on units when no RentMatrix exist in the Realpage sync
+-   Adding a function to the RealPage sync to check for units that are no longer in the API and delete those
 
 ## 0.4.2
 

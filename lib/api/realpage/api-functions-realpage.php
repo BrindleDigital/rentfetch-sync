@@ -1,4 +1,13 @@
 <?php
+/**
+ * Realpage functions.
+ *
+ * @package rentfetch-sync
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
 
 /**
  * Do the RealPage sync.
@@ -67,6 +76,9 @@ function rfs_do_realpage_sync( $args ) {
 
 	// we've already updated the units, but we need to loop back through and update the floorplan prices based on the units.
 	rfs_realpage_update_floorplan_pricing_from_units( $args );
+	
+	// we now need to remove any units that are in WordPress showing an API connection to 'realpage' but aren't in the list of units.
+	rfs_realpage_remove_units_not_in_api( $units_data );
 }
 
 /**
