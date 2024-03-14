@@ -78,7 +78,7 @@ function rfs_do_realpage_sync( $args ) {
 	rfs_realpage_update_floorplan_pricing_from_units( $args );
 	
 	// we now need to remove any units that are in WordPress showing an API connection to 'realpage' but aren't in the list of units.
-	rfs_realpage_remove_units_not_in_api( $units_data );
+	rfs_realpage_remove_units_not_in_api( $args, $units_data );
 }
 
 /**

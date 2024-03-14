@@ -1,3 +1,7 @@
+## 0.4.5
+
+-   Bugfix: Realpage sites with multiple properties could mistakenly see units removed due to a regression in 0.4.3.
+
 ## 0.4.3
 
 -   Fixing a couple of php notices that could occur on units when no RentMatrix exist in the Realpage sync

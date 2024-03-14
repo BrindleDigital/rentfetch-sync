@@ -159,8 +159,10 @@ function rfs_realpage_update_unit_meta( $args, $unit ) {
  * Look through the units in WordPress and remove any that are in WordPress showing an API connection to 'realpage' but aren't in the list of units.
  *
  * @param array $units_data the units data that we pulled from the API.
+ * 
+ * @return void.
  */
-function rfs_realpage_remove_units_not_in_api( $units_data ) {
+function rfs_realpage_remove_units_not_in_api( $args, $units_data ) {
 
 	// for each unit in the units data, extract the UnitNumber, and add it to an array.
 	$unit_numbers = array();
@@ -185,9 +187,20 @@ function rfs_realpage_remove_units_not_in_api( $units_data ) {
 					'value'   => 'realpage',
 					'compare' => '=',
 				),
+				array(
+					'key'     => 'property_id',
+					'value'   => $args['property_id'],
+					'compare' => '=',
+				
+				),
 			),
 		)
 	);
+	
+	// bail if there aren't any units to delete
+	if ( ! $units_to_delete ) {
+		return;
+	}
 
 	// delete each of the units.
 	foreach ( $units_to_delete as $unit_to_delete ) {
