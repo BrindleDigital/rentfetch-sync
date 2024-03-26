@@ -94,8 +94,8 @@ function rfs_realpage_update_floorplan_availability_from_units( $args, $units_da
 
 	foreach ( $units_data as $unit ) {
 
-		if ( 'true' === $unit['Availability']['AvailableBit'] ) {
-			$floorplan_id = $unit['FloorPlan']['FloorPlanID'];
+		if ( 'true' === $unit['AvailableBit'] ) {
+			$floorplan_id = $unit['FloorplanID'];
 
 			// check if $floorplan_data[ $floorplan_id ]['available_units'][] is already set. If it is, just add 1. If not, set it to 1.
 			if ( ! isset( $floorplan_data[ $floorplan_id ]['available_units'] ) ) {
@@ -106,9 +106,9 @@ function rfs_realpage_update_floorplan_availability_from_units( $args, $units_da
 
 			// check if $floorplan_data[ $floorplan_id ]['availability_date'][] is already set. If it is, compare the dates and set it to the value of the one that's earlier. if it's not set, just set it to the date.
 			if ( ! isset( $floorplan_data[ $floorplan_id ]['availability_date'] ) ) {
-				$floorplan_data[ $floorplan_id ]['availability_date'] = $unit['Availability']['AvailableDate'];
+				$floorplan_data[ $floorplan_id ]['availability_date'] = $unit['AvailableDate'];
 			} else {
-				$floorplan_data[ $floorplan_id ]['availability_date'] = min( $floorplan_data[ $floorplan_id ]['availability_date'], $unit['Availability']['AvailableDate'] );
+				$floorplan_data[ $floorplan_id ]['availability_date'] = min( $floorplan_data[ $floorplan_id ]['availability_date'], $unit['AvailableDate'] );
 			}
 
 			// if $floorplan_data[ $floorplan_id ]['availability_date'] is in the past, set it to today instead.

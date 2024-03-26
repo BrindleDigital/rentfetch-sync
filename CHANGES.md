@@ -1,3 +1,9 @@
+## 0.4.6
+
+-   Removing test code to sync an invididual property. That really doesn't belong in the core plugin commented out (NOTE: no private data was included in this, just a property ID and the name of the integration; API keys were always stored in the database, and were never in the codebase of this plugin).
+-   Adding a new RealPage API for units, as the List units API is only showing currently-available units and we want to ensure that we have some future-available units in there as well.
+-   Reworking all functions related to the updating of floorplans based on the units API information (with the new units GetByProperty API)
+
 ## 0.4.5
 
 -   Bugfix: Realpage sites with multiple properties could mistakenly see units removed due to a regression in 0.4.3.
