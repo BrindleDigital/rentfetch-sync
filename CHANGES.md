@@ -1,3 +1,7 @@
+## 0.4.7
+
+-   Using the 'MadeReadyDate' instead of the 'AvailabilityDate' in RealPage, as those dates match more closly with the RealPage availability site.
+
 ## 0.4.6
 
 -   Removing test code to sync an invididual property. That really doesn't belong in the core plugin commented out (NOTE: no private data was included in this, just a property ID and the name of the integration; API keys were always stored in the database, and were never in the codebase of this plugin).

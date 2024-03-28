@@ -145,9 +145,9 @@ function rfs_realpage_update_unit_from_list_meta( $args, $unit ) {
 	$formatted_date = null;
 
 	// * If the unit has an AvailableDate, we need to process that to be like 1/25/2024
-	if ( isset( $unit['Availability']['AvailableDate'] ) ) {
+	if ( isset( $unit['Availability']['MadeReadyDate'] ) ) {
 
-		$available_date = $unit['Availability']['AvailableDate'];
+		$available_date = $unit['Availability']['MadeReadyDate'];
 
 		// Try to parse the date into a Unix timestamp.
 		$timestamp = strtotime( $available_date );
@@ -316,9 +316,9 @@ function rfs_realpage_update_unit_by_property_meta( $args, $unit ) {
 	$formatted_date = null;
 
 	// * If the unit has an AvailableDate, we need to process that to be like 1/25/2024
-	if ( isset( $unit['AvailableDate'] ) ) {
+	if ( isset( $unit['MadeReadyDate'] ) ) {
 
-		$available_date = $unit['AvailableDate'];
+		$available_date = $unit['MadeReadyDate'];
 
 		// Try to parse the date into a Unix timestamp
 		$timestamp = strtotime( $available_date );
