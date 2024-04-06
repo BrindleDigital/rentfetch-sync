@@ -26,7 +26,7 @@ function rfs_perform_syncs() {
 	$data_sync_enabled = get_option( 'rentfetch_options_data_sync' );
 	if ( $data_sync_enabled != 'updatesync' ) {
 		as_unschedule_all_actions( 'rfs_do_sync' );
-		as_unschedule_all_actions( 'rfs_yardi_delete_orphans' );
+		as_unschedule_all_actions( 'rfs_yardi_do_delete_orphans' );
 		
 		return;
 	}

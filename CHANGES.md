@@ -1,3 +1,7 @@
+## 0.4.8
+
+-   Bugfix: updating the name of rfs_yardi_delete_orphans to rfs_yardi_do_delete_orphans for purposes of removing this action from the schedule when the sync is paused. This was missed in an earlier update, and the bad thing that could happen here is unexpected reversions to a previous iteration of the property list in certain situations.
+
 ## 0.4.7
 
 -   Using the 'MadeReadyDate' instead of the 'AvailabilityDate' in RealPage, as those dates match more closly with the RealPage availability site.
