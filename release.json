@@ -1,0 +1,15 @@
+{
+	"name": "Rent Fetch Sync",
+	"slug": "rentfetch-sync",
+	"author": "<a href='https://brindledigital.com'>Brindle Digital</a>",
+	"author_profile": "https://brindledigital.com",
+	"version": "0.4.9",
+	"requires": "6.5",
+	"tested": "6.6",
+	"requires_php": "7.4",
+	"sections": {
+		"description": "This is my plugin description.",
+		"changelog": "<h4>1.0 –  July 20, 2022</h4><ul><li>Bug fixes.</li><li>Initital release.</li></ul>",
+		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
+	}
+}

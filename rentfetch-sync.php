@@ -3,7 +3,7 @@
 	Plugin Name: Rent Fetch Sync
 	Plugin URI: https://github.com/jonschr/rentfetch-sync
 	Description: An addon for Rent Fetch that syncs properties, floorplans, and units 
-	Version: 0.4.8
+	Version: 0.4.9
 	Author: Brindle Digital
 	Author URI: https://www.brindledigital.com/
 
@@ -24,7 +24,7 @@ if ( !defined( 'ABSPATH' ) ) {
 }
 
 // Define the version of the plugin
-define ( 'RENTFETCHSYNC_VERSION', '0.4.8' );
+define ( 'RENTFETCHSYNC_VERSION', '0.4.9' );
 
 // Plugin directory
 define( 'RENTFETCHSYNC_DIR', plugin_dir_path( __FILE__ ) );
@@ -44,8 +44,8 @@ if ( ! class_exists( 'SureCart\Licensing\Client' ) ) {
 	require_once RENTFETCHSYNC_DIR . '/vendor/surecart/src/Client.php';
 }
 
-// initialize client with your plugin name.
-$client = new \SureCart\Licensing\Client( 'Rent Fetch Sync', __FILE__ );
+// initialize client with your plugin name and your public token.
+$client = new \SureCart\Licensing\Client( 'Rent Fetch Sync', 'pt_nw8Xnhfrs3tHBZZUFpdDRZ1q', __FILE__ );
 
 // set your textdomain.
 $client->set_textdomain( 'rentfetch-sync' );
@@ -55,30 +55,16 @@ $client->settings()->add_page(
 	[
 	'type'                 => 'submenu', // Can be: menu, options, submenu.
 	'parent_slug'          => 'rentfetch-options', // add your plugin menu slug.
-	'page_title'           => 'Manage License',
-	'menu_title'           => 'Manage License',
+	'page_title'           => 'Manage Sync license',
+	'menu_title'           => 'Manage Sync license',
 	'capability'           => 'manage_options',
-	'menu_slug'            => 'rentfetch-sync-manage-license',
+	'menu_slug'            => $client->slug . '-manage-license',
 	'icon_url'             => '',
 	'position'             => null,
-	'parent_slug'          => '',
 	'activated_redirect'   => admin_url( 'admin.php?page=rentfetch-options' ), // should you want to redirect on activation of license.
 	// 'deactivated_redirect' => admin_url( 'admin.php?page=my-plugin-deactivation-page' ), // should you want to redirect on detactivation of license.
 	] 
 );
-
-// Surecart doesn't seem to actually add this by default, so we'll add it here
-function rentfetch_sync_options_page() {
-	
-	add_submenu_page(
-		'rentfetch-options', // Parent menu slug.
-		'Rentfetch Sync Licensing', // Page title.
-		'Sync Licensing', // Menu title.
-		'manage_options', // Capability required to access the menu.
-		'rentfetch-sync-manage-license', // Menu slug.
-	);
-}
-add_action( 'admin_menu', 'rentfetch_sync_options_page', 999 );
 
 ///////////////////
 // FILE INCLUDES //

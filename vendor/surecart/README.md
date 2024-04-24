@@ -56,6 +56,10 @@ Sections will require a `changelog` property with an html string of your changel
 }
 ```
 
+### ⚠️ Important
+In order for updates to work, the `slug` in release.json must match the **folder name** of your plugin or theme. 
+So if for example your plugin folder name is `ralphs-biscuits`, the `slug` in release.json must also be `ralphs-biscuits`.
+
 
 ## Usage Example
 
@@ -101,7 +105,7 @@ Make sure you call this function directly, never use any action hook to call thi
 ## More Usage
 
 ```php
-$client = new \SureCart\Licensing\Client( 'Twenty Twelve', __FILE__ );
+$client = new \SureCart\Licensing\Client( 'Twenty Twelve', 'pt_jzieNYQdE5LMAxksscgU6H4', __FILE__ );
 ```
 
 ## Set textdomain
