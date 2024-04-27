@@ -3,7 +3,7 @@
 	"slug": "rentfetch-sync",
 	"author": "<a href='https://brindledigital.com'>Brindle Digital</a>",
 	"author_profile": "https://brindledigital.com",
-	"version": "0.4.9",
+	"version": "0.4.10",
 	"requires": "6.5",
 	"tested": "6.6",
 	"requires_php": "7.4",

@@ -1,3 +1,7 @@
+## 0.4.10
+
+-   Adding sync term settings
+
 ## 0.4.9
 
 -   Add release.json for Surecart

@@ -42,20 +42,24 @@ function rentfetch_settings_sync() {
 			</ul>
 		</div>
 	</div>
-	
-	<!-- <div class="row">
+		
+	<div class="row">
 		<div class="column">
-			<label for="rentfetch_options_sync_term">Sync Term</label>
+			<label for="rentfetch_options_sync_timeline">Sync timeline</label>
+			
 		</div>
 		<div class="column">
-			<p class="description">If you're seeing repeated API failures, pausing this temporarily can often clean up zombie tasks that apply to properties no longer listed in your API settings. It can also serve to reset overdue tasks in the event that API functionality was unavailable for a period (for example, on a staging site behind basic authentication).</p>
-			<select name="rentfetch_options_sync_term" id="rentfetch_options_sync_term" value="<?php echo esc_attr( get_option( 'rentfetch_options_sync_term' ) ); ?>">
-				<option value="paused" <?php selected( get_option( 'rentfetch_options_sync_term' ), 'paused' ); ?>>Paused</option>
-				<option value="hourly" <?php selected( get_option( 'rentfetch_options_sync_term' ), 'hourly' ); ?>>Hourly</option>
+			<p class="description">Select how often you'd like to sync data from the API</p>
+			<select name="rentfetch_options_sync_timeline" id="rentfetch_options_sync_timeline" value="<?php echo esc_attr( get_option( 'rentfetch_options_sync_timeline' ), '3600' ); ?>">
+				<option value="3600" <?php selected( get_option( 'rentfetch_options_sync_timeline' ), '3600' ); ?>>Hourly</option>
+				<option value="7200" <?php selected( get_option( 'rentfetch_options_sync_timeline' ), '7200' ); ?>>Every two hours</option>
+				<option value="21600" <?php selected( get_option( 'rentfetch_options_sync_timeline' ), '21600' ); ?>>Every six hours</option>
+				<option value="43200" <?php selected( get_option( 'rentfetch_options_sync_timeline' ), '43200' ); ?>>Every twelve hours</option>
+				<option value="86400" <?php selected( get_option( 'rentfetch_options_sync_timeline' ), '86400' ); ?>>Daily</option>
 			</select>
 		</div>
-	</div> -->
-	
+	</div>
+
 	<div class="row">
 		<div class="column">
 			<label for="rentfetch_options_enabled_integrations">Enabled Integrations</label>

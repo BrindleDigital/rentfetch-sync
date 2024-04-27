@@ -34,6 +34,9 @@ function rfs_perform_syncs() {
 	// Get the enabled integrations
 	$enabled_integrations = get_option( 'rentfetch_options_enabled_integrations' );	
 	
+	// Get the sync timeline, setting it to hourly as a default
+	$sync_time = get_option( 'rentfetch_options_sync_timeline', '3600' );
+		
 	//* Yardi
 	
 	if ( in_array( 'yardi', $enabled_integrations ) ) {
@@ -42,10 +45,10 @@ function rfs_perform_syncs() {
 		$yardi_properties = get_option( 'rentfetch_options_yardi_integration_creds_yardi_property_code' );
 		$yardi_properties = str_replace( ' ', '', $yardi_properties );
 		$yardi_properties = explode( ',', $yardi_properties );
-				
+
 		// remove orphaned properties, floorplans, and units (this only deletes properties that are no longer in the settings and their associated floorplans and units)
 		if ( false === as_has_scheduled_action( 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' ) ) {
-			as_schedule_recurring_action( time(), '3600', 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' );
+			as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' );
 		}	
 		
 		// cycle through the properties and schedule a sync for each one			
@@ -59,7 +62,7 @@ function rfs_perform_syncs() {
 			if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
 				// need to pass the $args inside an array
 				// as_enqueue_async_action( 'rfs_do_sync', array( $args ), 'rentfetch' );
-				as_schedule_recurring_action( time(), '3600', 'rfs_do_sync', array( $args ), 'rentfetch' );
+				as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_do_sync', array( $args ), 'rentfetch' );
 			}	
 		}
 		
@@ -84,7 +87,7 @@ function rfs_perform_syncs() {
 			if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
 				// need to pass the $args inside an array
 				// as_enqueue_async_action( 'rfs_do_sync', array( $args ), 'rentfetch' );
-				as_schedule_recurring_action( time(), '3600', 'rfs_do_sync', array( $args ), 'rentfetch' );
+				as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_do_sync', array( $args ), 'rentfetch' );
 			}	
 		}
 	}
