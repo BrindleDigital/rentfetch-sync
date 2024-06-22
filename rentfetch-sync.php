@@ -3,7 +3,7 @@
 	Plugin Name: Rent Fetch Sync
 	Plugin URI: https://github.com/jonschr/rentfetch-sync
 	Description: An addon for Rent Fetch that syncs properties, floorplans, and units 
-	Version: 0.4.10
+	Version: 0.4.11
 	Author: Brindle Digital
 	Author URI: https://www.brindledigital.com/
 
@@ -24,11 +24,25 @@ if ( !defined( 'ABSPATH' ) ) {
 }
 
 // Define the version of the plugin
-define ( 'RENTFETCHSYNC_VERSION', '0.4.10' );
+define ( 'RENTFETCHSYNC_VERSION', '0.4.11' );
 
 // Plugin directory
 define( 'RENTFETCHSYNC_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RENTFETCHSYNC_PATH', plugin_dir_url( __FILE__ ) );
+
+// Register deactivation hook
+register_deactivation_hook( __FILE__, 'rfs_deactivate_actions' );
+
+/**
+ * Cancel all scheduled actions on deactivation.
+ *
+ * @return void.
+ */
+function rfs_deactivate_actions() {
+	as_unschedule_all_actions( 'rfs_do_sync' );
+	as_unschedule_all_actions( 'rfs_yardi_do_delete_orphans' );
+}
+
 
 //////////////////////////////
 // INCLUDE ACTION SCHEDULER //

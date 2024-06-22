@@ -1,3 +1,8 @@
+## 0.4.11
+
+-   Adding a couple of escapes to the Yardi data when we're saving floorplans.
+-   Adding an action on plugin deactivation to cancel ongoing sync actions, so that we avoid situations where those actions attempt to run while Action Scheduler is not active.
+
 ## 0.4.10
 
 -   Adding sync term settings

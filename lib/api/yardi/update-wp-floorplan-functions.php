@@ -39,8 +39,8 @@ function rfs_yardi_update_floorplan_meta( $args, $floorplan_data ) {
 		
 	//* Update the title
 	$post_info = array(
-		'ID' => $args['wordpress_floorplan_post_id'],
-		'post_title' => $floorplan_data['FloorplanName'],
+		'ID' => (int) $args['wordpress_floorplan_post_id'],
+		'post_title' => esc_html( $floorplan_data['FloorplanName'] ),
 		'post_name' => sanitize_title( $floorplan_data['FloorplanName'] ), // update the permalink to match the new title
 	);
 	
