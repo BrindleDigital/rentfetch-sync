@@ -1,3 +1,7 @@
+## 0.4.12
+
+-   Removing unused options for Entrata and Appfolio, since those integrations aren't actually set up yet.
+
 ## 0.4.11
 
 -   Adding a couple of escapes to the Yardi data when we're saving floorplans.

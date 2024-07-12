@@ -93,24 +93,24 @@ function rentfetch_settings_sync() {
 						Yardi/RentCafe
 					</label>
 				</li>
-				<li>
+				<!-- <li>
 					<label>
-						<input type="checkbox" name="rentfetch_options_enabled_integrations[]" value="entrata" <?php checked( in_array( 'entrata', get_option( 'rentfetch_options_enabled_integrations', array() ) ) ); ?>>
+						<input type="checkbox" name="rentfetch_options_enabled_integrations[]" value="entrata" <?php // checked( in_array( 'entrata', get_option( 'rentfetch_options_enabled_integrations', array() ) ) ); ?>>
 						Entrata
 					</label>
-				</li>
+				</li> -->
 				<li>
 					<label>
 						<input type="checkbox" name="rentfetch_options_enabled_integrations[]" value="realpage" <?php checked( in_array( 'realpage', get_option( 'rentfetch_options_enabled_integrations', array() ) ) ); ?>>
 						RealPage
 					</label>
 				</li>
-				<li>
+				<!-- <li>
 					<label>
-						<input type="checkbox" name="rentfetch_options_enabled_integrations[]" value="appfolio" <?php checked( in_array( 'appfolio', get_option( 'rentfetch_options_enabled_integrations', array() ) ) ); ?>>
+						<input type="checkbox" name="rentfetch_options_enabled_integrations[]" value="appfolio" <?php // checked( in_array( 'appfolio', get_option( 'rentfetch_options_enabled_integrations', array() ) ) ); ?>>
 						Appfolio
 					</label>
-				</li>
+				</li> -->
 			</ul>
 		</div>
 	</div>
