@@ -29,6 +29,8 @@ define ( 'RENTFETCHSYNC_VERSION', '0.4.12' );
 // Plugin directory
 define( 'RENTFETCHSYNC_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RENTFETCHSYNC_PATH', plugin_dir_url( __FILE__ ) );
+define( 'RENTFETCHSYNC_FILE', __FILE__ );
+define( 'RENTFETCHSYNC_SURECART_PUBLIC_TOKEN', 'pt_nw8Xnhfrs3tHBZZUFpdDRZ1q' );
 
 // Register deactivation hook
 register_deactivation_hook( __FILE__, 'rfs_deactivate_actions' );
@@ -59,7 +61,7 @@ if ( ! class_exists( 'SureCart\Licensing\Client' ) ) {
 }
 
 // initialize client with your plugin name and your public token.
-$client = new \SureCart\Licensing\Client( 'Rent Fetch Sync', 'pt_nw8Xnhfrs3tHBZZUFpdDRZ1q', __FILE__ );
+$client = new SureCart\Licensing\Client( 'Rent Fetch Sync', RENTFETCHSYNC_SURECART_PUBLIC_TOKEN, __FILE__ );
 
 // set your textdomain.
 $client->set_textdomain( 'rentfetch-sync' );
@@ -79,6 +81,12 @@ $client->settings()->add_page(
 	// 'deactivated_redirect' => admin_url( 'admin.php?page=my-plugin-deactivation-page' ), // should you want to redirect on detactivation of license.
 	] 
 );
+
+// $activation = new SureCart\Licensing\Client( 'Rent Fetch Sync', 'pt_nw8Xnhfrs3tHBZZUFpdDRZ1q', __FILE__ );
+
+// print_r( $client );
+// echo $client->'public_token';
+// echo $client->'slug';
 
 ///////////////////
 // FILE INCLUDES //
