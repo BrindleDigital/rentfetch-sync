@@ -7,6 +7,20 @@
  */
 function rfs_check_sc_license() {
 	
+	// Check if the transient exists (this will autodelete whenever the sync settings are saved)
+	$properties_limit = get_transient( 'rentfetchsync_properties_limit' );
+	
+	// Clear the transient
+	// delete_transient('rentfetchsync_properties_limit');
+
+	// Check if the transient exists, and bail out if it does
+	if ( !empty($properties_limit) ) {
+		rentfetch_console_log( 'Transient exists: ' . $properties_limit ); 
+		// Transient exists, use the value
+		$properties_limit = (int) $properties_limit;
+		return $properties_limit;
+	}
+		
 	$license_info = get_option( 'rentfetchsync_license_options');
 
 	if ( $license_info && is_array( $license_info ) ) {
@@ -15,22 +29,25 @@ function rfs_check_sc_license() {
 		$activation_id = $license_info['sc_activation_id'];
 	}
 	
-	$activation_id_response = rfs_get_info_from_activation_id( $activation_id );
+	// $activation_id_response = rfs_get_info_from_activation_id( $activation_id );
 	$license_key_response = rfs_get_info_from_license_key( $license_key );
 	
 	$product_id = $license_key_response->product;
-	
 	$properties_limit = rfs_check_product_properties_number( $product_id );
 	
+	// Set the transient for rentfetchsync_properties_limit
+	set_transient( 'rentfetchsync_properties_limit', (int) $properties_limit, DAY_IN_SECONDS );
+
 	if ( $license_key_response->status === 'active' && $properties_limit ) {
 		add_action( 'admin_notices', 'rfs_notice_licensing_active' );
 	} else {
 		add_action( 'admin_notices', 'rfs_notice_licensing_inactive' );
 	}
 	
+	return $properties_limit;
 }
-add_action( 'rfs_do_check_sc_license', 'rfs_check_sc_license' );
-do_action( 'rfs_do_check_sc_license' );
+add_action( 'init', 'rfs_check_sc_license' );
+// do_action( 'rfs_do_check_sc_license' );
 
 /**
  * Check the number of properties allowed for the purchased product
@@ -64,11 +81,21 @@ function rfs_notice_licensing_inactive() {
 }
 
 function rfs_notice_licensing_active() {
-	?>x
-	<div class="notice notice-success is-dismissible">
-		<p><?php _e('Looks like you\'re all set! Syncing is enabled.', 'rentfetch-sync'); ?></p>
-	</div>
-	<?php
+	$properties_limit = (int) get_transient( 'rentfetchsync_properties_limit' );
+	rentfetch_console_log( $properties_limit );
+	if ( 1 === $properties_limit ) {
+		echo '<div class="notice notice-success is-dismissible">';
+			echo '<p>Your Rent Fetch Sync license level has been rechecked, and your license allows you to sync one property.</p>';
+		echo '</div>';
+	} elseif( 0 <= $properties_limit ) {		
+		echo '<div class="notice notice-success is-dismissible">';
+			printf( '<p>Your Rent Fetch Sync license level has been rechecked, and your license allows you to sync up to %s properties.</p>', $properties_limit );
+		echo '</div>';
+	} else {
+		echo '<div class="notice notice-error is-dismissible">';
+			echo '<p>Whoops! We couldn\'t find your license information. Please resave the sync settings page.</p>';
+		echo '</div>';
+	}
 }
 
 /**
