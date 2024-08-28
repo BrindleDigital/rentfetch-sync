@@ -1,3 +1,7 @@
+## 0.4.13
+
+-   Adding new license levels
+
 ## 0.4.12
 
 -   Removing unused options for Entrata and Appfolio, since those integrations aren't actually set up yet.

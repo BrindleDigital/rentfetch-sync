@@ -60,7 +60,11 @@ function rfs_check_product_properties_number( $product_id ) {
 	
 	$products = array(
 		'f550b18f-3b50-479a-9b9f-31f085f7802a' => 1, // Single property
-		'38757479-7914-4e9e-aacd-62f065ee9603' => 10, // 10 properties
+		'd1e45bb0-578b-4b49-8428-bda9373cf6b7' => 5, // 5 properties
+		'38757479-7914-4e9e-aacd-62f065ee9603' => 10,
+		'dbc217f1-7efe-427d-9e98-4d3d136eb9ae' => 20,
+		'd6de98f5-a462-49b8-978e-14882600f561' => 50,
+		'230d099b-29ae-4366-97a3-c005785eada3' => 100,
 		'20b869a1-cc96-4ebd-8b19-eaf43d4bac18' => 999999, // Unlimited properties
 	);
 	
