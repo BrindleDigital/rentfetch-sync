@@ -13,13 +13,22 @@ add_action( 'wp_loaded', 'rentfetch_remove_premium_functionality_notice' );
  */
 add_action( 'rentfetch_do_settings_general', 'rentfetch_settings_sync', 25 );
 function rentfetch_settings_sync() {
+	echo '<section id="rent-fetch-sync-page" class="options-container">';
+	echo '<ul style="display: none;">';
+	echo '</ul>';
+	echo '<div class="container">';
 	?>
+	<div class="header">
+		<h2 class="title">Rent Fetch General Settings</h2>
+		<p class="description">Let’s get started. Select from the options below to configure Rent Fetch and any integrations.</p>
+	</div>
+
 	<div class="row">
-		<div class="column">
+		<div class="section">
 			<label for="rentfetch_options_data_sync">Data Sync</label>
 			<p class="description">When you start syncing from data from your management software, it generally takes 5-15 seconds per property to sync. <strong>Rome wasn't built in a day.</strong></p>
 		</div>
-		<div class="column">
+		<div class="section">
 			<ul class="radio">
 				<li>
 					<label>
@@ -36,7 +45,8 @@ function rentfetch_settings_sync() {
 				<li>
 					<label>
 						<input type="radio" name="rentfetch_options_data_sync" id="rentfetch_options_data_sync" value="delete" <?php checked( get_option( 'rentfetch_options_data_sync' ), 'delete' ); ?>>
-						<span style="color: red;">Delete all data that's been pulled from a third-party API. <strong style="color: white; background-color: red; padding: 3px 5px; border-radius: 3px;">This will take place immediately upon saving. There is no undo.</strong></span>
+						<span style="color: red; display: block;">Delete all data that's been pulled from a third-party API. <br />
+						<strong style="color: white; background-color: red; padding: 3px 5px; border-radius: 3px; margin-top: 2px; display: block;">This will take place immediately upon saving. There is no undo.</strong></span>
 					</label>
 				</li>
 			</ul>
@@ -44,27 +54,51 @@ function rentfetch_settings_sync() {
 	</div>
 		
 	<div class="row">
-		<div class="column">
+		<div class="section">
 			<label for="rentfetch_options_sync_timeline">Sync timeline</label>
-			
+			<p class="description">Select how often you'd like to sync data from the API</p>			
 		</div>
-		<div class="column">
-			<p class="description">Select how often you'd like to sync data from the API</p>
-			<select name="rentfetch_options_sync_timeline" id="rentfetch_options_sync_timeline" value="<?php echo esc_attr( get_option( 'rentfetch_options_sync_timeline' ), '3600' ); ?>">
-				<option value="3600" <?php selected( get_option( 'rentfetch_options_sync_timeline' ), '3600' ); ?>>Hourly</option>
-				<option value="7200" <?php selected( get_option( 'rentfetch_options_sync_timeline' ), '7200' ); ?>>Every two hours</option>
-				<option value="21600" <?php selected( get_option( 'rentfetch_options_sync_timeline' ), '21600' ); ?>>Every six hours</option>
-				<option value="43200" <?php selected( get_option( 'rentfetch_options_sync_timeline' ), '43200' ); ?>>Every twelve hours</option>
-				<option value="86400" <?php selected( get_option( 'rentfetch_options_sync_timeline' ), '86400' ); ?>>Daily</option>
-			</select>
+		<div class="section">
+			<ul class="radio">
+				<li>
+					<label>
+						<input type="radio" name="rentfetch_options_sync_timeline" id="rentfetch_options_sync_timeline" value="3600" <?php checked(get_option('rentfetch_options_sync_timeline'), '3600'); ?> />
+						Hourly
+					</label>
+				</li>
+				<li>
+					<label>
+						<input type="radio" name="rentfetch_options_sync_timeline" id="rentfetch_options_sync_timeline" value="7200" <?php checked(get_option('rentfetch_options_sync_timeline'), '7200'); ?> />
+						Every two hours
+					</label>
+				</li>
+				<li>
+					<label>
+						<input type="radio" name="rentfetch_options_sync_timeline" id="rentfetch_options_sync_timeline" value="21600" <?php checked(get_option('rentfetch_options_sync_timeline'), '21600'); ?> />
+						Every six hours
+					</label>
+				</li>
+				<li>
+					<label>
+						<input type="radio" name="rentfetch_options_sync_timeline" id="rentfetch_options_sync_timeline" value="43200" <?php checked(get_option('rentfetch_options_sync_timeline'), '43200'); ?> />
+						Every twelve hours
+					</label>
+				</li>
+				<li>
+					<label>
+						<input type="radio" name="rentfetch_options_sync_timeline" id="rentfetch_options_sync_timeline" value="86400" <?php checked(get_option('rentfetch_options_sync_timeline'), '86400'); ?> />
+						Daily
+					</label>
+				</li>
+			</ul>
 		</div>
 	</div>
 
 	<div class="row">
-		<div class="column">
+		<div class="section">
 			<label for="rentfetch_options_enabled_integrations">Enabled Integrations</label>
 		</div>
-		<div class="column">
+		<div class="section">
 			<script type="text/javascript">
 				jQuery(document).ready(function( $ ) {
 	
@@ -116,10 +150,10 @@ function rentfetch_settings_sync() {
 	</div>
 	
 	<div class="row integration yardi">
-		<div class="column">
+		<div class="section">
 			<label>Yardi/RentCafe</label>
 		</div>
-		<div class="column">
+		<div class="section">
 			<div class="white-box">
 				<label for="rentfetch_options_yardi_integration_creds_yardi_api_key">Yardi API Key</label>
 				<input type="text" name="rentfetch_options_yardi_integration_creds_yardi_api_key" id="rentfetch_options_yardi_integration_creds_yardi_api_key" value="<?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_api_key' ) ); ?>">
@@ -153,10 +187,10 @@ function rentfetch_settings_sync() {
 	</div>
 	
 	<div class="row integration entrata">
-		<div class="column">
+		<div class="section">
 			<label>Entrata</label>
 		</div>
-		<div class="column">
+		<div class="section">
 			<div class="white-box">
 				<label for="rentfetch_options_entrata_integration_creds_entrata_user">Entrata Username</label>
 				<input type="text" name="rentfetch_options_entrata_integration_creds_entrata_user" id="rentfetch_options_entrata_integration_creds_entrata_user" value="<?php echo esc_attr( get_option( 'rentfetch_options_entrata_integration_creds_entrata_user' ) ); ?>">
@@ -174,10 +208,10 @@ function rentfetch_settings_sync() {
 	</div>
 	
 	<div class="row integration realpage">
-		<div class="column">
+		<div class="section">
 			<label>RealPage</label>
 		</div>
-		<div class="column">
+		<div class="section">
 			<div class="white-box">
 				<label for="rentfetch_options_realpage_integration_creds_realpage_user">RealPage Username</label>
 				<input type="text" name="rentfetch_options_realpage_integration_creds_realpage_user" id="rentfetch_options_realpage_integration_creds_realpage_user" value="<?php echo esc_attr( get_option( 'rentfetch_options_realpage_integration_creds_realpage_user' ) ); ?>">
@@ -199,10 +233,10 @@ function rentfetch_settings_sync() {
 	</div>
 	
 	<div class="row integration appfolio">
-		<div class="column">
+		<div class="section">
 			<label>AppFolio</label>
 		</div>
-		<div class="column">
+		<div class="section">
 			<div class="white-box">
 				<label for="rentfetch_options_appfolio_integration_creds_appfolio_database_name">Appfolio Database Name</label>
 				<input type="text" name="rentfetch_options_appfolio_integration_creds_appfolio_database_name" id="rentfetch_options_appfolio_integration_creds_appfolio_database_name" value="<?php echo esc_attr( get_option( 'rentfetch_options_appfolio_integration_creds_appfolio_database_name' ) ); ?>">
@@ -224,4 +258,8 @@ function rentfetch_settings_sync() {
 		</div>
 	</div>
 	<?php
+	submit_button();
+
+	echo '</div>';
+	echo '</section>';
 }
