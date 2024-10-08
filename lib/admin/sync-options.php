@@ -139,6 +139,12 @@ function rentfetch_settings_sync() {
 						RealPage
 					</label>
 				</li>
+				<li>
+					<label>
+						<input type="checkbox" name="rentfetch_options_enabled_integrations[]" value="rentmanager" <?php checked( in_array( 'rentmanager', get_option( 'rentfetch_options_enabled_integrations', array() ) ) ); ?>>
+						Rent Manager
+					</label>
+				</li>
 				<!-- <li>
 					<label>
 						<input type="checkbox" name="rentfetch_options_enabled_integrations[]" value="appfolio" <?php // checked( in_array( 'appfolio', get_option( 'rentfetch_options_enabled_integrations', array() ) ) ); ?>>
@@ -228,6 +234,17 @@ function rentfetch_settings_sync() {
 				<label for="rentfetch_options_realpage_integration_creds_realpage_site_ids">RealPage Site IDs</label>
 				<textarea rows="10" style="width: 100%;" name="rentfetch_options_realpage_integration_creds_realpage_site_ids" id="rentfetch_options_realpage_integration_creds_realpage_site_ids"><?php echo esc_attr( get_option( 'rentfetch_options_realpage_integration_creds_realpage_site_ids' ) ); ?></textarea>
 				<p class="description">If there are multiple properties to be pulled in, enter those separated by commas</p>
+			</div>
+		</div>
+	</div>
+	<div class="row integration rentmanager">
+		<div class="section">
+			<label>Rent Manager</label>
+		</div>
+		<div class="section">
+			<div class="white-box">
+				<label for="rentfetch_options_rentmanager_integration_creds_rentmanager_companycode">Rent Manager Company Code</label>
+				<input type="text" placeholder="e.g. companycode.api.rentmanager.com" name="rentfetch_options_rentmanager_integration_creds_rentmanager_companycode" id="rentfetch_options_rentmanager_integration_creds_rentmanager_companycode" value="<?php echo esc_attr( get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_companycode' ) ); ?>">
 			</div>
 		</div>
 	</div>
