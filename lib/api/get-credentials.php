@@ -39,5 +39,12 @@ function rfs_get_credentials() {
 		];
 	}
 	
+	if ( in_array( 'rentmanager', $enabled ) ) {
+		$credentials['rentmanager'] = [
+			'companycode' => get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_companycode' ),
+			'partner_token' => get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_partner_token' ),
+		];
+	}
+	
 	return $credentials;
 }

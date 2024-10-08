@@ -246,6 +246,16 @@ function rentfetch_settings_sync() {
 				<label for="rentfetch_options_rentmanager_integration_creds_rentmanager_companycode">Rent Manager Company Code</label>
 				<input type="text" placeholder="e.g. companycode.api.rentmanager.com" name="rentfetch_options_rentmanager_integration_creds_rentmanager_companycode" id="rentfetch_options_rentmanager_integration_creds_rentmanager_companycode" value="<?php echo esc_attr( get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_companycode' ) ); ?>">
 			</div>
+			<div class="white-box">
+				<label for="rentfetch_options_rentmanager_integration_creds_rentmanager_partner_token">Partner Token</label>
+				<input type="text" name="rentfetch_options_rentmanager_integration_creds_rentmanager_partner_token" id="rentfetch_options_rentmanager_integration_creds_rentmanager_companycode" value="<?php echo esc_attr( get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_partner_token' ) ); ?>">
+				<p class="description">Brindle Digital will provide this.</p>
+			</div>
+			<div class="white-box">
+				<label for="rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames">Rent Manager Property Short Names</label>
+				<textarea rows="10" style="width: 100%;" name="rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames" id="rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames"><?php echo esc_attr( get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' ) ); ?></textarea>
+				<p class="description">If there are multiple properties to be pulled in, enter those separated by commas</p>
+			</div>
 		</div>
 	</div>
 	

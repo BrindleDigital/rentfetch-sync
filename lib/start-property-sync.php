@@ -92,6 +92,30 @@ function rfs_perform_syncs() {
 		}
 	}
 	
+	//* Rent Manager
+	
+	if ( in_array( 'rentmanager', $enabled_integrations ) ) {
+		
+		// get the properties for yardi, then turn it into an array
+		$rentmanager_properties = get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' );
+		$rentmanager_properties = str_replace( ' ', '', $rentmanager_properties );
+		$rentmanager_properties = explode( ',', $rentmanager_properties );
+			
+		foreach( $rentmanager_properties as $rentmanager_property ) {
+			$args = [
+				'integration' => 'rentmanager',
+				'property_id' => $rentmanager_property,
+				'credentials' => rfs_get_credentials(),
+			];
+			
+			if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
+				// need to pass the $args inside an array
+				// as_enqueue_async_action( 'rfs_do_sync', array( $args ), 'rentfetch' );
+				as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_do_sync', array( $args ), 'rentfetch' );
+			}	
+		}
+	}
+	
 	
 }
 
@@ -115,6 +139,11 @@ function rfs_sync( $args ) {
 		case 'realpage':
 			
 			rfs_do_realpage_sync( $args );
+						
+			break;
+		case 'rentmanager':
+			
+			rfs_do_rentmanager_sync( $args );
 						
 			break;
 		case 'entrata':
