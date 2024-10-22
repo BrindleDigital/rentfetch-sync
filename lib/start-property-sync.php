@@ -96,15 +96,13 @@ function rfs_perform_syncs() {
 	
 	if ( in_array( 'rentmanager', $enabled_integrations ) ) {
 		
-		// get the properties for yardi, then turn it into an array
+		// get the properties for rent manager, then turn it into an array
 		$rentmanager_properties = get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' );
-		$rentmanager_properties = str_replace( ' ', '', $rentmanager_properties );
-		$rentmanager_properties = explode( ',', $rentmanager_properties );
 			
 		foreach( $rentmanager_properties as $rentmanager_property ) {
 			$args = [
 				'integration' => 'rentmanager',
-				'property_id' => $rentmanager_property,
+				'property_id' => $rentmanager_property['ShortName'],
 				'credentials' => rfs_get_credentials(),
 			];
 			

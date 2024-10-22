@@ -252,9 +252,18 @@ function rentfetch_settings_sync() {
 				<p class="description">Brindle Digital will provide this.</p>
 			</div>
 			<div class="white-box">
-				<label for="rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames">Rent Manager Property Short Names</label>
-				<textarea rows="10" style="width: 100%;" name="rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames" id="rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames"><?php echo esc_attr( get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' ) ); ?></textarea>
-				<p class="description">If there are multiple properties to be pulled in, enter those separated by commas</p>
+				<label for="rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames">Properties</label>
+				<?php
+				$option_value = get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' );
+				if ( is_string( $option_value ) ) {
+					printf( '<p class="description">%s</p>', $option_value );
+				} elseif ( is_array( $option_value ) ) {
+					$properties = array_map( function( $property ) {
+						return sprintf( '<li>%s: <strong>%s</strong> - %s</li>', $property['PropertyID'], $property['ShortName'], $property['Name'] );
+					}, $option_value );
+					printf( '<ul class="rentmanager-properties">%s</ul>', implode( '', $properties ) );
+				}				
+				?>
 			</div>
 		</div>
 	</div>
