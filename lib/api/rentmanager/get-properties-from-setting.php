@@ -2,6 +2,15 @@
 
 function rfs_get_rentmanager_properties_from_setting() {
 	
+	
+	// Get the enabled integrations
+	$enabled_integrations = get_option( 'rentfetch_options_enabled_integrations' );	
+	
+	// bail if rentmanager is not enabled
+	if ( !in_array( 'rentmanager', $enabled_integrations ) ) {
+		return;
+	}
+	
 	$credentials = rfs_get_credentials();
 	
 	if ( !isset( $credentials['rentmanager']['companycode'] ) || !isset( $credentials['rentmanager']['partner_token'] ) ) {
