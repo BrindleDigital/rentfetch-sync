@@ -133,7 +133,7 @@ function rfs_yardi_update_property_images( $args, $property_images ) {
 		return;
 		
 	} else {
-		$success = update_post_meta( $args['wordpress_property_post_id'], 'yardi_property_images', $property_images );		
+		$success = update_post_meta( $args['wordpress_property_post_id'], 'synced_property_images', $property_images );		
 		
 		if ( !is_array( $api_response ) )
 			$api_response = [];

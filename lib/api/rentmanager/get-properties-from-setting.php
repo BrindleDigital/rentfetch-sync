@@ -19,7 +19,7 @@ function rfs_get_rentmanager_properties_from_setting() {
 	// Get the enabled integrations.
 	$enabled_integrations = get_option( 'rentfetch_options_enabled_integrations' );
 
-	// bail if rentmanager is not enabled.
+	// Bail if rentmanager is not enabled.
 	if ( ! in_array( 'rentmanager', $enabled_integrations, true ) ) {
 		return;
 	}
@@ -28,40 +28,36 @@ function rfs_get_rentmanager_properties_from_setting() {
 
 	if ( ! isset( $credentials['rentmanager']['companycode'] ) || ! isset( $credentials['rentmanager']['partner_token'] ) ) {
 		update_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames', 'Provide credentials to get properties list.' );
+		return;
 	}
 
 	$rentmanager_company_code = $credentials['rentmanager']['companycode'];
 	$url                      = sprintf( 'https://%s.api.rentmanager.com/Properties?fields=Name,PropertyID,ShortName', $rentmanager_company_code );
 
-	$partner_token        = $credentials['rentmanager']['partner_token'];
-	$partner_token_header = sprintf( 'X-RM12API-PartnerToken: %s', $partner_token );
+	$partner_token = $credentials['rentmanager']['partner_token'];
 
-	$curl = curl_init();
-
-	curl_setopt_array(
-		$curl,
-		array(
-			CURLOPT_URL            => $url,
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_ENCODING       => '',
-			CURLOPT_MAXREDIRS      => 10,
-			CURLOPT_TIMEOUT        => 0,
-			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-			CURLOPT_CUSTOMREQUEST  => 'GET',
-			CURLOPT_HTTPHEADER     => array(
-				$partner_token_header,
-				'Content-Type: application/json',
-			),
-		)
+	// Prepare the headers.
+	$args = array(
+		'headers' => array(
+			'X-RM12API-PartnerToken' => $partner_token,
+			'Content-Type'           => 'application/json',
+		),
+		'timeout' => 10,
 	);
 
-	$response = curl_exec( $curl );
-	$data     = json_decode( $response, true ); // decode the JSON feed.
+	// Make the request.
+	$response = wp_remote_get( $url, $args );
 
-	curl_close( $curl );
+	// Check for errors.
+	if ( is_wp_error( $response ) ) {
+		update_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames', 'Failed to get properties list.' );
+		return;
+	}
 
-	// escape the array.
+	// Decode the response body.
+	$data = json_decode( wp_remote_retrieve_body( $response ), true );
+
+	// Escape the array.
 	$filters = array(
 		'Name'       => 'sanitize_text_field',
 		'ShortName'  => 'sanitize_text_field',
@@ -77,6 +73,6 @@ function rfs_get_rentmanager_properties_from_setting() {
 		array_keys( $data )
 	);
 
-	// save the sanitized data.
+	// Save the sanitized data.
 	update_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames', $sanitized_data );
 }
