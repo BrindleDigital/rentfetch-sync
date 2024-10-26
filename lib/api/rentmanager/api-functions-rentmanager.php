@@ -41,12 +41,15 @@ function rfs_do_rentmanager_sync( $args ) {
 	
 	// create the individual units, ignoring availability.
 	foreach( $units_data as $unit ) {
-		$args['floorplan_id'] = $args['property_id'] . '-' . $unit['UnitType']['UnitTypeID'];
-		$args['unit_id'] = $args['property_id'] . '-' . $unit['UnitType']['UnitTypeID'] . '-' . $unit['UnitID'];
+		$args['floorplan_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'];
+		$args['unit_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'] . '-' . $unit['UnitID'];
 		
 		$args = rfs_maybe_create_unit( $args );
+		
+		rfs_rentmanager_update_unit_meta( $args, $unit );
 	}
 
+	// create the floorplans (we actually want to do this after the units, because if there are images attached to the unit_type, that should override unit images).
 	foreach ( $unit_types_data as $floorplan ) {
 
 		$floorplan_id         = $args['property_id'] . '-' . $floorplan['UnitTypeID'];
@@ -203,13 +206,13 @@ function rfs_rentmanager_update_property_meta( $args, $property_data ) {
 
 	// * Update the meta
 	$meta = array(
-		'property_id'  => esc_html( $property_id ),
-		'address'      => esc_html( $street ),
-		'city'         => esc_html( $city ),
-		'state'        => esc_html( $state ),
-		'zipcode'      => esc_html( $zipcode ),
-		'phone'        => esc_html( $phone ),
-		'email'        => esc_html( $property_data['Email'] ),
+		'property_id'  => sanitize_text_field( $property_id ),
+		'address'      => sanitize_text_field( $street ),
+		'city'         => sanitize_text_field( $city ),
+		'state'        => sanitize_text_field( $state ),
+		'zipcode'      => sanitize_text_field( $zipcode ),
+		'phone'        => sanitize_text_field( $phone ),
+		'email'        => sanitize_email( $property_data['Email'] ),
 		'updated'      => current_time( 'mysql' ),
 		'api_response' => $api_response,
 	);
@@ -230,7 +233,7 @@ function rfs_rentmanager_get_unit_types_data( $args ) {
 	$curl = curl_init();
 
 	$rentmanager_company_code = $args['credentials']['rentmanager']['companycode'];
-	$url                      = sprintf( 'https://%s.api.rentmanager.com/UnitTypes?filters=Properties.ShortName,eq,%s', $rentmanager_company_code, $args['property_id'] );
+	$url                      = sprintf( 'https://%s.api.rentmanager.com/UnitTypes?embeds=Images,Images.File,Images.ImageType&filters=Properties.ShortName,eq,%s', $rentmanager_company_code, $args['property_id'] );
 
 	$partner_token        = $args['credentials']['rentmanager']['partner_token'];
 	$partner_token_header = sprintf( 'X-RM12API-PartnerToken: %s', $partner_token );
@@ -283,11 +286,127 @@ function rfs_rentmanager_update_floorplan_meta( $args, $floorplan_data ) {
 	);
 
 	wp_update_post( $post_info );
+	
+	$images = null;
+	
+	if ( isset( $floorplan_data['Images'] ) && is_array( $floorplan_data['Images'] ) ) {
+		$images = $floorplan_data['Images'];
+	}
+	
+	// * Updates that involve querying the units
+	$unit_query_args = array(
+		'post_type'      => 'units',
+		'posts_per_page' => -1, // Retrieve all matching units.
+		'orderby'        => 'title',
+		'order'          => 'ASC',
+		'fields'         => 'ids', // Only retrieve post IDs.
+		'meta_query'     => array(
+			'relation' => 'AND',
+			array(
+				'key'   => 'floorplan_id',
+				'value' => $floorplan_id,
+			),
+			array(
+				'key'   => 'property_id',
+				'value' => $property_id,
+			),
+		),
+	);
+
+	$unit_ids = get_posts( $unit_query_args );
+	
+	$floorplan_units_available_array = array();
+	$floorplan_availability_date_array = array();
+	$floorplan_rent_array = array();
+	$floorplan_square_footage_array = array();
+
+	if ( ! empty( $unit_ids ) ) {
+		foreach ( $unit_ids as $unit_id ) {
+			
+			$unit_availability_date = get_post_meta( $unit_id, 'availability_date', true );
+			$unit_minimum_rent = get_post_meta( $unit_id, 'minimum_rent', true );
+			$unit_maximum_rent = get_post_meta( $unit_id, 'maximum_rent', true );
+			$unit_square_footage = get_post_meta( $unit_id, 'sqrft', true );
+			
+			$floorplan_availability_date_array[] = $unit_availability_date;
+			$floorplan_rent_array[] = $unit_minimum_rent;
+			$floorplan_rent_array[] = $unit_maximum_rent;
+			$floorplan_square_footage_array[] = $unit_square_footage;
+			
+		}
+	} else {
+		// silence is golden.
+	}
+	
+	// get the floorplan min rent from the min value in the floorplan_rent_array, discarding all values below 100
+	$floorplan_minimum_rent = null;
+	if ( ! empty( $floorplan_rent_array ) ) {
+		$floorplan_rent_array = array_filter( $floorplan_rent_array, function( $value ) {
+			return $value >= 100;
+		} );
+		if ( ! empty( $floorplan_rent_array ) ) {
+			$floorplan_minimum_rent = min( $floorplan_rent_array );
+		}
+	}
+
+	// get the floorplan max rent from the max value in the floorplan_rent_array, discarding all values below 100
+	$floorplan_maximum_rent = null;
+	if ( ! empty( $floorplan_rent_array ) ) {
+		$floorplan_rent_array = array_filter( $floorplan_rent_array, function( $value ) {
+			return $value >= 100;
+		} );
+		if ( ! empty( $floorplan_rent_array ) ) {
+			$floorplan_maximum_rent = max( $floorplan_rent_array );
+		}
+	}
+	
+	// get the minimum square footage from the floorplan_square_footage_array, discarding all values below 100
+	$floorplan_minimum_square_footage = null;
+	if ( ! empty( $floorplan_square_footage_array ) ) {
+		$floorplan_square_footage_array = array_filter( $floorplan_square_footage_array, function( $value ) {
+			return $value >= 100;
+		} );
+		if ( ! empty( $floorplan_square_footage_array ) ) {
+			$floorplan_minimum_square_footage = min( $floorplan_square_footage_array );
+		}
+	}
+	
+	// get the maximum square footage from the floorplan_square_footage_array, discarding all values below 100
+	$floorplan_maximum_square_footage = null;
+	if ( ! empty( $floorplan_square_footage_array ) ) {
+		$floorplan_square_footage_array = array_filter( $floorplan_square_footage_array, function( $value ) {
+			return $value >= 100;
+		} );
+		if ( ! empty( $floorplan_square_footage_array ) ) {
+			$floorplan_maximum_square_footage = max( $floorplan_square_footage_array );
+		}
+	}
+	
+	// get the number of avilable by units by counting the number of non-empty values in the floorplan_availability_date_array
+	$floorplan_available_units = count( array_filter( $floorplan_availability_date_array ) );
+	
+	// get the floorplan availability date by looking at the date in the floorplan_availability_date_array that is closest to today. discard all empty values and values more than a week in the past.
+	// $floorplan_availability_date = null;
+	// if ( ! empty( $floorplan_availability_date_array ) ) {
+	// 	$floorplan_availability_date_array = array_filter( $floorplan_availability_date_array, function( $value ) {
+	// 		return strtotime( $value ) >= strtotime( '-1 week' );
+	// 	} );
+	// 	$floorplan_availability_date = min( $floorplan_availability_date_array );
+	// }
 
 	// * Update the meta
 	$meta = array(
 		'baths'     => floatval( $floorplan_data['Bathrooms'] ),
 		'beds'      => floatval( $floorplan_data['Bedrooms'] ),
+		'available_units' => floatval( $floorplan_available_units ),
+		'floorplan_id' => $floorplan_id,
+		'property_id' => $property_id,
+		'maximum_rent' => $floorplan_maximum_rent,
+		'maximum_sqft' => $floorplan_maximum_square_footage,
+		'minimum_rent' => $floorplan_minimum_rent,
+		'minimum_sqft' => $floorplan_minimum_square_footage,
+		'floorplan_image_url' => $images,
+		'availability_date' => null,
 		'updated'   => current_time( 'mysql' ),
 		'api_error' => 'Updated successfully',
 	);
@@ -308,7 +427,7 @@ function rfs_rentmanager_get_units_data( $args ) {
 	$curl = curl_init();
 
 	$rentmanager_company_code = $args['credentials']['rentmanager']['companycode'];
-	$url                      = sprintf( 'https://%s.api.rentmanager.com/Units?embeds=UnitStatuses,UnitStatuses.UnitStatusType,UnitType&filters=Property.ShortName,eq,%s', $rentmanager_company_code, $args['property_id'] );
+	$url                      = sprintf( 'https://%s.api.rentmanager.com/Units?embeds=CurrentOccupancyStatus,CurrentOccupancyStatus.UnitStatus,IsVacant,MarketingValues,MarketingValues.Images,MarketRent,UnitAmenities,UnitStatuses,UnitStatuses.UnitStatusType&filters=Property.ShortName,eq,%s', $rentmanager_company_code, $args['property_id'] );
 
 	$partner_token        = $args['credentials']['rentmanager']['partner_token'];
 	$partner_token_header = sprintf( 'X-RM12API-PartnerToken: %s', $partner_token );
@@ -337,4 +456,71 @@ function rfs_rentmanager_get_units_data( $args ) {
 	curl_close( $curl );
 
 	return $units_data;
+}
+
+function rfs_rentmanager_update_unit_meta( $args, $unit ) {
+	
+	$availability_date = null;
+	if ( isset( $unit['IsVacant'] ) && $unit['IsVacant'] === true ) {
+		// set the availability date to today.
+		$availability_date = current_time( 'mysql' );
+	} else {
+		// bail if the unit is not vacant. 
+		//! NOTE: THIS MEANS WE ARE NOT SYNCING OCCUPIED UNITS.
+		// delete the post if it exists.
+		if ( isset( $args['wordpress_unit_post_id'] ) && $args['wordpress_unit_post_id'] ) {
+			wp_delete_post( $args['wordpress_unit_post_id'], true );
+		}
+		return;
+	}
+	
+	// get the rent
+	$minimum_rent = null;
+	$maximum_rent = null;
+	if ( isset( $unit['MarketRent'] ) && is_array( $unit['MarketRent'] ) ) {
+		foreach( $unit['MarketRent'] as $rent ) {
+			if ( null === $minimum_rent ) {
+				$minimum_rent = $rent['Amount'];
+			}
+			
+			if ( null === $maximum_rent ) {
+				$maximum_rent = $rent['Amount'];
+			}
+			
+			if ( $minimum_rent > $rent['Amount'] ) {
+				$minimum_rent = $rent['Amount'];
+			}
+			
+			if ( $maximum_rent < $rent['Amount'] ) {
+				$maximum_rent = $rent['Amount'];
+			}
+		}
+	}
+	
+	// * Update the meta
+	$meta = array(
+		'floor'                     => (int) $unit['FloorID'],
+		'maxoccupancy'              => (int) $unit['MaxOccupancy'],
+		'amenities'                 => null,
+		'unit_id'                   => $args['property_id'] . '-' . $unit['UnitTypeID'] . '-' . $unit['UnitID'],
+		'floorplan_id'              => $args['property_id'] . '-' . $unit['UnitTypeID'],
+		'property_id'               => $args['property_id'],
+		'apply_online_url'          => null,
+		'availability_date'         => sanitize_text_field( $availability_date ),
+		'baths'                     => floatval( $unit['Bathrooms'] ),
+		'beds'                      => (int) $unit['Bedrooms'],
+		'deposit'                   => null,
+		'minimum_rent'              => $minimum_rent,
+		'maximum_rent'              => $maximum_rent,
+		'sqrft'                     => (int) $unit['SquareFootage'],
+		'specials'                  => null,
+		'unit_source'               => 'rentmanager',
+		'updated'                   => current_time( 'mysql' ),
+		'api_error'                 => 'Updated successfully',
+		// 'api_response'              => $api_response,
+	);
+
+	foreach ( $meta as $key => $value ) {
+		$success = update_post_meta( $args['wordpress_unit_post_id'], $key, $value );
+	}
 }

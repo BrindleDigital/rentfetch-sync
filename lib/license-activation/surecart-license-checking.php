@@ -15,7 +15,7 @@ function rfs_check_sc_license() {
 
 	// Check if the transient exists, and bail out if it does
 	if ( !empty($properties_limit) ) {
-		rentfetch_console_log( 'Transient exists: ' . $properties_limit ); 
+		// rentfetch_console_log( 'Transient exists: ' . $properties_limit ); 
 		// Transient exists, use the value
 		$properties_limit = (int) $properties_limit;
 		return $properties_limit;
@@ -86,7 +86,7 @@ function rfs_notice_licensing_inactive() {
 
 function rfs_notice_licensing_active() {
 	$properties_limit = (int) get_transient( 'rentfetchsync_properties_limit' );
-	rentfetch_console_log( $properties_limit );
+	// rentfetch_console_log( $properties_limit );
 	if ( 1 === $properties_limit ) {
 		echo '<div class="notice notice-success is-dismissible">';
 			echo '<p>Your Rent Fetch Sync license level has been rechecked, and your license allows you to sync one property.</p>';
@@ -97,7 +97,7 @@ function rfs_notice_licensing_active() {
 		echo '</div>';
 	} else {
 		echo '<div class="notice notice-error is-dismissible">';
-			echo '<p>Whoops! We couldn\'t find your license information. Please resave the sync settings page.</p>';
+			echo '<p>Whoops! We couldn\'t find your Rent Fetch Sync license information. Please resave the sync settings page.</p>';
 		echo '</div>';
 	}
 }
