@@ -497,6 +497,14 @@ function rfs_rentmanager_update_unit_meta( $args, $unit ) {
 		}
 	}
 	
+	if ( empty( $minimum_rent ) ) {
+		$minimum_rent = 0;
+	}
+	
+	if ( empty( $maximum_rent ) ) {
+		$maximum_rent = 0;
+	}
+	
 	// * Update the meta
 	$meta = array(
 		'floor'                     => (int) $unit['FloorID'],
