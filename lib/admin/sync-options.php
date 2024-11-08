@@ -259,7 +259,10 @@ function rentfetch_settings_sync() {
 					printf( '<p class="description">%s</p>', $option_value );
 				} elseif ( is_array( $option_value ) ) {
 					$properties = array_map( function( $property ) {
-						return sprintf( '<li>%s: <strong>%s</strong> - %s</li>', $property['PropertyID'], $property['ShortName'], $property['Name'] );
+						$property_id = isset($property['PropertyID']) ? $property['PropertyID'] : '';
+						$property_shortname = isset($property['Name']) ? $property['Name'] : '';
+						$property_name = isset($property['ShortName']) ? $property['ShortName'] : '';
+						return sprintf( '<li>%s: <strong>%s</strong> - %s</li>', $property_id, $property_shortname, $property_name );
 					}, $option_value );
 					printf( '<ul class="rentmanager-properties">%s</ul>', implode( '', $properties ) );
 				}				

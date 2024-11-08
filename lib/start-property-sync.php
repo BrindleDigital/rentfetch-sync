@@ -100,17 +100,19 @@ function rfs_perform_syncs() {
 		$rentmanager_properties = get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' );
 			
 		foreach( $rentmanager_properties as $rentmanager_property ) {
-			$args = [
-				'integration' => 'rentmanager',
-				'property_id' => $rentmanager_property['ShortName'],
-				'credentials' => rfs_get_credentials(),
-			];
-			
-			if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
-				// need to pass the $args inside an array
-				// as_enqueue_async_action( 'rfs_do_sync', array( $args ), 'rentfetch' );
-				as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_do_sync', array( $args ), 'rentfetch' );
-			}	
+			if ( isset( $rentmanager_property['ShortName'] ) && $rentmanager_property['ShortName'] ) {
+				$args = [
+					'integration' => 'rentmanager',
+					'property_id' => $rentmanager_property['ShortName'],
+					'credentials' => rfs_get_credentials(),
+				];
+				
+				if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
+					// need to pass the $args inside an array
+					// as_enqueue_async_action( 'rfs_do_sync', array( $args ), 'rentfetch' );
+					as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_do_sync', array( $args ), 'rentfetch' );
+				}
+			}
 		}
 	}
 	

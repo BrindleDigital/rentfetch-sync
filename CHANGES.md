@@ -1,3 +1,7 @@
+## 0.4.16
+
+-   Fixing a fatal error when Rent Manager data loads the very first time.
+
 ## 0.4.15
 
 -   Removing notices for license activation, since that's currently unused (it's coming!)
