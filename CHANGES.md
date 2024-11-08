@@ -1,3 +1,7 @@
+## 0.4.15
+
+-   Removing notices for license activation, since that's currently unused (it's coming!)
+
 ## 0.4.14
 
 -   A few changes to match up with the RF style project

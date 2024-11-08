@@ -39,9 +39,9 @@ function rfs_check_sc_license() {
 	set_transient( 'rentfetchsync_properties_limit', (int) $properties_limit, DAY_IN_SECONDS );
 
 	if ( $license_key_response->status === 'active' && $properties_limit ) {
-		add_action( 'admin_notices', 'rfs_notice_licensing_active' );
+		// add_action( 'admin_notices', 'rfs_notice_licensing_active' );
 	} else {
-		add_action( 'admin_notices', 'rfs_notice_licensing_inactive' );
+		// add_action( 'admin_notices', 'rfs_notice_licensing_inactive' );
 	}
 	
 	return $properties_limit;
@@ -79,7 +79,7 @@ function rfs_check_product_properties_number( $product_id ) {
 function rfs_notice_licensing_inactive() {
 	?>
 	<div class="notice notice-success is-dismissible">
-		<p><?php _e('Ready to sync? <a href="/wp-admin/admin.php?page=rentfetch-sync-manage-license">Let\'s get your account activated.</a>', 'rentfetch-sync'); ?></p>
+		<p><?php _e('Ready to sync? <a href="/wp-admin/admin.php?page=rentfetch-sync-manage-license">Let\'s get your Rent Fetch Sync account activated.</a>', 'rentfetch-sync'); ?></p>
 	</div>
 	<?php
 }
