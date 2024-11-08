@@ -257,7 +257,9 @@ function rentfetch_settings_sync() {
 				$option_value = get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' );
 				if ( is_string( $option_value ) ) {
 					printf( '<p class="description">%s</p>', $option_value );
-				} elseif ( is_array( $option_value ) ) {
+				} elseif ( isset( $option_value[0] ) && is_string( $option_value[0] ) ) {
+					printf( '<p class="description">%s</p>', $option_value[0] );
+				}elseif ( isset( $option_value[0] ) && is_array( $option_value ) ) {
 					$properties = array_map( function( $property ) {
 						$property_id = isset($property['PropertyID']) ? $property['PropertyID'] : '';
 						$property_shortname = isset($property['Name']) ? $property['Name'] : '';
