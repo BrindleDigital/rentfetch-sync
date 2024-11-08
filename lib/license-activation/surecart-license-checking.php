@@ -22,6 +22,11 @@ function rfs_check_sc_license() {
 	}
 		
 	$license_info = get_option( 'rentfetchsync_license_options');
+	
+	//! bail if there's no license key entered
+	if ( !$license_info ) {
+		return;
+	}
 
 	if ( $license_info && is_array( $license_info ) ) {
 		$license_key = $license_info['sc_license_key'];
