@@ -267,7 +267,10 @@ function rentfetch_settings_sync() {
 						return sprintf( '<li>%s: <strong>%s</strong> - %s</li>', $property_id, $property_shortname, $property_name );
 					}, $option_value );
 					printf( '<ul class="rentmanager-properties">%s</ul>', implode( '', $properties ) );
-				}				
+				}
+				
+				$server_ip = $_SERVER['SERVER_ADDR'];
+				printf( '<p>Your site IP address is currently %s. This must be whitelisted by Rent Manager before syncing will be successful.', $server_ip );
 				?>
 			</div>
 		</div>
