@@ -56,7 +56,15 @@ function rfs_get_rentmanager_properties_from_setting() {
 
 	// Decode the response body.
 	$data = json_decode( wp_remote_retrieve_body( $response ), true );
-
+	
+	if ( !isset(  $response['response']['code'] ) ) {
+		update_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames', 'Failed to get properties list.' );
+		return;
+	} elseif ( $response['response']['code'] !== 200 ) {
+		update_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames', 'Error code '. $response['response']['code'] . '. Failed to get properties list.' );
+		return;
+	}
+	
 	// Escape the array.
 	$filters = array(
 		'Name'       => 'sanitize_text_field',
