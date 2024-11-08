@@ -1,3 +1,13 @@
+## 0.4.14
+
+-   A few changes to match up with the RF style project
+-   Rent Manager options added
+-   Syncing for Rent Manager properties, floorplans (unit types), and units
+-   Fixing a fatal error when settign saved with Rent Manager disabled
+-   Code standard improvements
+-   Getting property images from Rent Manager
+-   Fix for empty dollar amount on floorplans from Rent Manager
+
 ## 0.4.13
 
 -   Adding new license levels
