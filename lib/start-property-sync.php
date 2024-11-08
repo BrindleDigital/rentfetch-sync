@@ -98,6 +98,10 @@ function rfs_perform_syncs() {
 		
 		// get the properties for rent manager, then turn it into an array
 		$rentmanager_properties = get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' );
+		
+		if ( !is_array( $rentmanager_properties ) ) {
+			$rentmanager_properties = [];
+		}
 			
 		foreach( $rentmanager_properties as $rentmanager_property ) {
 			if ( isset( $rentmanager_property['ShortName'] ) && $rentmanager_property['ShortName'] ) {
