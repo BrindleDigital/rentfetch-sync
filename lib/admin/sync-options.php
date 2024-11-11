@@ -269,8 +269,48 @@ function rentfetch_settings_sync() {
 					printf( '<ul class="rentmanager-properties">%s</ul>', implode( '', $properties ) );
 				}
 				
-				$server_ip = $_SERVER['SERVER_ADDR'];
-				printf( '<p>Your site IP address is currently %s. This must be whitelisted by Rent Manager before syncing will be successful.', $server_ip );
+				$ips = array();
+				
+				if ( isset( $_SERVER['SERVER_ADDR'] ) ) {
+					$ips[ '$_SERVER[\'SERVER_ADDR\']' ] = $_SERVER['SERVER_ADDR'];
+				}
+				if ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+					$ips[ '$_SERVER[\'HTTP_X_FORWARDED_FOR\']' ] = $_SERVER['HTTP_X_FORWARDED_FOR'];
+				}
+				if ( isset( $_SERVER['HTTP_X_REAL_IP'] ) ) {
+					$ips[ '$_SERVER[\'HTTP_X_REAL_IP\']' ] = $_SERVER['HTTP_X_REAL_IP'];
+				}
+				
+				echo '<p>The following IP addresses might apply to your site. The requesting IP address must be whitelisted by Rent Manager for syncing to work properly.</p>';
+				echo '<ul>';
+				foreach( $ips as $key => $ip ) {
+					echo '<li>' . $key . ': <strong>' . $ip . '</strong></li>';
+				}
+				echo '</ul>';
+				
+				// var_dump( $_SERVER );
+				
+				if (function_exists('shell_exec')) {
+					$ip = trim(shell_exec('hostname -I'));
+					if (!empty($ip)) {
+						$ips = explode(' ', $ip);
+						echo $ips[0];  // Return first IP if multiple are returned
+					}
+				}
+				
+				echo '<br/>';
+				
+				// Fallback methods
+				if (function_exists('gethostbyname')) {
+					echo gethostbyname(gethostname());
+				}
+				
+				echo '<br/>';
+				
+				// Last resort - try SERVER_ADDR
+				echo $_SERVER['SERVER_ADDR'];
+				
+				
 				?>
 			</div>
 		</div>
