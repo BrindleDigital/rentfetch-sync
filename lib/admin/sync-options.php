@@ -161,14 +161,26 @@ function rentfetch_settings_sync() {
 		</div>
 		<div class="section">
 			<div class="white-box">
+				<p class="subhed">Yardi API v1 information</p>
 				<label for="rentfetch_options_yardi_integration_creds_yardi_api_key">Yardi API Key</label>
 				<input type="text" name="rentfetch_options_yardi_integration_creds_yardi_api_key" id="rentfetch_options_yardi_integration_creds_yardi_api_key" value="<?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_api_key' ) ); ?>">
 			</div>
 			<div class="white-box">
-				<label for="rentfetch_options_yardi_integration_creds_yardi_voyager_code">Yardi Voyager Codes</label>
-				<textarea rows="10" style="width: 100%;" name="rentfetch_options_yardi_integration_creds_yardi_voyager_code" id="rentfetch_options_yardi_integration_creds_yardi_voyager_code"><?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_voyager_code' ) ); ?></textarea>
-				<p class="description">Multiple property codes should be entered separated by commas. Please note that on save, these will be automatically converted to property codes. If you have hundreds, this can take a minute or two.</p>
+				<p class="subhed">Yardi API v2 information</p>
+				<label for="rentfetch_options_yardi_integration_creds_yardi_username">Yardi username</label>
+				<input type="text" name="rentfetch_options_yardi_integration_creds_yardi_username" id="rentfetch_options_yardi_integration_creds_yardi_username" value="<?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_username' ) ); ?>">
+				
+				<label for="rentfetch_options_yardi_integration_creds_yardi_password">Yardi password</label>
+				<input type="text" name="rentfetch_options_yardi_integration_creds_yardi_password" id="rentfetch_options_yardi_integration_creds_yardi_password" value="<?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_password' ) ); ?>">
+				
+				<label for="rentfetch_options_yardi_integration_creds_yardi_client_id">Client ID</label>
+				<input type="text" name="rentfetch_options_yardi_integration_creds_yardi_client_id" id="rentfetch_options_yardi_integration_creds_yardi_client_id" value="<?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_client_id' ) ); ?>">
 			</div>
+			<!-- <div class="white-box">
+				<label for="rentfetch_options_yardi_integration_creds_yardi_voyager_code">Yardi Voyager Codes</label>
+				<textarea rows="10" style="width: 100%;" name="rentfetch_options_yardi_integration_creds_yardi_voyager_code" id="rentfetch_options_yardi_integration_creds_yardi_voyager_code"><?php // echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_voyager_code' ) ); ?></textarea>
+				<p class="description">Multiple property codes should be entered separated by commas. Please note that on save, these will be automatically converted to property codes. If you have hundreds, this can take a minute or two.</p>
+			</div> -->
 			<div class="white-box">
 				<label for="rentfetch_options_yardi_integration_creds_yardi_property_code">Yardi Property Codes</label>
 				<textarea rows="10" style="width: 100%;" name="rentfetch_options_yardi_integration_creds_yardi_property_code" id="rentfetch_options_yardi_integration_creds_yardi_property_code"><?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_property_code' ) ); ?></textarea>
@@ -254,74 +266,34 @@ function rentfetch_settings_sync() {
 			<div class="white-box">
 				<label for="rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames">Properties</label>
 				<?php
+
 				$option_value = get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' );
+
 				if ( is_string( $option_value ) ) {
 					printf( '<p class="description">%s</p>', $option_value );
 				} elseif ( isset( $option_value[0] ) && is_string( $option_value[0] ) ) {
 					printf( '<p class="description">%s</p>', $option_value[0] );
-				}elseif ( isset( $option_value[0] ) && is_array( $option_value ) ) {
+				} elseif ( isset( $option_value[0] ) && is_array( $option_value ) ) {
+
 					$properties = array_map( function( $property ) {
 						$property_id = isset($property['PropertyID']) ? $property['PropertyID'] : '';
 						$property_shortname = isset($property['Name']) ? $property['Name'] : '';
 						$property_name = isset($property['ShortName']) ? $property['ShortName'] : '';
 						return sprintf( '<li>%s: <strong>%s</strong> - %s</li>', $property_id, $property_shortname, $property_name );
 					}, $option_value );
-					printf( '<ul class="rentmanager-properties">%s</ul>', implode( '', $properties ) );
-				}
-				
-				// $ips = array();
-				
-				// if ( isset( $_SERVER['SERVER_ADDR'] ) ) {
-				// 	$ips[ '$_SERVER[\'SERVER_ADDR\']' ] = $_SERVER['SERVER_ADDR'];
-				// }
-				// if ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-				// 	$ips[ '$_SERVER[\'HTTP_X_FORWARDED_FOR\']' ] = $_SERVER['HTTP_X_FORWARDED_FOR'];
-				// }
-				// if ( isset( $_SERVER['HTTP_X_REAL_IP'] ) ) {
-				// 	$ips[ '$_SERVER[\'HTTP_X_REAL_IP\']' ] = $_SERVER['HTTP_X_REAL_IP'];
-				// }
-				
-				echo '<p>The requesting IP address must be whitelisted by Rent Manager for syncing to work properly.</p>';
-				// echo '<ul>';
-				// foreach( $ips as $key => $ip ) {
-				// 	echo '<li>' . $key . ': <strong>' . $ip . '</strong></li>';
-				// }
-				// echo '</ul>';
-				
-				
 
-				
-				// var_dump( $_SERVER );
-				
-				// if (function_exists('shell_exec')) {
-				// 	$ip = trim(shell_exec('hostname -I'));
-				// 	if (!empty($ip)) {
-				// 		$ips = explode(' ', $ip);
-				// 		echo $ips[0];  // Return first IP if multiple are returned
-				// 	}
-				// }
-				
-				// echo '<br/>';
-				
-				// // Fallback methods
-				// if (function_exists('gethostbyname')) {
-				// 	echo gethostbyname(gethostname());
-				// }
-				
-				// echo '<br/>';
-				
-				// Last resort - try SERVER_ADDR
-				// echo $_SERVER['SERVER_ADDR'];
-				
+					printf( '<ul class="rentmanager-properties">%s</ul>', implode( '', $properties ) );
+
+				}
+
 				$response = wp_remote_get('https://api.ipify.org?format=json');
 				if (is_array($response) && !is_wp_error($response)) {
-					$body = json_decode($response['body']);
-					if (isset($body->ip)) {
-						echo '<li>Detected external IP (this could be wrong!): <strong>' . esc_html($body->ip) . '</strong></li>';
+					$ip_address = json_decode($response['body']);
+					if ( isset( $ip_address->ip )) {
+						printf( '<p>The requesting IP address must be whitelisted by Rent Manager for syncing to work properly. Detected external IP address: <strong>%s</strong></p>', esc_html($ip_address->ip) );
 					}
 				}
-				
-				
+
 				?>
 			</div>
 		</div>
