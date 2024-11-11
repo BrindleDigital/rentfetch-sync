@@ -1,3 +1,8 @@
+## 0.4.20
+
+-   Fixing more minor errors in Rent Manager, mainly around the API not returning values that we expect in cases where the client hasn't entered those values.
+-   Adding capability to detect external IP address using an API for use in RM whitelisting.
+
 ## 0.4.16
 
 -   Fixing a fatal error when Rent Manager data loads the very first time.

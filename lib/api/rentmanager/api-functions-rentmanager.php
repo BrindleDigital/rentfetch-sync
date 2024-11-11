@@ -393,19 +393,23 @@ function rfs_rentmanager_update_floorplan_meta( $args, $floorplan_data ) {
 	// 	} );
 	// 	$floorplan_availability_date = min( $floorplan_availability_date_array );
 	// }
+	
+	if ( isset( $floorplan_data['Bedrooms'] ) ) {
+		// silence is golden.
+	}
 
 	// * Update the meta
 	$meta = array(
-		'baths'     => floatval( $floorplan_data['Bathrooms'] ),
-		'beds'      => floatval( $floorplan_data['Bedrooms'] ),
-		'available_units' => floatval( $floorplan_available_units ),
-		'floorplan_id' => $floorplan_id,
-		'property_id' => $property_id,
-		'maximum_rent' => $floorplan_maximum_rent,
-		'maximum_sqft' => $floorplan_maximum_square_footage,
-		'minimum_rent' => $floorplan_minimum_rent,
-		'minimum_sqft' => $floorplan_minimum_square_footage,
-		'floorplan_image_url' => $images,
+		'baths'     => floatval( $floorplan_data['Bathrooms'] ?? 0 ),
+		'beds'      => floatval( $floorplan_data['Bedrooms'] ?? 0 ),
+		'available_units' => floatval( $floorplan_available_units ?? 0 ),
+		'floorplan_id' => $floorplan_id ?? '',
+		'property_id' => $property_id ?? '',
+		'maximum_rent' => $floorplan_maximum_rent ?? 0,
+		'maximum_sqft' => $floorplan_maximum_square_footage ?? 0,
+		'minimum_rent' => $floorplan_minimum_rent ?? 0,
+		'minimum_sqft' => $floorplan_minimum_square_footage ?? 0,
+		'floorplan_image_url' => $images ?? '',
 		'availability_date' => null,
 		'updated'   => current_time( 'mysql' ),
 		'api_error' => 'Updated successfully',
