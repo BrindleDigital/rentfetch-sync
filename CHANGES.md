@@ -1,3 +1,7 @@
+## 0.4.21
+
+-   Adding fields for Yardi API v2
+
 ## 0.4.20
 
 -   Fixing more minor errors in Rent Manager, mainly around the API not returning values that we expect in cases where the client hasn't entered those values.
