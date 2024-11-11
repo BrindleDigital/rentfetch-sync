@@ -269,46 +269,57 @@ function rentfetch_settings_sync() {
 					printf( '<ul class="rentmanager-properties">%s</ul>', implode( '', $properties ) );
 				}
 				
-				$ips = array();
+				// $ips = array();
 				
-				if ( isset( $_SERVER['SERVER_ADDR'] ) ) {
-					$ips[ '$_SERVER[\'SERVER_ADDR\']' ] = $_SERVER['SERVER_ADDR'];
-				}
-				if ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-					$ips[ '$_SERVER[\'HTTP_X_FORWARDED_FOR\']' ] = $_SERVER['HTTP_X_FORWARDED_FOR'];
-				}
-				if ( isset( $_SERVER['HTTP_X_REAL_IP'] ) ) {
-					$ips[ '$_SERVER[\'HTTP_X_REAL_IP\']' ] = $_SERVER['HTTP_X_REAL_IP'];
-				}
+				// if ( isset( $_SERVER['SERVER_ADDR'] ) ) {
+				// 	$ips[ '$_SERVER[\'SERVER_ADDR\']' ] = $_SERVER['SERVER_ADDR'];
+				// }
+				// if ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+				// 	$ips[ '$_SERVER[\'HTTP_X_FORWARDED_FOR\']' ] = $_SERVER['HTTP_X_FORWARDED_FOR'];
+				// }
+				// if ( isset( $_SERVER['HTTP_X_REAL_IP'] ) ) {
+				// 	$ips[ '$_SERVER[\'HTTP_X_REAL_IP\']' ] = $_SERVER['HTTP_X_REAL_IP'];
+				// }
 				
-				echo '<p>The following IP addresses might apply to your site. The requesting IP address must be whitelisted by Rent Manager for syncing to work properly.</p>';
-				echo '<ul>';
-				foreach( $ips as $key => $ip ) {
-					echo '<li>' . $key . ': <strong>' . $ip . '</strong></li>';
-				}
-				echo '</ul>';
+				echo '<p>The requesting IP address must be whitelisted by Rent Manager for syncing to work properly.</p>';
+				// echo '<ul>';
+				// foreach( $ips as $key => $ip ) {
+				// 	echo '<li>' . $key . ': <strong>' . $ip . '</strong></li>';
+				// }
+				// echo '</ul>';
+				
+				
+
 				
 				// var_dump( $_SERVER );
 				
-				if (function_exists('shell_exec')) {
-					$ip = trim(shell_exec('hostname -I'));
-					if (!empty($ip)) {
-						$ips = explode(' ', $ip);
-						echo $ips[0];  // Return first IP if multiple are returned
-					}
-				}
+				// if (function_exists('shell_exec')) {
+				// 	$ip = trim(shell_exec('hostname -I'));
+				// 	if (!empty($ip)) {
+				// 		$ips = explode(' ', $ip);
+				// 		echo $ips[0];  // Return first IP if multiple are returned
+				// 	}
+				// }
 				
-				echo '<br/>';
+				// echo '<br/>';
 				
-				// Fallback methods
-				if (function_exists('gethostbyname')) {
-					echo gethostbyname(gethostname());
-				}
+				// // Fallback methods
+				// if (function_exists('gethostbyname')) {
+				// 	echo gethostbyname(gethostname());
+				// }
 				
-				echo '<br/>';
+				// echo '<br/>';
 				
 				// Last resort - try SERVER_ADDR
-				echo $_SERVER['SERVER_ADDR'];
+				// echo $_SERVER['SERVER_ADDR'];
+				
+				$response = wp_remote_get('https://api.ipify.org?format=json');
+				if (is_array($response) && !is_wp_error($response)) {
+					$body = json_decode($response['body']);
+					if (isset($body->ip)) {
+						echo '<li>Detected external IP (this could be wrong!): <strong>' . esc_html($body->ip) . '</strong></li>';
+					}
+				}
 				
 				
 				?>
