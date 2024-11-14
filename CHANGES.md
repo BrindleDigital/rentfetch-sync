@@ -1,3 +1,7 @@
+## 0.4.22
+
+-   We don't need as much information as we were gathering. We're removing some of the new fields.
+
 ## 0.4.21
 
 -   Adding fields for Yardi API v2
