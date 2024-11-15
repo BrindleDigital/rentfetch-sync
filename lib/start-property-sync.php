@@ -1,4 +1,13 @@
 <?php
+/**
+ * Start the property sync
+ *
+ * @package rentfetchsync
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
 
 function rfs_sync_single_property( $property_id, $integration ) {
 		
