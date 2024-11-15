@@ -39,15 +39,20 @@ function rfs_do_rentmanager_sync( $args ) {
 	// get all of the units for this property.
 	$units_data = rfs_rentmanager_get_units_data( $args );
 	
-	// create the individual units, ignoring availability.
-	foreach( $units_data as $unit ) {
-		$args['floorplan_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'];
-		$args['unit_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'] . '-' . $unit['UnitID'];
+	if ( is_array( $units_data ) ) {
 		
-		$args = rfs_maybe_create_unit( $args );
+		// create the individual units, ignoring availability.
+		foreach( $units_data as $unit ) {
+			$args['floorplan_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'];
+			$args['unit_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'] . '-' . $unit['UnitID'];
+			
+			$args = rfs_maybe_create_unit( $args );
+			
+			rfs_rentmanager_update_unit_meta( $args, $unit );
+		}
 		
-		rfs_rentmanager_update_unit_meta( $args, $unit );
 	}
+	
 
 	// create the floorplans (we actually want to do this after the units, because if there are images attached to the unit_type, that should override unit images).
 	foreach ( $unit_types_data as $floorplan ) {

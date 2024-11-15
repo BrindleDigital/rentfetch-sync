@@ -26,8 +26,10 @@ function rfs_get_info_from_rentfetch_api() {
 	$args = array(
 		'site_url'              => get_site_url(),
 		'site_name'             => get_bloginfo( 'name' ),
+		'current_date_time'     => current_time('mysql'),
 		'rentfetch_version'     => defined( 'RENTFETCH_VERSION' ) ? RENTFETCH_VERSION : 'unknown',
 		'rentfetchsync_version' => defined( 'RENTFETCHSYNC_VERSION' ) ? RENTFETCHSYNC_VERSION : 'unknown',
+		'wordpress_version'     => get_bloginfo( 'version' ),
 		'apis_used'             => array(
 			'yardi'       => array(
 				'api_token'            => get_option( 'rentfetch_options_yardi_integration_creds_yardi_api_key' ),
