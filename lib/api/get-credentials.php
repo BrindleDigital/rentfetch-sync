@@ -11,6 +11,7 @@ function rfs_get_credentials() {
 	if ( in_array( 'yardi', $enabled ) ) {
 		$credentials['yardi'] = [
 			'apikey' => get_option( 'rentfetch_options_yardi_integration_creds_yardi_api_key' ),
+			'access_token' => rfs_get_yardi_bearer_token(), 
 			// 'user' => get_option( 'rentfetch_options_yardi_integration_creds_yardi_username' ),
 			// 'password' => get_option( 'rentfetch_options_yardi_integration_creds_yardi_password' ),
 		];
@@ -42,7 +43,7 @@ function rfs_get_credentials() {
 	if ( in_array( 'rentmanager', $enabled ) ) {
 		$credentials['rentmanager'] = [
 			'companycode' => get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_companycode' ),
-			'partner_token' => get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_partner_token' ),
+			'partner_token' => rfs_get_rentmanager_partner_token(),
 		];
 	}
 	
