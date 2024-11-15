@@ -1,3 +1,7 @@
+## 0.4.23
+
+-   Adding information to the RentFetch API (includes some basic site information, along with capabilities of sending back necessary information for syncing for Rent Manager and v2 of the Yardi API).
+
 ## 0.4.22
 
 -   We don't need as much information as we were gathering. We're removing some of the new fields.
