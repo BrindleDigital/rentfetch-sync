@@ -1,4 +1,13 @@
 <?php
+/**
+ * Surecart functionality
+ *
+ * @package rentfetchsync
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
 
 /**
  * SureCart License Activation
