@@ -1,3 +1,7 @@
+## 0.4.24
+
+-   Setting the transient after hitting the RentFetch API regardless of whether there's a successful response, as this function can trigger multiple times per pageload (we risk DDOSing ourselves if this isn't done).
+
 ## 0.4.23
 
 -   Adding information to the RentFetch API (includes some basic site information, along with capabilities of sending back necessary information for syncing for Rent Manager and v2 of the Yardi API).
