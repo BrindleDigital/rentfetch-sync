@@ -476,6 +476,7 @@ function rfs_rentmanager_update_unit_meta( $args, $unit ) {
 	} else {
 		// bail if the unit is not vacant. 
 		//! NOTE: THIS MEANS WE ARE NOT SYNCING OCCUPIED UNITS.
+		//! FOR THIS INFORMATION, WE NEED TO PULL A REPORT ON UNIT AVAILABILITY SPECIFICALLY FROM ANOTHER API.
 		// delete the post if it exists.
 		if ( isset( $args['wordpress_unit_post_id'] ) && $args['wordpress_unit_post_id'] ) {
 			wp_delete_post( $args['wordpress_unit_post_id'], true );
