@@ -251,11 +251,6 @@ function rentfetch_settings_sync() {
 				<input type="text" placeholder="e.g. companycode.api.rentmanager.com" name="rentfetch_options_rentmanager_integration_creds_rentmanager_companycode" id="rentfetch_options_rentmanager_integration_creds_rentmanager_companycode" value="<?php echo esc_attr( get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_companycode' ) ); ?>">
 			</div>
 			<div class="white-box">
-				<label for="rentfetch_options_rentmanager_integration_creds_rentmanager_partner_token">Partner Token</label>
-				<input type="text" name="rentfetch_options_rentmanager_integration_creds_rentmanager_partner_token" id="rentfetch_options_rentmanager_integration_creds_rentmanager_companycode" value="<?php echo esc_attr( get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_partner_token' ) ); ?>">
-				<p class="description">Brindle Digital will provide this.</p>
-			</div>
-			<div class="white-box">
 				<label for="rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames">Properties</label>
 				<?php
 
