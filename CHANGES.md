@@ -1,3 +1,8 @@
+## 0.4.25
+
+-   Remove meta for Brindle's API key (we'll pass this in the RF API moving forward, so that we don't need to give it out)
+-   Fixing several potential fatal errors that can happen if the Rent Manager unittypes or units API calls fail.
+
 ## 0.4.24
 
 -   Setting the transient after hitting the RentFetch API regardless of whether there's a successful response, as this function can trigger multiple times per pageload (we risk DDOSing ourselves if this isn't done).

@@ -41,30 +41,39 @@ function rfs_do_rentmanager_sync( $args ) {
 	
 	if ( is_array( $units_data ) ) {
 		
-		// create the individual units, ignoring availability.
-		foreach( $units_data as $unit ) {
-			$args['floorplan_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'];
-			$args['unit_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'] . '-' . $unit['UnitID'];
+			// create the individual units, ignoring availability.
+			foreach( $units_data as $unit ) {
+				
+				// only create the units if we have a valid UnitTypeID and UnitID.
+				if ( isset( $unit['UnitTypeID'] ) && isset( $unit['UnitID'] ) ) {
 			
-			$args = rfs_maybe_create_unit( $args );
-			
-			rfs_rentmanager_update_unit_meta( $args, $unit );
+					$args['floorplan_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'];
+					$args['unit_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'] . '-' . $unit['UnitID'];
+					
+					$args = rfs_maybe_create_unit( $args );
+					
+					rfs_rentmanager_update_unit_meta( $args, $unit );
+			}
 		}
 		
 	}
-	
 
 	// create the floorplans (we actually want to do this after the units, because if there are images attached to the unit_type, that should override unit images).
 	foreach ( $unit_types_data as $floorplan ) {
+		
+		// only create the floorplan if we have a valid UnitTypeID.
+		if ( isset( $floorplan['UnitTypeID'] ) ) {
 
-		$floorplan_id         = $args['property_id'] . '-' . $floorplan['UnitTypeID'];
-		$args['floorplan_id'] = $floorplan_id;
+			$floorplan_id         = $args['property_id'] . '-' . $floorplan['UnitTypeID'];
+			$args['floorplan_id'] = $floorplan_id;
 
-		// now that we have the floorplan ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
-		$args = rfs_maybe_create_floorplan( $args );
+			// now that we have the floorplan ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
+			$args = rfs_maybe_create_floorplan( $args );
 
-		// add the meta for this floorplan.
-		rfs_rentmanager_update_floorplan_meta( $args, $floorplan );
+			// add the meta for this floorplan.
+			rfs_rentmanager_update_floorplan_meta( $args, $floorplan );
+		}
+
 	}
 }
 
