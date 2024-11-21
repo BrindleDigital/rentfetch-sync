@@ -41,6 +41,53 @@ function rfs_do_yardi_sync( $args ) {
 
 		// add the amenities.
 		rfs_yardi_v2_update_property_amenities( $args, $property_data_v2 );
+		
+		// get the floorplans data for this property.
+		$floorplans_data_v2 = rfs_yardi_v2_get_floorplan_data( $args );
+				
+		// remove availability for floorplans that no longer are found in the API (we don't delete these because Yardi sometimes doesn't show floorplans with zero availability).
+		// rfs_remove_availability_orphan_yardi_v2__floorplans( $floorplans_data, $property_data );
+		
+		// ~ We'll need the floorplan ID to get the availablility information.
+		foreach ( $floorplans_data_v2 as $floorplan ) {
+
+			// skip if there's no floorplan id.
+			if ( ! isset( $floorplan['floorplanId'] ) ) {
+				continue;
+			}
+
+			$floorplan_id         = $floorplan['floorplanId'];
+			$args['floorplan_id'] = $floorplan_id;
+
+			// now that we have the floorplan ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
+			$args = rfs_maybe_create_floorplan( $args );
+
+			rfs_yardi_v2_update_floorplan_meta( $args, $floorplan );
+
+			// $availability_data = rfs_yardi_v2_get_floorplan_availability( $args );
+
+			// rfs_yardi_v2_update_floorplan_availability( $args, $availability_data );
+
+			// // Remove the units that aren't in the API for this floorplan.
+			// rfs_remove_units_no_longer_available( $availability_data, $args );
+
+			// // ~ The availability data includes the units, so we can update the units for this floorplan.
+			// foreach ( $availability_data as $unit ) {
+
+			// 	// skip if there's no floorplan id.
+			// 	if ( ! property_exists( $unit, 'ApartmentId' ) || ! $unit->ApartmentId ) { // phpcs:ignore
+			// 		continue;
+			// 	}
+
+			// 	$unit_id         = $unit->ApartmentId; // phpcs:ignore
+			// 	$args['unit_id'] = $unit_id;
+
+			// 	$args = rfs_maybe_create_unit( $args );
+
+			// 	rfs_yardi_v2_update_unit_meta( $args, $unit );
+
+			// }
+		}
 
 	} else {
 
