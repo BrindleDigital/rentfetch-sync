@@ -12,6 +12,8 @@ function rfs_get_credentials() {
 		$credentials['yardi'] = [
 			'apikey' => get_option( 'rentfetch_options_yardi_integration_creds_yardi_api_key' ),
 			'access_token' => rfs_get_yardi_bearer_token(), 
+			'company_code' => get_option( 'rentfetch_options_yardi_integration_creds_yardi_company_code' ),
+			'vendor' => 'marketing@brindledigital.com',
 			// 'user' => get_option( 'rentfetch_options_yardi_integration_creds_yardi_username' ),
 			// 'password' => get_option( 'rentfetch_options_yardi_integration_creds_yardi_password' ),
 		];

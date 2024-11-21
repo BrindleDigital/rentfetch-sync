@@ -100,3 +100,60 @@ function rfs_yardi_update_unit_meta( $args, $unit ) {
 		$success = update_post_meta( $args['wordpress_unit_post_id'], $key, $value );
 	}
 }
+
+function rfs_remove_units_no_longer_available( $availability_data, $args ) {
+	
+	// get the units that show up in the API
+	$unit_ids_from_api = array();
+	foreach( $availability_data as $unit ) {
+		
+		// skip if there's no ApartmentID
+		if ( !property_exists( $unit, 'ApartmentId' ) || !$unit->ApartmentId )
+			continue;
+		
+		$unit_ids_from_api[] = $unit->ApartmentId;
+
+	}
+	
+	// get the units that are in the database from this property and floorplan
+	$units = get_posts( array(
+		'post_type' => 'units',
+		'posts_per_page' => -1,
+		'meta_query' => array(
+			'relation' => 'AND',
+			array(
+				'key' => 'property_id',
+				'value' => $args['property_id'],
+			),
+			array(
+				'key' => 'floorplan_id',
+				'value' => $args['floorplan_id'],
+			),
+			array(
+				'key' => 'unit_source',
+				'value' => 'yardi',
+			),
+		),
+	) );
+	
+	// if we don't have any units, bail
+	if ( !$units )
+		return;
+	
+	// get the unit IDs from the database
+	$unit_ids_from_db = array();
+	foreach( $units as $unit ) {
+		$unit_ids_from_db[] = get_post_meta( $unit->ID, 'yardi_unit_id', true );
+	}
+	
+	// get the unit IDs that are in the database but not in the API
+	$unit_ids_to_remove = array_diff( $unit_ids_from_db, $unit_ids_from_api );
+	
+	// remove the units that are in the database but not in the API
+	foreach( $units as $unit ) {
+		if ( in_array( get_post_meta( $unit->ID, 'yardi_unit_id', true ), $unit_ids_to_remove ) ) {
+			wp_delete_post( $unit->ID, true );
+		}
+	}
+	
+}
