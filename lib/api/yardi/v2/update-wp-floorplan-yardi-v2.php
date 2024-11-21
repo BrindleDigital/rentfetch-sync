@@ -66,6 +66,7 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data ) {
 	// * Update the meta
 	$meta = array(
 		'availability_url'         => esc_url_raw( $floorplan_data['availabilityURL'] ?? '' ),
+		'availability_date'        => sanitize_text_field( $floorplan_data['availableDate'] ?? '' ),
 		'available_units'          => absint( $floorplan_data['availableUnitsCount'] ?? 0 ),
 		'baths'                    => floatval( $floorplan_data['baths'] ?? 0 ),
 		'beds'                     => floatval( $floorplan_data['beds'] ?? 0 ),
@@ -87,4 +88,86 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data ) {
 	foreach ( $meta as $key => $value ) {
 		$success = update_post_meta( $args['wordpress_floorplan_post_id'], $key, $value );
 	}
+}
+
+/**
+ * Update the floorplan availability for this floorplan.
+ *
+ * @param   array  $args               The arguments passed to the function.
+ * @param   array  $availability_data  The availability data.
+ *
+ * @return  array                      The updated availability data.
+ */
+function rfs_yardi_v2_update_floorplan_availability( $args, $availability_data ) {
+	
+	//! BAIL FOR NOW
+	return;
+	
+	// bail if we don't have the wordpress post ID
+	if ( !isset( $args['wordpress_floorplan_post_id'] ) || !$args['wordpress_floorplan_post_id'] )
+		return;
+					
+	// bail if we don't have the availability data to update this
+	if ( !$availability_data ) {
+		
+		$api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
+		
+		if ( !is_array( $api_response ) )
+			$api_response = [];
+				
+		$api_response['apartmentavailability_api'] = [
+			'updated' => current_time('mysql'),
+			'api_response' => 'Availability data not found',
+		];
+		
+		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
+		
+		return;
+		
+	}
+		
+	$available_dates = array();
+	$soonest_date = null;
+	$today = date('Ymd');
+	
+	foreach( $availability_data as $data ) {
+		
+		if ( isset( $data->AvailableDate ) ) {
+			
+			$date = $data->AvailableDate;
+			$date = date('Ymd', strtotime($date));
+			$available_dates[] = $date;
+		}            
+	}
+		
+	sort( $available_dates );
+		
+	if ( isset( $available_dates[0] ) )
+		$soonest_date = $available_dates[0];   
+		
+	// if the soonest date is before today, just set the available date to today
+	if ( $soonest_date == null ) {
+		$available_date = null;
+	}
+	elseif ( $today > $soonest_date ) {
+		$available_date = $today;
+	} else {
+		$available_date = $soonest_date;
+	}
+	
+	//* Update the meta
+	$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'availability_date', $available_date );
+	
+	$api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
+	
+	if ( !is_array( $api_response ) )
+		$api_response = [];
+	
+	$api_response['apartmentavailability_api'] = [
+		'updated' => current_time('mysql'),
+		'api_response' => 'Updated successfully',
+	];
+	
+	$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
+			
 }

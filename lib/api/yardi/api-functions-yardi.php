@@ -65,8 +65,11 @@ function rfs_do_yardi_sync( $args ) {
 			// update the floorplan meta (this is basic meta, e.g. beds, baths, etc.)
 			rfs_yardi_v2_update_floorplan_meta( $args, $floorplan );
 
+			// get the availability data for this floorplan.
 			// $availability_data = rfs_yardi_v2_get_floorplan_availability( $args );
 
+			// update the availability for this floorplan.
+			// TODO we're probably doing more API queries than we need to here, as we could do one query to get all of the avail information for the property.
 			// rfs_yardi_v2_update_floorplan_availability( $args, $availability_data );
 
 			// // Remove the units that aren't in the API for this floorplan.

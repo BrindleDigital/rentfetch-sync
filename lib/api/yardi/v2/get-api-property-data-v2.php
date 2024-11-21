@@ -20,7 +20,7 @@ function rfs_yardi_v2_get_property_data( $args ) {
 
 	$yardi_api_key = $args['credentials']['yardi']['apikey'];
 	$property_id   = $args['property_id'];
-	$access_token  = $args['credentials']['yardi']['access_token'];
+	$access_token  = rfs_get_yardi_bearer_token();
 	$company_code  = $args['credentials']['yardi']['company_code'];
 	$vendor        = $args['credentials']['yardi']['vendor'];
 
@@ -76,7 +76,7 @@ function rfs_yardi_v2_get_property_images( $args ) {
 	
 	$yardi_api_key = $args['credentials']['yardi']['apikey'];
 	$property_id   = $args['property_id'];
-	$access_token  = $args['credentials']['yardi']['access_token'];
+	$access_token  = rfs_get_yardi_bearer_token();
 	$company_code  = $args['credentials']['yardi']['company_code'];
 	$vendor        = $args['credentials']['yardi']['vendor'];
 
