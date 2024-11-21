@@ -62,6 +62,7 @@ function rfs_do_yardi_sync( $args ) {
 			// now that we have the floorplan ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
 			$args = rfs_maybe_create_floorplan( $args );
 
+			// update the floorplan meta (this is basic meta, e.g. beds, baths, etc.)
 			rfs_yardi_v2_update_floorplan_meta( $args, $floorplan );
 
 			// $availability_data = rfs_yardi_v2_get_floorplan_availability( $args );
