@@ -1,7 +1,6 @@
 ## 0.5.1
 
 -   Add capabilities for Yardi v2 API
--   Load Surecart licensing setup later (at init) to avoid a new notice in WP 6.7+ saying that translations are loading too early.
 
 ## 0.4.25
 

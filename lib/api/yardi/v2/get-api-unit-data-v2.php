@@ -10,13 +10,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Get the floorplan data for a particular property from the Yardi API (v2)
+ * Get the unit availability for a particular property from the Yardi API (v2)
  *
- * @param   array $args  The credentials and property ID.
+ * @param   array  $args  The credentials and property ID.
  *
- * @return  array         The floorplan data.
+ * @return  array 	   The unit availability.
  */
-function rfs_yardi_v2_get_floorplan_data( $args ) {
+function rfs_yardi_v2_get_unit_data( $args ) {
 
 	$yardi_api_key = $args['credentials']['yardi']['apikey'];
 	$property_id   = $args['property_id'];
@@ -41,6 +41,7 @@ function rfs_yardi_v2_get_floorplan_data( $args ) {
 		'apiToken'     => $yardi_api_key,
 		'companyCode'  => $company_code,
 		'propertyCode' => $property_id,
+		// 'floorPlanId'  => $floorplan_id,
 	);
 
 	// convert the body to json, as the API requires.
@@ -48,7 +49,7 @@ function rfs_yardi_v2_get_floorplan_data( $args ) {
 
 	// Do the request.
 	$response = wp_remote_post(
-		'https://basic.rentcafeapi.com/floorplan/getfloorplans',
+		'https://basic.rentcafeapi.com/apartmentavailability/getapartmentavailability',
 		array(
 			'headers' => $headers,
 			'body'    => $body_json,
@@ -63,7 +64,9 @@ function rfs_yardi_v2_get_floorplan_data( $args ) {
 	$response_body = wp_remote_retrieve_body( $response );
 	$data          = json_decode( $response_body, true );
 
-	if ( isset( $data['floorplans'] ) && is_array( $data['floorplans'] ) ) {
-		return $data['floorplans'];
+	if ( isset( $data['apartmentAvailabilities'] ) && is_array( $data['apartmentAvailabilities'] ) ) {
+		return $data['apartmentAvailabilities'];
 	}
+	
+	return;
 }

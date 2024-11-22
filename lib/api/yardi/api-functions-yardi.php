@@ -48,7 +48,7 @@ function rfs_do_yardi_sync( $args ) {
 		// remove availability for floorplans that no longer are found in the API (we don't delete these because Yardi sometimes doesn't show floorplans with zero availability).
 		// rfs_remove_availability_orphan_yardi_v2__floorplans( $floorplans_data, $property_data );
 		
-		// ~ We'll need the floorplan ID to get the availablility information.
+		// ~ We'll need the floorplan ID to update that.
 		foreach ( $floorplans_data_v2 as $floorplan ) {
 
 			// skip if there's no floorplan id.
@@ -64,34 +64,41 @@ function rfs_do_yardi_sync( $args ) {
 
 			// update the floorplan meta (this is basic meta, e.g. beds, baths, etc.)
 			rfs_yardi_v2_update_floorplan_meta( $args, $floorplan );
-
-			// get the availability data for this floorplan.
-			// $availability_data = rfs_yardi_v2_get_floorplan_availability( $args );
-
-			// update the availability for this floorplan.
-			// TODO we're probably doing more API queries than we need to here, as we could do one query to get all of the avail information for the property.
-			// rfs_yardi_v2_update_floorplan_availability( $args, $availability_data );
-
-			// // Remove the units that aren't in the API for this floorplan.
-			// rfs_remove_units_no_longer_available( $availability_data, $args );
-
-			// // ~ The availability data includes the units, so we can update the units for this floorplan.
-			// foreach ( $availability_data as $unit ) {
-
-			// 	// skip if there's no floorplan id.
-			// 	if ( ! property_exists( $unit, 'ApartmentId' ) || ! $unit->ApartmentId ) { // phpcs:ignore
-			// 		continue;
-			// 	}
-
-			// 	$unit_id         = $unit->ApartmentId; // phpcs:ignore
-			// 	$args['unit_id'] = $unit_id;
-
-			// 	$args = rfs_maybe_create_unit( $args );
-
-			// 	rfs_yardi_v2_update_unit_meta( $args, $unit );
-
-			// }
+			
 		}
+		
+		//TODO need to remove floorplan availability information for floorplans that are no longer available in the API.
+		
+		// get the availability data (this should be the units)
+		$unit_data_v2 = rfs_yardi_v2_get_unit_data( $args );
+		
+		// We'll need the unit ID to get the unit information.
+		foreach( $unit_data_v2 as $unit ) {
+			
+			// skip if there's no unit id.
+			if ( ! isset( $unit['apartmentId'] ) ) {
+				continue;
+			}
+
+			$unit_id         = $unit['apartmentId'];
+			$args['unit_id'] = $unit_id;
+			
+			if ( ! isset( $unit['floorplanId'] ) ) {
+				continue;
+			}
+			
+			$args['floorplan_id'] = $unit['floorplanId'];
+
+			// now that we have the unit ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
+			$args = rfs_maybe_create_unit( $args );
+
+			// update the unit meta for this property.
+			rfs_yardi_v2_update_unit_meta( $args, $unit );
+
+		}
+		
+		//TODO need to remove units that are no longer available in the API.
+		
 
 	} else {
 
@@ -156,4 +163,5 @@ function rfs_do_yardi_sync( $args ) {
 			}
 		}
 	}
+	
 }
