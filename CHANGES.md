@@ -1,3 +1,7 @@
+## 0.5.2
+
+-   Add capability to Rent Manager sync to remove properties, floorplans, and units when the associated property is no longer enabled for sync.
+
 ## 0.5.1
 
 -   Add capabilities for Yardi v2 API
