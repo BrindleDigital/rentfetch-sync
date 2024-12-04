@@ -1,3 +1,8 @@
+## 0.5.3
+
+-   When a floorplan in Rent Manager (unit type, as they call it) has no beds or baths set, we're not going to sync that one down.
+-   When a unit in Rent Manager has no price set, we're not going to sync that one down.
+
 ## 0.5.2
 
 -   Add capability to Rent Manager sync to remove properties, floorplans, and units when the associated property is no longer enabled for sync.

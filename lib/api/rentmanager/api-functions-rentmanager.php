@@ -43,41 +43,57 @@ function rfs_do_rentmanager_sync( $args ) {
 
 	// get all of the units for this property.
 	$units_data = rfs_rentmanager_get_units_data( $args );
-	
+		
 	if ( is_array( $units_data ) ) {
-		
-			// create the individual units, ignoring availability.
-			foreach( $units_data as $unit ) {
-				
-				// only create the units if we have a valid UnitTypeID and UnitID.
-				if ( isset( $unit['UnitTypeID'] ) && isset( $unit['UnitID'] ) ) {
+
+		// create the individual units, ignoring availability.
+		foreach( $units_data as $unit ) {
 			
-					$args['floorplan_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'];
-					$args['unit_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'] . '-' . $unit['UnitID'];
-					
-					$args = rfs_maybe_create_unit( $args );
-					
-					rfs_rentmanager_update_unit_meta( $args, $unit );
+			// skip this one if there's no attached unit type.
+			if ( !isset( $unit['UnitTypeID'] ) ) {
+				continue;
 			}
+			
+			// skip this one if there's no valid unit ID.
+			if ( !isset( $unit['UnitID'] ) ) {
+				continue;
+			}
+			
+			// skip this one if there's no market rent being set.
+			if ( !isset( $unit['MarketRent'][0]['Amount'] ) ) {
+				continue;
+			}
+
+			$args['floorplan_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'];
+			$args['unit_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'] . '-' . $unit['UnitID'];
+			
+			$args = rfs_maybe_create_unit( $args );
+			
+			rfs_rentmanager_update_unit_meta( $args, $unit );
 		}
-		
 	}
 
 	// create the floorplans (we actually want to do this after the units, because if there are images attached to the unit_type, that should override unit images).
 	foreach ( $unit_types_data as $floorplan ) {
 		
-		// only create the floorplan if we have a valid UnitTypeID.
-		if ( isset( $floorplan['UnitTypeID'] ) ) {
-
-			$floorplan_id         = $args['property_id'] . '-' . $floorplan['UnitTypeID'];
-			$args['floorplan_id'] = $floorplan_id;
-
-			// now that we have the floorplan ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
-			$args = rfs_maybe_create_floorplan( $args );
-
-			// add the meta for this floorplan.
-			rfs_rentmanager_update_floorplan_meta( $args, $floorplan );
+		// continue if we don't have a $floorplan['Bedrooms'] and we don't have a valid $floorplan['Bathrooms']. We'd like to do this for price as well, but there are actually *none* of these in the API that have a price set.
+		if ( !isset( $floorplan['Bedrooms'] ) && !isset( $floorplan['Bathrooms'] ) ) {
+			continue;
 		}
+		
+		// only create the floorplan if we have a valid UnitTypeID.
+		if ( !isset( $floorplan['UnitTypeID'] ) ) {
+			continue;
+		}
+
+		$floorplan_id         = $args['property_id'] . '-' . $floorplan['UnitTypeID'];
+		$args['floorplan_id'] = $floorplan_id;
+
+		// now that we have the floorplan ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
+		$args = rfs_maybe_create_floorplan( $args );
+
+		// add the meta for this floorplan.
+		rfs_rentmanager_update_floorplan_meta( $args, $floorplan );
 
 	}
 }
@@ -482,6 +498,19 @@ function rfs_rentmanager_get_units_data( $args ) {
 }
 
 function rfs_rentmanager_update_unit_meta( $args, $unit ) {
+	
+	if ( !isset( $unit['Name'] ) ) {
+		return;
+	}
+	
+	// update the post title from $unit['Name']
+	$post_info = array(
+		'ID'         => $args['wordpress_unit_post_id'],
+		'post_title' => esc_html( $unit['Name'] ),
+		'post_name'  => sanitize_title( $unit['Name'] ), // update the permalink to match the new title.
+	);
+	
+	wp_update_post( $post_info );
 	
 	$availability_date = null;
 	if ( isset( $unit['IsVacant'] ) && $unit['IsVacant'] === true ) {
