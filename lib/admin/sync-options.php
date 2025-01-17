@@ -127,12 +127,12 @@ function rentfetch_settings_sync() {
 						Yardi/RentCafe
 					</label>
 				</li>
-				<!-- <li>
+				<li>
 					<label>
-						<input type="checkbox" name="rentfetch_options_enabled_integrations[]" value="entrata" <?php // checked( in_array( 'entrata', get_option( 'rentfetch_options_enabled_integrations', array() ) ) ); ?>>
+						<input type="checkbox" name="rentfetch_options_enabled_integrations[]" value="entrata" <?php checked( in_array( 'entrata', get_option( 'rentfetch_options_enabled_integrations', array() ) ) ); ?>>
 						Entrata
 					</label>
-				</li> -->
+				</li>
 				<li>
 					<label>
 						<input type="checkbox" name="rentfetch_options_enabled_integrations[]" value="realpage" <?php checked( in_array( 'realpage', get_option( 'rentfetch_options_enabled_integrations', array() ) ) ); ?>>
@@ -202,17 +202,14 @@ function rentfetch_settings_sync() {
 		</div>
 		<div class="section">
 			<div class="white-box">
-				<label for="rentfetch_options_entrata_integration_creds_entrata_user">Entrata Username</label>
-				<input type="text" name="rentfetch_options_entrata_integration_creds_entrata_user" id="rentfetch_options_entrata_integration_creds_entrata_user" value="<?php echo esc_attr( get_option( 'rentfetch_options_entrata_integration_creds_entrata_user' ) ); ?>">
-			</div>
-			<div class="white-box">
-				<label for="rentfetch_options_entrata_integration_creds_entrata_pass">Entrata Password</label>
-				<input type="text" name="rentfetch_options_entrata_integration_creds_entrata_pass" id="rentfetch_options_entrata_integration_creds_entrata_pass" value="<?php echo esc_attr( get_option( 'rentfetch_options_entrata_integration_creds_entrata_pass' ) ); ?>">
+				<label for="rentfetch_options_entrata_integration_creds_entrata_subdomain">Entrata Subdomain </label>
+				<input type="text" name="rentfetch_options_entrata_integration_creds_entrata_subdomain" id="rentfetch_options_entrata_integration_creds_entrata_subdomain" value="<?php echo esc_attr( get_option( 'rentfetch_options_entrata_integration_creds_entrata_subdomain' ) ); ?>">
+				<p class="description">This is the subdomain of your entrata account. For example, if your account is at https://myaccount.entrata.com, you would enter "myaccount" here.</p>
 			</div>
 			<div class="white-box">
 				<label for="rentfetch_options_entrata_integration_creds_entrata_property_ids">Entrata Property IDs</label>
 				<textarea rows="10" style="width: 100%;" name="rentfetch_options_entrata_integration_creds_entrata_property_ids" id="rentfetch_options_entrata_integration_creds_entrata_property_ids"><?php echo esc_attr( get_option( 'rentfetch_options_entrata_integration_creds_entrata_property_ids' ) ); ?></textarea>
-				<p class="description">If there are multiple properties to be pulled in, enter those separated by commas</p>
+				<p class="description">If there are multiple properties to be pulled in, enter those separated by commas.</p>
 			</div>
 		</div>
 	</div>

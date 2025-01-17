@@ -122,6 +122,23 @@ function rfs_get_yardi_bearer_token() {
 }
 
 /**
+ * Grab just the Entrata API key from the Rentfetch API.
+ *
+ * @return  string the token.
+ */
+function rfs_get_entrata_api_key() {
+	$response = rfs_get_info_from_rentfetch_api();
+
+	if ( isset( $response['entrata']['api_key'] ) ) {
+		$token = stripslashes( $response['entrata']['api_key'] );
+
+		return $token;
+	}
+
+	return null;
+}
+
+/**
  * Grab just the Rent Manager partner token from the Rentfetch API.
  *
  * @return  string the token.

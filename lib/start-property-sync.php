@@ -70,7 +70,37 @@ function rfs_perform_syncs() {
 			
 			if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
 				// need to pass the $args inside an array
-				// as_enqueue_async_action( 'rfs_do_sync', array( $args ), 'rentfetch' );
+				as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_do_sync', array( $args ), 'rentfetch' );
+			}	
+		}
+		
+	}
+	
+	//* Entrata
+	
+	if ( in_array( 'entrata', $enabled_integrations ) ) {
+		
+		// get the properties for yardi, then turn it into an array
+		$entrata_properties = get_option( 'rentfetch_options_entrata_integration_creds_entrata_property_ids' );
+		$entrata_properties = str_replace( ' ', '', $entrata_properties );
+		$entrata_properties = explode( ',', $entrata_properties );
+
+		// TODO orphan detection
+		// // remove orphaned properties, floorplans, and units (this only deletes properties that are no longer in the settings and their associated floorplans and units)
+		// if ( false === as_has_scheduled_action( 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' ) ) {
+		// 	as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' );
+		// }	
+		
+		// cycle through the properties and schedule a sync for each one			
+		foreach( $entrata_properties as $entrata_property ) {
+			$args = [
+				'integration' => 'entrata',
+				'property_id' => $entrata_property,
+				'credentials' => rfs_get_credentials(),
+			];
+			
+			if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
+				// need to pass the $args inside an array
 				as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_do_sync', array( $args ), 'rentfetch' );
 			}	
 		}
@@ -95,7 +125,6 @@ function rfs_perform_syncs() {
 			
 			if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
 				// need to pass the $args inside an array
-				// as_enqueue_async_action( 'rfs_do_sync', array( $args ), 'rentfetch' );
 				as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_do_sync', array( $args ), 'rentfetch' );
 			}	
 		}
@@ -122,7 +151,6 @@ function rfs_perform_syncs() {
 				
 				if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
 					// need to pass the $args inside an array
-					// as_enqueue_async_action( 'rfs_do_sync', array( $args ), 'rentfetch' );
 					as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_do_sync', array( $args ), 'rentfetch' );
 				}
 			}
@@ -161,7 +189,7 @@ function rfs_sync( $args ) {
 			break;
 		case 'entrata':
 			
-			// TODO do the entrata sync
+			rfs_do_entrata_sync( $args );
 			
 			break;
 		default:

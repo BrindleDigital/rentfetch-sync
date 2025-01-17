@@ -20,8 +20,8 @@ function rfs_get_credentials() {
 		
 	if ( in_array( 'entrata', $enabled ) ) {
 		$credentials['entrata'] = [
-			'user' => get_option( 'rentfetch_options_entrata_integration_creds_entrata_user' ),
-			'password' => get_option( 'rentfetch_options_entrata_integration_creds_entrata_pass' ),
+			'subdomain' => get_option( 'rentfetch_options_entrata_integration_creds_entrata_subdomain' ),
+			// the Entrata API key will come from the Rent Fetch API, and therefore is not stored in the WP options or available in the $credentials array.
 		];
 	}
 	
