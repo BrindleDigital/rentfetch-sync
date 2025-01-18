@@ -32,22 +32,27 @@ function rfs_do_entrata_sync( $args ) {
 	// TODO property amenities
 	
 	$floorplan_data = rfs_entrata_get_floorplan_data( $args );
+	if ( isset( $floorplan_data['response']['result']['FloorPlans']['FloorPlan'] ) ) {
+		$floorplans = $floorplan_data['response']['result']['FloorPlans']['FloorPlan'];
+	} else {
+		$floorplans = [];
+	}
 	
-	foreach( $floorplan_data as $floorplan ) {
+	foreach( $floorplans as $floorplan ) {
 		
 		// skip if there's no floorplan id.
-		if ( ! isset( $floorplan['floorplanId'] ) ) { // TODO UPDATE THE NAME OF THIS
+		if ( ! isset( $floorplan['Identification']['IDValue'] ) ) { // TODO UPDATE THE NAME OF THIS
 			continue;
 		}
 
-		$floorplan_id         = $floorplan['floorplanId']; // TODO UPDATE THE NAME OF THIS
+		$floorplan_id         = $floorplan['Identification']['IDValue']; // TODO UPDATE THE NAME OF THIS
 		$args['floorplan_id'] = $floorplan_id; // TODO UPDATE THE NAME OF THIS
 
 		// now that we have the floorplan ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
 		$args = rfs_maybe_create_floorplan( $args );
 
 		// update the floorplan meta (this is basic meta, e.g. beds, baths, etc.)
-		// rfs_entrata_update_floorplan_meta( $args, $floorplan );
+		rfs_entrata_update_floorplan_meta( $args, $floorplan );
 		
 	}
 

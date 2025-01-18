@@ -27,7 +27,7 @@ function rfs_entrata_get_floorplan_data( $args ) {
 	}
 
 	// Set the URL for the API request.
-	$url = sprintf( 'https://apis.entrata.com/ext/orgs/%s/v1/propertyunits', $subdomain );
+	$url = sprintf( 'https://apis.entrata.com/ext/orgs/%s/v1/properties', $subdomain );
 
 	// Set the body for the request.
 	$body_array = array(
@@ -36,7 +36,7 @@ function rfs_entrata_get_floorplan_data( $args ) {
 		),
 		'requestId' => '15',
 		'method' => array(
-			'name' => 'getUnitTypes',
+			'name' => 'getFloorPlans',
 			'params' => array(
 				'propertyId' => $property_id,
 			),
