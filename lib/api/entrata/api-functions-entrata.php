@@ -22,11 +22,21 @@ function rfs_do_entrata_sync( $args ) {
 	// create a new post if needed, adding the post ID to the args if we do (don't need any API calls for this)
 	$args = rfs_maybe_create_property( $args );
 
-	// perform the API calls to get the data.
+	//* Main property API (most property data)
+	
+	// perform the API calls to get the basic data for the property
 	$property_data = rfs_entrata_get_property_data( $args );
 		
 	if ( $property_data && is_array( $property_data ) ) {
 		rfs_entrata_update_property_meta( $args, $property_data );
+	}
+	
+	//* getMitsPropertyUnits API is the only way to get lat/long data and property images
+	
+	$property_mits_data = rfs_entrata_get_property_mits_data( $args );
+	
+	if ( $property_mits_data && is_array( $property_mits_data ) ) {
+		rfs_entrata_update_property_mits_meta( $args, $property_mits_data );
 	}
 	
 	// TODO property amenities

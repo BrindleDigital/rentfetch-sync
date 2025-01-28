@@ -44,7 +44,7 @@ function rfs_perform_syncs() {
 	$enabled_integrations = get_option( 'rentfetch_options_enabled_integrations' );	
 	
 	// Get the sync timeline, setting it to hourly as a default
-	$sync_time = get_option( 'rentfetch_options_sync_timeline', '3600' );
+	$sync_time = (int) get_option( 'rentfetch_options_sync_timeline', '3600' );
 		
 	//* Yardi
 	
