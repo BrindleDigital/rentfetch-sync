@@ -3,7 +3,7 @@
 	Plugin Name:   Rent Fetch Sync
 	Plugin URI:    https://github.com/jonschr/rentfetch-sync
 	Description:   An addon for Rent Fetch that syncs properties, floorplans, and units
-	Version:       0.5.3
+	Version:       0.6
 	Author:        Brindle Digital
 	Author URI:    https://www.brindledigital.com/
 
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define the version of the plugin.
-define( 'RENTFETCHSYNC_VERSION', '0.5.3' );
+define( 'RENTFETCHSYNC_VERSION', '0.6' );
 
 // Plugin directory.
 define( 'RENTFETCHSYNC_DIR', plugin_dir_path( __FILE__ ) );
@@ -48,32 +48,32 @@ function rfs_deactivate_actions() {
 // include action scheduler.
 require_once plugin_dir_path( __FILE__ ) . 'vendor/action-scheduler/action-scheduler.php';
 
-// // include surecart licensing.
-// if ( ! class_exists( 'SureCart\Licensing\Client' ) ) {
-// 	require_once RENTFETCHSYNC_DIR . '/vendor/surecart/src/Client.php';
-// }
+// include surecart licensing.
+if ( ! class_exists( 'SureCart\Licensing\Client' ) ) {
+	require_once RENTFETCHSYNC_DIR . '/vendor/surecart/src/Client.php';
+}
 
-// // initialize client with your plugin name and your public token.
-// $client = new SureCart\Licensing\Client( 'Rent Fetch Sync', RENTFETCHSYNC_SURECART_PUBLIC_TOKEN, __FILE__ );
+// initialize client with your plugin name and your public token.
+$client = new SureCart\Licensing\Client( 'Rent Fetch Sync', RENTFETCHSYNC_SURECART_PUBLIC_TOKEN, __FILE__ );
 
-// // set your textdomain.
-// $client->set_textdomain( 'rentfetch-sync' );
+// set your textdomain.
+$client->set_textdomain( 'rentfetch-sync' );
 
-// // add the pre-built license settings page.
-// $client->settings()->add_page(
-// 	array(
-// 		'type'               => 'submenu', // Can be: menu, options, submenu.
-// 		'parent_slug'        => 'rentfetch-options', // add your plugin menu slug.
-// 		'page_title'         => 'Manage Sync license',
-// 		'menu_title'         => 'Manage Sync license',
-// 		'capability'         => 'manage_options',
-// 		'menu_slug'          => $client->slug . '-manage-license',
-// 		'icon_url'           => '',
-// 		'position'           => null,
-// 		'activated_redirect' => admin_url( 'admin.php?page=rentfetch-options' ), // should you want to redirect on activation of license.
-// 	// 'deactivated_redirect' => admin_url( 'admin.php?page=my-plugin-deactivation-page' ), // should you want to redirect on detactivation of license.
-// 	)
-// );
+// add the pre-built license settings page.
+$client->settings()->add_page(
+	array(
+		'type'               => 'submenu', // Can be: menu, options, submenu.
+		'parent_slug'        => 'rentfetch-options', // add your plugin menu slug.
+		'page_title'         => 'Manage Sync license',
+		'menu_title'         => 'Manage Sync license',
+		'capability'         => 'manage_options',
+		'menu_slug'          => $client->slug . '-manage-license',
+		'icon_url'           => '',
+		'position'           => null,
+		'activated_redirect' => admin_url( 'admin.php?page=rentfetch-options' ), // should you want to redirect on activation of license.
+	// 'deactivated_redirect' => admin_url( 'admin.php?page=my-plugin-deactivation-page' ), // should you want to redirect on detactivation of license.
+	)
+);
 
 /**
  * Include all files in a directory and its subdirectories.

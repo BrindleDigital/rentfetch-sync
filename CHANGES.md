@@ -1,3 +1,8 @@
+## 0.6
+
+-   Adding Entrata sync
+-   Minor fixes to the Yardi v2 API sync
+
 ## 0.5.3
 
 -   When a floorplan in Rent Manager (unit type, as they call it) has no beds or baths set, we're not going to sync that one down.
