@@ -41,12 +41,55 @@ function rfs_do_entrata_sync( $args ) {
 	
 	// TODO property amenities
 	
+	//* Get the unit data for this property.
+	
+	$unit_data = rfs_entrata_get_unit_data( $args );
+	if ( isset( $unit_data['response']['result']['ILS_Units']['Unit'] ) ) {
+		$units = $unit_data['response']['result']['ILS_Units']['Unit'];
+	} else {
+		$units = [];
+	}
+	
+	foreach( $units as $unit ) {
+		
+		// skip if there's no unit id.
+		if ( ! isset( $unit['@attributes']['PropertyUnitId'] ) ) {
+			continue;
+		}
+		
+		$property_id          = $unit['@attributes']['PropertyId'];
+		$args['property_id']  = $property_id;
+		
+		$floorplan_id         = $unit['@attributes']['FloorplanId'];
+		$args['floorplan_id'] = $floorplan_id;
+
+		$unit_id              = $unit['@attributes']['PropertyUnitId'];
+		$args['unit_id']      = $unit_id;
+
+		// now that we have the unit ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
+		$args = rfs_maybe_create_unit( $args );
+
+		
+		// silence is golden...
+		
+		// update the unit meta (this is basic meta, e.g. beds, baths, etc.)
+		rfs_entrata_update_unit_meta( $args, $unit );
+	}
+	
+	// reset the floorplan_id and unit_id
+	$args['floorplan_id'] = null;
+	$args['unit_id']      = null;
+	
+	//* Get the floorplan data for this property.
+	
 	$floorplan_data = rfs_entrata_get_floorplan_data( $args );
 	if ( isset( $floorplan_data['response']['result']['FloorPlans']['FloorPlan'] ) ) {
 		$floorplans = $floorplan_data['response']['result']['FloorPlans']['FloorPlan'];
 	} else {
 		$floorplans = [];
 	}
+	
+	//* Update the floorplans.
 	
 	foreach( $floorplans as $floorplan ) {
 		

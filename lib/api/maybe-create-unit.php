@@ -67,7 +67,7 @@ function rfs_maybe_create_unit( $args ) {
 		return $args;
 	}
 		
-	// if we're here, we need to create the property post
+	// if we're here, we need to create the unit post
 	$new_unit_post = array(
 		'post_title' => $unit_id,
 		'post_type' => 'units',
