@@ -52,47 +52,6 @@ function rentfetch_settings_sync() {
 			</ul>
 		</div>
 	</div>
-		
-	<div class="row">
-		<div class="section">
-			<label for="rentfetch_options_sync_timeline">Sync timeline</label>
-			<p class="description">Select how often you'd like to sync data from the API</p>			
-		</div>
-		<div class="section">
-			<ul class="radio">
-				<li>
-					<label>
-						<input type="radio" name="rentfetch_options_sync_timeline" id="rentfetch_options_sync_timeline" value="3600" <?php checked(get_option('rentfetch_options_sync_timeline'), '3600'); ?> />
-						Hourly
-					</label>
-				</li>
-				<li>
-					<label>
-						<input type="radio" name="rentfetch_options_sync_timeline" id="rentfetch_options_sync_timeline" value="7200" <?php checked(get_option('rentfetch_options_sync_timeline'), '7200'); ?> />
-						Every two hours
-					</label>
-				</li>
-				<li>
-					<label>
-						<input type="radio" name="rentfetch_options_sync_timeline" id="rentfetch_options_sync_timeline" value="21600" <?php checked(get_option('rentfetch_options_sync_timeline'), '21600'); ?> />
-						Every six hours
-					</label>
-				</li>
-				<li>
-					<label>
-						<input type="radio" name="rentfetch_options_sync_timeline" id="rentfetch_options_sync_timeline" value="43200" <?php checked(get_option('rentfetch_options_sync_timeline'), '43200'); ?> />
-						Every twelve hours
-					</label>
-				</li>
-				<li>
-					<label>
-						<input type="radio" name="rentfetch_options_sync_timeline" id="rentfetch_options_sync_timeline" value="86400" <?php checked(get_option('rentfetch_options_sync_timeline'), '86400'); ?> />
-						Daily
-					</label>
-				</li>
-			</ul>
-		</div>
-	</div>
 
 	<div class="row">
 		<div class="section">
