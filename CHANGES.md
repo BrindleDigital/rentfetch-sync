@@ -1,3 +1,7 @@
+## 0.6.1
+
+-   Removing the option for sync timeline, adding new default at 24 hours with a filter to allow themes/plugins to change it if there's a real need.
+
 ## 0.6
 
 -   Adding Entrata sync
