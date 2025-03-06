@@ -1,3 +1,8 @@
+## 0.6.2
+
+-   Adding functionality to allow for automatically removing dated unit data that no longer appears in the Yardiv2 API.
+-   Fixed php notice.
+
 ## 0.6.1
 
 -   Removing the option for sync timeline, adding new default at 24 hours with a filter to allow themes/plugins to change it if there's a real need.
