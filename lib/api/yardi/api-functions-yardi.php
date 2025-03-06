@@ -96,9 +96,8 @@ function rfs_do_yardi_sync( $args ) {
 			rfs_yardi_v2_update_unit_meta( $args, $unit );
 
 		}
-		
-		//TODO need to remove units that are no longer available in the API.
-		
+
+		rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args );
 
 	} else {
 
