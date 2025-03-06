@@ -72,32 +72,35 @@ function rfs_do_yardi_sync( $args ) {
 		// get the availability data (this should be the units)
 		$unit_data_v2 = rfs_yardi_v2_get_unit_data( $args );
 		
-		// We'll need the unit ID to get the unit information.
-		foreach( $unit_data_v2 as $unit ) {
+		if ( $unit_data_v2 && is_array( $unit_data_v2 ) ) {
 			
-			// skip if there's no unit id.
-			if ( ! isset( $unit['apartmentId'] ) ) {
-				continue;
+			// We'll need the unit ID to get the unit information.
+			foreach( $unit_data_v2 as $unit ) {
+				
+				// skip if there's no unit id.
+				if ( ! isset( $unit['apartmentId'] ) ) {
+					continue;
+				}
+
+				$unit_id         = $unit['apartmentId'];
+				$args['unit_id'] = $unit_id;
+				
+				if ( ! isset( $unit['floorplanId'] ) ) {
+					continue;
+				}
+				
+				$args['floorplan_id'] = $unit['floorplanId'];
+
+				// now that we have the unit ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
+				$args = rfs_maybe_create_unit( $args );
+
+				// update the unit meta for this property.
+				rfs_yardi_v2_update_unit_meta( $args, $unit );
+
 			}
 
-			$unit_id         = $unit['apartmentId'];
-			$args['unit_id'] = $unit_id;
-			
-			if ( ! isset( $unit['floorplanId'] ) ) {
-				continue;
-			}
-			
-			$args['floorplan_id'] = $unit['floorplanId'];
-
-			// now that we have the unit ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
-			$args = rfs_maybe_create_unit( $args );
-
-			// update the unit meta for this property.
-			rfs_yardi_v2_update_unit_meta( $args, $unit );
-
+			rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args );	
 		}
-
-		rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args );
 
 	} else {
 
