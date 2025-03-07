@@ -99,7 +99,9 @@ function rfs_do_yardi_sync( $args ) {
 
 			}
 
-			rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args );	
+			// Remove the units that aren't in the API for this property.
+			rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args );
+
 		}
 
 	} else {
