@@ -1,3 +1,7 @@
+## 0.6.3
+
+-   Remove Surecart functionality, as we'll no longer be using them for licensing
+
 ## 0.6.2
 
 -   Adding functionality to allow for automatically removing dated unit data that no longer appears in the Yardiv2 API.
