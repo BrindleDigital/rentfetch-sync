@@ -1,6 +1,8 @@
 ## 0.6.3
 
 -   Remove Surecart functionality, as we'll no longer be using them for licensing
+-   Add ability to build "Apply Now" links for units that link to Entrata's service
+-   Remove dated units when syncing with the Entrata v2 API.
 
 ## 0.6.2
 
