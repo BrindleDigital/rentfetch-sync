@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
-function rfs_entrata_update_unit_meta( $args, $unit_data ) {
+function rfs_entrata_update_unit_meta( $args, $unit_data, $property_mits_data ) {
 
 	// bail if we don't have the WordPress post ID.
 	if ( ! isset( $args['wordpress_unit_post_id'] ) || ! $args['wordpress_unit_post_id'] ) {
@@ -74,11 +74,53 @@ function rfs_entrata_update_unit_meta( $args, $unit_data ) {
 	$deposit = $unit_data['Deposit']['@attributes']['MinDeposit'];
 	$deposit = (int) str_replace( array( '$', ',' ), '', $deposit );
 	
+	// Get the UnitAvailability URL and UnitSpaceID from the property MITS data
+	if ( isset( $property_mits_data['response']['result']['PhysicalProperty']['Property'][0] ) ) {
+		
+		$property_data = $property_mits_data['response']['result']['PhysicalProperty']['Property'][0];
+		// Get the UnitAvailabilty URL from the property MITS data
+		
+		if (isset( $property_data['Information']['PropertyAvailabilityURL'] ) ) {
+			$property_availability_url = $property_data['Information']['PropertyAvailabilityURL'];
+			
+			// from this url, get the URL, removing everything after and including the first / after the TLD
+			$property_availability_domain = preg_replace( '/^(https?:\/\/[^\/]+).*$/', '$1', $property_availability_url );
+		}
+		
+		// Get the UnitSpaceID from the property MITS data
+		// if ( isset( $property_data['ILS_Unit'] ) && is_array( $property_data['ILS_Unit'] )  ) {
+		// 	$ils_unit_array = $property_data['ILS_Unit'];
+			
+		// 	$ils_unit_array_processed = array();
+			
+		// 	// TODO
+		// 	foreach ( $ils_unit_array as $ils_unit ) {
+				
+		// 		// UnitSpaceID is the key, IDValue is the value
+		// 		$ils_unit_array_processed[ $ils_unit['Identification']['IDValue'] ] = $ils_unit['@attributes']['UnitSpaceId'];
+		// 	}
+		// }
+	}
+	
+	
+	
+	// Build the apply online URL
+	// https://www.propertySubdomain.com/Apartments/module/application_authentication/popup/false/kill_session/1/property[id]/%propertyID/property_floorplan[id]/floorplanID/unit_space[id]/unitSpaceID/show_in_popup/false/from_check_availability/1/?lease_start_date=02/27/2025
+	
+	$apply_online_url = sprintf(
+		'%s/Apartments/module/application_authentication/popup/false/kill_session/1/property[id]/' . '%s/property_floorplan[id]/%s/unit_space[id]/%s/show_in_popup/false/from_check_availability/1/?lease_start_date=%s',
+		$property_availability_domain,
+		$args['property_id'],
+		$args['floorplan_id'],
+		$args['unit_id'],
+		$unit_data['@attributes']['AvailableOn']
+	);
+	
 	$meta = array(
 		'unit_id' => $unit_data['@attributes']['PropertyUnitId'],
 		'floorplan_id' => $unit_data['@attributes']['FloorplanId'],
 		'property_id' => $unit_data['@attributes']['PropertyId'],
-		// 'apply_online_url' => $unit_data['@attributes']['applyOnlineURL'],
+		'apply_online_url' => $apply_online_url,
 		'availability_date' => $unit_data['@attributes']['AvailableOn'],
 		// 'baths' => $unit_data['@attributes']['baths'],
 		// 'beds' => $unit_data['@attributes']['beds'],
@@ -94,5 +136,45 @@ function rfs_entrata_update_unit_meta( $args, $unit_data ) {
 	
 	foreach ( $meta as $key => $value ) {
 		$success = update_post_meta( $args['wordpress_unit_post_id'], $key, $value );
+	}
+}
+
+function rfs_entrata_remove_units_no_longer_available( $args, $units_from_api ) {
+	
+	// bail if we don't have units from the API.=
+	if ( !$units_from_api || !is_array( $units_from_api ) ) {
+		return;
+	}
+	
+	$unit_ids_to_keep = array_keys( $units_from_api );
+	
+	
+	// get all the units for this property
+	$units_to_delete = get_posts(
+		array(
+			'post_type'      => 'units',
+			'posts_per_page' => -1,
+			'meta_query'     => array(
+				'relation' => 'AND',
+				array(
+					'key'   => 'property_id',
+					'value' => $args['property_id'],
+				),
+				array(
+					'key'   => 'unit_source',
+					'value' => 'entrata',
+				),
+				array(
+					'key'     => 'unit_id',
+					'value'   => $unit_ids_to_keep,
+					'compare' => 'NOT IN',
+				),
+			),
+		)
+	);
+	
+	// delete all of the units in the $units_to_delete array
+	foreach ( $units_to_delete as $unit ) {
+		wp_delete_post( $unit->ID, true );
 	}
 }

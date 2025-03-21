@@ -104,6 +104,11 @@ function rfs_entrata_get_property_mits_data( $args ) {
 			'name' => 'getMitsPropertyUnits',
 			'params' => array(
 				'propertyIds' => $property_id,
+				'showUnitSpaces' => '1',
+				'availableUnitsOnly' => '1',
+				'usePropertyPreferences' => '1',
+				'includeDisabledFloorplans' => '0',
+				'includeDisabledUnits' => '0',
 			),
 		),
 	);

@@ -26,7 +26,7 @@ function rfs_do_entrata_sync( $args ) {
 	
 	// perform the API calls to get the basic data for the property
 	$property_data = rfs_entrata_get_property_data( $args );
-		
+			
 	if ( $property_data && is_array( $property_data ) ) {
 		rfs_entrata_update_property_meta( $args, $property_data );
 	}
@@ -73,8 +73,10 @@ function rfs_do_entrata_sync( $args ) {
 		// silence is golden...
 		
 		// update the unit meta (this is basic meta, e.g. beds, baths, etc.)
-		rfs_entrata_update_unit_meta( $args, $unit );
+		rfs_entrata_update_unit_meta( $args, $unit, $property_mits_data );
 	}
+	
+	rfs_entrata_remove_units_no_longer_available( $args, $units );
 	
 	// reset the floorplan_id and unit_id
 	$args['floorplan_id'] = null;
