@@ -1,3 +1,7 @@
+## 0.6.4
+
+-   Add building name and floorplan number to the Entrata sync. This data doesn't appear to exist in the Yardi API, which is sad.
+
 ## 0.6.3
 
 -   Remove Surecart functionality, as we'll no longer be using them for licensing

@@ -116,12 +116,16 @@ function rfs_entrata_update_unit_meta( $args, $unit_data, $property_mits_data ) 
 		$unit_data['@attributes']['AvailableOn']
 	);
 	
+	$building_name = $unit_data['@attributes']['BuildingName'];
+	
 	$meta = array(
 		'unit_id' => $unit_data['@attributes']['PropertyUnitId'],
 		'floorplan_id' => $unit_data['@attributes']['FloorplanId'],
 		'property_id' => $unit_data['@attributes']['PropertyId'],
 		'apply_online_url' => $apply_online_url,
 		'availability_date' => $unit_data['@attributes']['AvailableOn'],
+		'building_name' => $unit_data['@attributes']['BuildingName'],
+		'floor_number' => $unit_data['@attributes']['FloorNumber'],
 		// 'baths' => $unit_data['@attributes']['baths'],
 		// 'beds' => $unit_data['@attributes']['beds'],
 		'deposit' => $deposit,
