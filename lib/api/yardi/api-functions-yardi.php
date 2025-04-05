@@ -44,6 +44,9 @@ function rfs_do_yardi_sync( $args ) {
 		
 		// get the floorplans data for this property.
 		$floorplans_data_v2 = rfs_yardi_v2_get_floorplan_data( $args );
+		
+		// get the availability data (this should be the units), which we'll need both for the floorplan and the unit.
+		$unit_data_v2 = rfs_yardi_v2_get_unit_data( $args );
 				
 		// remove availability for floorplans that no longer are found in the API (we don't delete these because Yardi sometimes doesn't show floorplans with zero availability).
 		// rfs_remove_availability_orphan_yardi_v2__floorplans( $floorplans_data, $property_data );
@@ -63,14 +66,11 @@ function rfs_do_yardi_sync( $args ) {
 			$args = rfs_maybe_create_floorplan( $args );
 
 			// update the floorplan meta (this is basic meta, e.g. beds, baths, etc.)
-			rfs_yardi_v2_update_floorplan_meta( $args, $floorplan );
+			rfs_yardi_v2_update_floorplan_meta( $args, $floorplan, $unit_data_v2 );
 			
 		}
 		
 		//TODO need to remove floorplan availability information for floorplans that are no longer available in the API.
-		
-		// get the availability data (this should be the units)
-		$unit_data_v2 = rfs_yardi_v2_get_unit_data( $args );
 		
 		if ( $unit_data_v2 && is_array( $unit_data_v2 ) ) {
 			

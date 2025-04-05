@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param  array $args                the arguments passed to the function.
  * @param  array $floorplan_data      the floorplan data.
  */
-function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data ) {
+function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_v2 ) {
 
 	// bail if we don't have the WordPress post ID.
 	if ( ! isset( $args['wordpress_floorplan_post_id'] ) || ! $args['wordpress_floorplan_post_id'] ) {
@@ -62,11 +62,46 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data ) {
 		'updated'      => current_time( 'mysql' ),
 		'api_response' => 'Updated successfully',
 	);
+	
+	$yardi_floorplan_id = $floorplan_data['floorplanId'];
+	
+	// let's loop through the $unit_data_v2, and find the units that are associated with this floorplan.
+	$availability_dates = array();
+	foreach( $unit_data_v2 as $unit ) {
+		
+		if ( isset( $unit['floorplanId'] ) && $unit['floorplanId'] == $yardi_floorplan_id ) {
+			
+			if ( isset( $unit['availableDate'] ) && !empty( $unit['availableDate'] ) ) {
+				$date = sanitize_text_field( $unit['availableDate'] );
+				$availability_dates[] = date('Ymd', strtotime($date));
+			}
+		}
+	}
+	
+	// let's set $availability_date to the soonest date in the $availability_dates array.
+	$soonest_date = null;
+	
+	if ( !empty( $availability_dates ) ) {
+		
+		// sort the dates.
+		sort( $availability_dates );
+		
+		// get the soonest date.
+		$soonest_date = $availability_dates[0];
+		
+	} else {
+		
+		$soonest_date = null;
+		
+	}
+	
+	
+	
 
 	// * Update the meta
 	$meta = array(
 		'availability_url'         => esc_url_raw( $floorplan_data['availabilityURL'] ?? '' ),
-		'availability_date'        => sanitize_text_field( $floorplan_data['availableDate'] ?? '' ),
+		'availability_date'        => $soonest_date,
 		'available_units'          => absint( $floorplan_data['availableUnitsCount'] ?? 0 ),
 		'baths'                    => floatval( $floorplan_data['baths'] ?? 0 ),
 		'beds'                     => floatval( $floorplan_data['beds'] ?? 0 ),

@@ -1,3 +1,7 @@
+## 0.6.5
+
+-   Due to changes in function between Yardi v1 API and Yardi v2 API, we'd missed syncing the availability dates on the floorplan level, which resulted in degraded search functionality in the RentFetch core. This update rectifies that as a hotfix. However, there's new complexity in terms of how we treat waitlisted units, and we'll update that in a later patch.
+
 ## 0.6.4
 
 -   Add building name and floorplan number to the Entrata sync. This data doesn't appear to exist in the Yardi API, which is sad.
