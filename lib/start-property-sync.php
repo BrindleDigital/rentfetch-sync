@@ -9,6 +9,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+/**
+ * Sync a single property
+ *
+ * @param   string  $property_id  the property ID to sync (this is the property ID from the API, not the wordpress post ID)
+ * @param   string  $integration  a predetermined integration name
+ *
+ * @return  void.
+ */
 function rfs_sync_single_property( $property_id, $integration ) {
 		
 	// bail if there's no property id
@@ -29,6 +37,11 @@ function rfs_sync_single_property( $property_id, $integration ) {
 	do_action( 'rfs_do_sync', $args );
 }
 
+/**
+ * Do the syncs
+ *
+ * @return  void.
+ */
 function rfs_perform_syncs() {
 	
 	// if data syncing is not enabled, kill all the scheduled actions and bail
@@ -160,8 +173,14 @@ function rfs_perform_syncs() {
 	
 }
 
-add_action( 'rfs_do_sync', 'rfs_sync', 10, 1 );
-function rfs_sync( $args ) {
+/**
+ * Trigger a specific function after we determine which integration to use
+ *
+ * @param   array  $args  the args to pass to the function
+ *
+ * @return  void.
+ */
+function rfs_trigger_specific_api_sync( $args ) {
 	
 	// bail if there's no integration
 	if ( !isset($args['integration']) || !$args['integration'] )
@@ -199,3 +218,4 @@ function rfs_sync( $args ) {
 	}
 	
 }
+add_action( 'rfs_do_sync', 'rfs_trigger_specific_api_sync', 10, 1 );
