@@ -68,9 +68,6 @@ function rfs_do_entrata_sync( $args ) {
 
 		// now that we have the unit ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
 		$args = rfs_maybe_create_unit( $args );
-
-		
-		// silence is golden...
 		
 		// update the unit meta (this is basic meta, e.g. beds, baths, etc.)
 		rfs_entrata_update_unit_meta( $args, $unit, $property_mits_data );
@@ -107,7 +104,7 @@ function rfs_do_entrata_sync( $args ) {
 		$args = rfs_maybe_create_floorplan( $args );
 
 		// update the floorplan meta (this is basic meta, e.g. beds, baths, etc.)
-		rfs_entrata_update_floorplan_meta( $args, $floorplan );
+		rfs_entrata_update_floorplan_meta( $args, $floorplan, $units );
 		
 	}
 

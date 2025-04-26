@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param  array $args                the arguments passed to the function.
  * @param  array $floorplan_data      the floorplan data.
  */
-function rfs_entrata_update_floorplan_meta( $args, $floorplan_data ) {
+function rfs_entrata_update_floorplan_meta( $args, $floorplan_data, $units ) {
 
 	// bail if we don't have the WordPress post ID.
 	if ( ! isset( $args['wordpress_floorplan_post_id'] ) || ! $args['wordpress_floorplan_post_id'] ) {
@@ -80,6 +80,38 @@ function rfs_entrata_update_floorplan_meta( $args, $floorplan_data ) {
 		}
 	}
 	
+	// Get the availability date
+	$availability_dates = array();
+	$floorplan_entrata_id = $args['floorplan_id'];
+
+	foreach( $units as $unit ) {
+		if ( isset( $unit['@attributes']['FloorplanId'] ) && (int) $unit['@attributes']['FloorplanId'] === (int) $floorplan_entrata_id ) {
+			if ( isset( $unit['@attributes']['AvailableOn'] ) ) {
+				$availability_dates[] = date('Ymd', strtotime($unit['@attributes']['AvailableOn']));
+			}
+		}
+	}
+	
+	// get today's date in Ymd format
+	$today = date('Ymd');
+	
+	// find the earliest date in the array
+	$available_date = null;
+	if ( ! empty( $availability_dates ) ) {
+		// discard null values, empty values, and other non-date values. Don't use an anon function for this.
+		$availability_dates = array_filter( $availability_dates, function( $date ) {
+			return ! empty( $date ) && preg_match( '/^\d{8}$/', $date );
+		} );
+		
+		$available_date = min( $availability_dates );
+	}
+	
+	// if the earliest date is in the past, set it to today
+	if ( $available_date && $available_date < $today ) {
+		$available_date = $today;
+	}
+
+	
 	// Process the images
 	$images = array();
 	
@@ -96,7 +128,7 @@ function rfs_entrata_update_floorplan_meta( $args, $floorplan_data ) {
 	// * Update the meta
 	$meta = array(
 		// 'availability_url'         => esc_url_raw( $floorplan_data['availabilityURL'] ?? '' ),
-		// 'availability_date'        => sanitize_text_field( $floorplan_data['availableDate'] ?? '' ),
+		'availability_date'        => $available_date ? sanitize_text_field( $available_date ) : null,
 		'available_units'          => absint( $floorplan_data['UnitsAvailable'] ?? 0 ),
 		'baths'                    => floatval( $bathrooms ?? 0 ),
 		'beds'                     => floatval( $bedrooms ?? 0 ),

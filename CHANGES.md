@@ -1,3 +1,7 @@
+## 0.7.2
+
+-   Adding ability for the Entrata API to update the availability date on the floorplan level (if this isn't updated in addition to being updated on the unit level then the date-based filtering for the properties fails to work properly)
+
 ## 0.7.1
 
 -   Improvements to reporting to the RF API.
