@@ -23,37 +23,74 @@ function rfs_get_info_from_rentfetch_api() {
 		// silence is golden.
 		return $transient;
 	}
+	
+	// Let's build the array piece by piece.
+	$apis_used = array();
+	
+	$apis_enabled = get_option( 'rentfetch_options_enabled_integrations' );
+	
+	// if $apis_enabled is not an array, make it one.
+	if ( ! is_array( $apis_enabled ) ) {
+		$apis_enabled = array();
+	}
+	
+	// get the Yardi integration settings.
+	if ( in_array( 'yardi', $apis_enabled, true ) ) {
+		$apis_used['yardi'] = array(
+			'api_token'            => get_option( 'rentfetch_options_yardi_integration_creds_yardi_api_key' ),
+			'company_code'         => get_option( 'rentfetch_options_yardi_integration_creds_yardi_company_code' ),
+			'property_codes'       => get_option( 'rentfetch_options_yardi_integration_creds_yardi_property_code' ),
+			'number_of_properties' => rfs_get_number_of_properties( 'yardi' ),
+		);
+	}
+	
+	// get the RealPage integration settings.
+	if ( in_array( 'realpage', $apis_enabled, true ) ) {
+		$apis_used['realpage'] = array(
+			'username'             => get_option( 'rentfetch_options_realpage_integration_creds_realpage_user' ),
+			'password'             => get_option( 'rentfetch_options_realpage_integration_creds_realpage_pass' ),
+			'pmc_id'               => get_option( 'rentfetch_options_realpage_integration_creds_realpage_pmc_id' ),
+			'site_ids'             => get_option( 'rentfetch_options_realpage_integration_creds_realpage_site_ids' ),
+			'number_of_properties' => rfs_get_number_of_properties( 'realpage' ),
+		);
+	}
+	
+	// get the Rent Manager integration settings.
+	if ( in_array( 'rentmanager', $apis_enabled, true ) ) {
+		$apis_used['rentmanager'] = array(
+			'company_code'         => get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_companycode' ),
+			'property_shortnames'  => get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' ),
+			'number_of_properties' => rfs_get_number_of_properties( 'rentmanager' ),
+		);
+	}
+	
+	// get the Entrata integration settings.
+	if ( in_array( 'entrata', $apis_enabled, true ) ) {
+		$apis_used['entrata'] = array(
+			'subdomain'             => get_option( 'rentfetch_options_entrata_integration_creds_entrata_subdomain' ),
+			'number_of_properties'  => rfs_get_number_of_properties( 'entrata' ),
+			// we'd love to add the Brindle partner token here, but we get this from the RF API (so trying to do that creates a loop).
+		);
+	}
+	
+	// get the Manual integration settings. This won't be in the array, so we need to add it.
+	$apis_used['manual'] = array(
+		'number_of_properties' => rfs_get_number_of_properties( null ),
+	);
+	
+	$site_url = get_site_url();
+	
+	// Clean up the site URL to just the domain name.
+	$site_url = preg_replace('#^(https?://)?(www\.)?([^/]+).*$#', '$3', $site_url);
 
 	$args = array(
-		'site_url'              => get_site_url(),
+		'site_url'              => $site_url,
 		'site_name'             => get_bloginfo( 'name' ),
 		'current_date_time'     => current_time( 'mysql' ),
 		'rentfetch_version'     => defined( 'RENTFETCH_VERSION' ) ? RENTFETCH_VERSION : 'unknown',
 		'rentfetchsync_version' => defined( 'RENTFETCHSYNC_VERSION' ) ? RENTFETCHSYNC_VERSION : 'unknown',
 		'wordpress_version'     => get_bloginfo( 'version' ),
-		'apis_used'             => array(
-			'yardi'       => array(
-				'api_token'            => get_option( 'rentfetch_options_yardi_integration_creds_yardi_api_key' ),
-				'company_code'         => get_option( 'rentfetch_options_yardi_integration_creds_yardi_company_code' ),
-				'property_codes'       => get_option( 'rentfetch_options_yardi_integration_creds_yardi_property_code' ),
-				'number_of_properties' => null, // todo get this information.
-			),
-			'realpage'    => array(
-				'username'             => get_option( 'rentfetch_options_realpage_integration_creds_realpage_user' ),
-				'password'             => get_option( 'rentfetch_options_realpage_integration_creds_realpage_pass' ),
-				'pmc_id'               => get_option( 'rentfetch_options_realpage_integration_creds_realpage_pmc_id' ),
-				'site_ids'             => get_option( 'rentfetch_options_realpage_integration_creds_realpage_site_ids' ),
-				'number_of_properties' => null, // todo get this information.
-			),
-			'rentmanager' => array(
-				'company_code'         => get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_companycode' ),
-				'property_shortnames'  => get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' ),
-				'number_of_properties' => null, // todo get this information.
-			),
-			'manual'      => array(
-				'number_of_properties' => null, // todo get this information.
-			),
-		),
+		'apis_used'             => $apis_used,
 	);
 
 	// turn the array into a json string.
@@ -153,4 +190,48 @@ function rfs_get_rentmanager_partner_token() {
 	}
 
 	return null;
+}
+
+/**
+ * Get the number of properties for a given API.
+ *
+ * @param   string  $api  the name of the API.
+ *
+ * @return  int     the number of properties.
+ */
+function rfs_get_number_of_properties( $api ) {
+	
+	if ( $api ) {
+		$args = array(
+			'post_type'      => 'properties',
+			'posts_per_page' => -1,
+			'post_status'    => 'publish',
+			'meta_query'     => array(
+				array(
+					'key'     => 'property_source',
+					'value'   => $api,
+					'compare' => '=',
+				),
+			),
+		);
+	} else {
+		// query for properties where the property source is not set.
+		$args = array(
+			'post_type'      => 'properties',
+			'posts_per_page' => -1,
+			'post_status'    => 'publish',
+			'meta_query'     => array(
+				array(
+					'key'     => 'property_source',
+					'value'   => '',
+					'compare' => 'NOT EXISTS',
+				),
+			),
+		);
+	}
+	
+	$properties = new WP_Query( $args );
+	$number_of_properties = $properties->found_posts;
+	
+	return (int) $number_of_properties;
 }
