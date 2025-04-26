@@ -1,3 +1,13 @@
+## 0.7.1
+
+-   Improvements to reporting to the RF API.
+-   Bugfix: we weren't properly reporting to the API when an integration has data, but is not enabled, resulting in data that looks incorrect.
+-   Bugfix: we weren't reporting Entrata data to the API at all. That's fixed.
+
+## 0.7
+
+-   Adding the ability to sync individual properties from the backend on the properties, floorplans, or units pages.
+
 ## 0.6.5
 
 -   Due to changes in function between Yardi v1 API and Yardi v2 API, we'd missed syncing the availability dates on the floorplan level, which resulted in degraded search functionality in the RentFetch core. This update rectifies that as a hotfix. However, there's new complexity in terms of how we treat waitlisted units, and we'll update that in a later patch.
