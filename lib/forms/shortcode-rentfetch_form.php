@@ -105,7 +105,7 @@ function rentfetch_output_form( $atts ) {
 				echo '<div class="rentfetch-availability-dates" style="display:none;"></div>';
 				echo '<div class="rentfetch-availability-times" style="display:none;"></div>';
 				
-				echo '<div class="rentfetch-form-field-group rentfetch-form-field-schedule">';
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-schedule" style="display: none;">';
 					echo '<label for="rentfetch-form-schedule" class="rentfetch-form-label">Schedule</label>';
 					echo '<input type="text" id="rentfetch-form-schedule" name="rentfetch_schedule" class="rentfetch-form-input">';
 				echo '</div>';
@@ -148,7 +148,18 @@ function rentfetch_output_form( $atts ) {
 		echo '</div>'; // Close form body
 		
 		echo '<div class="rentfetch-form-submit-group">';
-			echo '<button type="submit" class="rentfetch-form-button">Submit</button>';
+		
+			// if this is a tour, set the $submit_label to "Schedule Tour"
+			$submit_label = 'Schedule Tour';
+
+			if ( 'leads' === $a['type'] ) {
+				$submit_label = apply_filters( 'rentfetch_form_submit_leads_label', 'Send Message' );
+			} elseif ( 'tour' === $a['type'] ) {
+				$submit_label = apply_filters( 'rentfetch_form_submit_tour_label', 'Schedule Tour' );
+			}
+		
+			printf( '<button type="submit" class="rentfetch-form-button">%s</button>', esc_html( $submit_label ) );
+			
 		echo '</div>';
 
 	echo '</form>';
@@ -429,6 +440,21 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 			),
 		),
 	);
+	
+	// If  $form_data['schedule'] is set, add it to the body
+	if ( ! empty( $form_data['schedule'] ) ) {
+		$body_array['method']['params']['prospects']['prospect']['events'] = array(
+			array(
+				'type'         => 'Show',
+				'eventTypeId'  => '78',
+				'date'         => $form_data['schedule'],
+				// 'agentId'      => 12345,
+				// 'unitSpaceIds' => '1234,1234',
+				// 'comments'     => $form_data['schedule'],
+				// 'eventReasonId' => 1234,
+			),
+		);
+	}
 
 	// Convert the body to JSON format.
 	$body_json = wp_json_encode( $body_array );
