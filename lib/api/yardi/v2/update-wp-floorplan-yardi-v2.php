@@ -127,6 +127,8 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_
 
 /**
  * Update the floorplan availability for this floorplan.
+ * 
+ * TODO this doesn't seem to be running at present, not sure if still needed.
  *
  * @param   array  $args               The arguments passed to the function.
  * @param   array  $availability_data  The availability data.
@@ -235,7 +237,7 @@ function rfs_yardi_v2_remove_availability_orphan_floorplans( $args, $floorplans_
 	
 	// get the floorplan posts for this property
 	$floorplan_posts = get_posts( array(
-		'post_type'      => 'floorplan',
+		'post_type'      => 'floorplans',
 		'posts_per_page' => -1,
 		'post_status'    => 'publish',
 		'meta_query'     => array(
@@ -262,6 +264,10 @@ function rfs_yardi_v2_remove_availability_orphan_floorplans( $args, $floorplans_
 	foreach ( $floorplan_posts as $floorplan_post ) {
 		$success = delete_post_meta( $floorplan_post->ID, 'availability_date' );
 		$success = delete_post_meta( $floorplan_post->ID, 'available_units' );
+		$success = delete_post_meta( $floorplan_post->ID, 'minimum_rent' );
+		$success = delete_post_meta( $floorplan_post->ID, 'maximum_rent' );
+		$success = delete_post_meta( $floorplan_post->ID, 'minimum_deposit' );
+		$success = delete_post_meta( $floorplan_post->ID, 'maximum_deposit' );
 		
 		// update the api_response meta to show that the availability data was removed
 		$api_response = get_post_meta( $floorplan_post->ID, 'api_response', true );
