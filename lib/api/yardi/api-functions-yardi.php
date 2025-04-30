@@ -100,7 +100,7 @@ function rfs_do_yardi_sync( $args ) {
 		}
 		
 		// remove availability for floorplans that no longer are found in the API (we don't delete these because Yardi sometimes doesn't show floorplans with zero availability).
-		// rfs_yardi_v2_remove_availability_orphan_floorplans( $args, $floorplans_data );
+		rfs_yardi_v2_remove_availability_orphan_floorplans( $args, $floorplans_data_v2 );
 
 	} else {
 

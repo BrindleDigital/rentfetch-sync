@@ -206,3 +206,76 @@ function rfs_yardi_v2_update_floorplan_availability( $args, $availability_data )
 	$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
 			
 }
+
+/**
+ * Zero the availability and avail date for orphan floorplans that no longer exist in the Yardi API data.
+ *
+ * @param   array  $args                The arguments passed to the function.
+ * @param   array  $floorplans_data_v2  The floorplans data from the Yardi API.
+ *
+ * @return  void
+ */
+function rfs_yardi_v2_remove_availability_orphan_floorplans( $args, $floorplans_data_v2 ) {
+	// get the property_id from the args
+	$property_id = $args['property_id'];
+	
+	// if we don't have a property ID, bail
+	if ( empty( $property_id ) ) {
+		return;
+	}
+	
+	// get the floorplan IDs from the API
+	$floorplan_ids = array();
+	foreach ( $floorplans_data_v2 as $floorplan ) {
+		if ( isset( $floorplan['floorplanId'] ) ) {
+			$floorplan_ids[] = $floorplan['floorplanId'];
+		}
+	}
+	
+	
+	// get the floorplan posts for this property
+	$floorplan_posts = get_posts( array(
+		'post_type'      => 'floorplan',
+		'posts_per_page' => -1,
+		'post_status'    => 'publish',
+		'meta_query'     => array(
+			'relation' => 'AND',
+			array(
+				'key'     => 'property_id',
+				'value'   => $property_id,
+				'compare' => '=',
+			),
+			array(
+				'key'     => 'floorplan_id',
+				'value'   => $floorplan_ids,
+				'compare' => 'NOT IN',
+			),
+			array(
+				'key'     => 'floorplan_source',
+				'value'   => 'yardi',
+				'compare' => '=',
+			),
+		),
+	) );
+	
+	// loop through the floorplan posts and remove the availability_date and the available_units meta
+	foreach ( $floorplan_posts as $floorplan_post ) {
+		$success = delete_post_meta( $floorplan_post->ID, 'availability_date' );
+		$success = delete_post_meta( $floorplan_post->ID, 'available_units' );
+		
+		// update the api_response meta to show that the availability data was removed
+		$api_response = get_post_meta( $floorplan_post->ID, 'api_response', true );
+		
+		if ( !is_array( $api_response ) )
+			$api_response = [];
+		
+		$api_response['apartmentavailability_api'] = [
+			'updated' => current_time('mysql'),
+			'api_response' => 'Removed successfully (no longer in API)',
+		];
+		
+		$success = update_post_meta( $floorplan_post->ID, 'api_response', $api_response );
+		
+	}
+	
+}
