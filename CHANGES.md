@@ -1,3 +1,7 @@
+## 0.8
+
+-   Adding new capability for sending information into the Entrata API with two new shortcodes and a new form.
+
 ## 0.7.2
 
 -   Adding ability for the Entrata API to update the availability date on the floorplan level (if this isn't updated in addition to being updated on the unit level then the date-based filtering for the properties fails to work properly)
