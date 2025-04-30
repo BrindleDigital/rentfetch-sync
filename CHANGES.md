@@ -1,3 +1,7 @@
+## 0.8.1
+
+-   Removing availability from floorplans which no longer appear in the Yardi API.
+
 ## 0.8
 
 -   Adding new capability for sending information into the Entrata API with two new shortcodes and a new form.
