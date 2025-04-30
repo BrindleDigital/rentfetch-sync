@@ -1,0 +1,444 @@
+<?php
+/**
+ * Set up the lead form shortcode for RentFetch.
+ *
+ * @package rentfetchsync
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+/**
+ * Outputs the RentFetch form shortcode.
+ *
+ * This function generates a form for collecting user information and optionally selecting a property.
+ * It uses the provided shortcode attributes and URL parameters to customize the form's behavior.
+ *
+ * @param array $atts Shortcode attributes.
+ *
+ * @return string The HTML output of the form.
+ */
+function rentfetch_output_form( $atts ) {
+	$a = shortcode_atts(
+		array(
+			'type'               => 'leads',
+			'confirmation'       => 'Thanks for your submission. We will get back to you shortly.',
+			'property'           => null,
+		),
+		$atts
+	);
+	
+	// let's also look in the URL for properties, using the same format as the shortcode
+	if ( isset( $_GET['property'] ) ) {
+		$a['property'] = sanitize_text_field( $_GET['property'] );
+	}
+
+	// Get properties using the new function
+	$properties_data = rentfetch_get_properties_for_form( $a['property'] );
+
+	$single_property = false;
+	if ( count( $properties_data ) === 1 ) {
+		$single_property = true;
+	}
+	
+	// Enqueue and localize the script only when the shortcode is present
+	wp_enqueue_script( 'rentfetch-form-script' ); // Enqueue the registered script
+
+	// Localize script to pass AJAX URL and nonce
+	wp_localize_script(
+		'rentfetch-form-script', // Handle of the script you're localizing
+		'rentfetchFormAjax', // Name of the JavaScript object
+		array(
+			'ajaxurl' => esc_url( admin_url( 'admin-ajax.php' ) ),
+			'nonce'   => wp_create_nonce( 'rentfetch_form_submit' ), // Pass the nonce
+		)
+	);
+
+	ob_start();
+	
+	$classes = 'rentfetch-form-' . esc_attr( $a['type'] );
+
+	printf( '<form id="rentfetch-form" class="rentfetch-form %s" method="post">', $classes );
+		echo '<div class="rentfetch-form-body">';
+	
+			echo '<fieldset class="rentfetch-form-fieldset rentfetch-form-fieldset-name">';
+				echo '<legend class="rentfetch-form-label">Your Name <span class="rentfetch-form-required-label">(Required)</span></legend>';
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-first-name">';
+					echo '<input type="text" id="rentfetch-form-first-name" name="rentfetch_first_name" class="rentfetch-form-input" required>';
+					echo '<label for="rentfetch-form-first-name" class="rentfetch-form-label-subfield">First Name</label>';
+				echo '</div>';
+
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-last-name">';
+					echo '<input type="text" id="rentfetch-form-last-name" name="rentfetch_last_name" class="rentfetch-form-input" required>';
+					echo '<label for="rentfetch-form-last-name" class="rentfetch-form-label-subfield">Last Name</label>';
+				echo '</div>';
+
+			echo '</fieldset>'; // Close fieldset for name
+
+			echo '<div class="rentfetch-form-field-group rentfetch-form-field-email">';
+				echo '<label for="rentfetch-form-email" class="rentfetch-form-label">Email <span class="rentfetch-form-required-label">(Required)</span></label>';
+				echo '<input type="email" id="rentfetch-form-email" name="rentfetch_email" class="rentfetch-form-input" required>';
+			echo '</div>';
+
+			echo '<div class="rentfetch-form-field-group rentfetch-form-field-phone">';
+				echo '<label for="rentfetch-form-phone" class="rentfetch-form-label">Phone <span class="rentfetch-form-required-label">(Required)</span></label>';
+				echo '<input type="tel" id="rentfetch-form-phone" name="rentfetch_phone" class="rentfetch-form-input" required>';
+			echo '</div>';
+			
+			if ( ! empty( $properties_data ) ) {
+				$property_field_class = 'rentfetch-form-field-group rentfetch-form-field-property';
+				if ( $single_property ) {
+					$property_field_class .= ' rentfetch-form-field-hidden';
+				}
+				printf( '<div class="%s">', esc_attr( $property_field_class ) );
+					echo '<label for="rentfetch-form-property" class="rentfetch-form-label">Property <span class="rentfetch-form-required-label">(Required)</span></label>';
+					echo '<select required id="rentfetch-form-property" name="rentfetch_property" class="rentfetch-form-select" required>';
+						echo '<option value="">Select a property</option>';
+						foreach ( $properties_data as $property ) {
+							$selected = '';
+							if ( $single_property && isset( $property['property_id'] ) ) {
+								$selected = ' selected="selected"';
+							}
+							printf( '<option value="%s"%s>%s</option>', esc_attr( $property['property_id'] ), $selected, esc_html( $property['property_title'] ) );
+						}
+					echo '</select>';
+				echo '</div>';
+			} else {
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-property">';
+					echo '<label for="rentfetch-form-property" class="rentfetch-form-label">Property not found.</label>';
+				echo '</div>';
+			}
+
+			echo '<div class="rentfetch-form-field-group rentfetch-form-field-message">';
+				echo '<label for="rentfetch-form-message" class="rentfetch-form-label">Message</label>';
+				echo '<textarea id="rentfetch-form-message" name="rentfetch_message" rows="3" class="rentfetch-form-textarea"></textarea>';
+			echo '</div>';
+
+			echo '<div class="rentfetch-form-honeypot" style="display: none;">';
+				echo '<label for="rentfetch-form-address">Street Address:</label>';
+				echo '<input type="text" id="rentfetch-form-address" name="rentfetch_address" tabindex="-1" autocomplete="off">';
+			echo '</div>';
+			
+		echo '</div>'; // Close form body
+		
+		echo '<div class="rentfetch-form-submit-group">';
+			echo '<button type="submit" class="rentfetch-form-button">Submit</button>';
+		echo '</div>';
+
+	echo '</form>';
+
+	return ob_get_clean();
+}
+add_shortcode( 'rentfetch_form', 'rentfetch_output_form' );
+
+/**
+ * Get the properties and return the appropriate information for each to the form.
+ *
+ * @param string $property_ids_string A comma-separated string of property IDs to filter by.
+ *
+ * @return array An array of properties with their ID, source, and title.
+ */
+function rentfetch_get_properties_for_form( $property_ids_string = '' ) {
+	$args = array(
+		'post_type'      => 'properties', // Corrected post type
+		'posts_per_page' => -1,        // Get all matching properties
+		'meta_query'     => array(
+			'relation' => 'AND',
+			array(
+				'key'     => 'property_id', // Your meta key for property ID
+				'compare' => 'EXISTS',
+			),
+			array(
+				'key'     => 'property_source', // Your meta key for property source
+				'compare' => 'EXISTS',
+			),
+		),
+		'orderby'        => 'title',    // Order by post title
+		'order'          => 'ASC',      // Alphabetical order
+		'fields'         => 'ids',      // Optimize by only getting post IDs
+	);
+
+	// If specific property IDs (meta values) are provided, modify the meta_query
+	if ( ! empty( $property_ids_string ) ) {
+		$property_ids_meta = array_filter( array_map( 'trim', explode( ',', $property_ids_string ) ) );
+		if ( ! empty( $property_ids_meta ) ) {
+			// Add a new clause to the meta_query to filter by property_id meta values
+			$args['meta_query'][] = array(
+				'key'     => 'property_id',
+				'value'   => $property_ids_meta,
+				'compare' => 'IN',
+			);
+		}
+	}
+
+	$property_posts = get_posts( $args );
+
+	$properties_data = array();
+
+	if ( ! empty( $property_posts ) ) {
+		foreach ( $property_posts as $post_id ) {
+			$property_id    = get_post_meta( $post_id, 'property_id', true );
+			$property_source = get_post_meta( $post_id, 'property_source', true );
+			$property_title = get_the_title( $post_id );
+
+			// Only add to the array if property_id and property_source exist (should be true due to meta_query)
+			if ( ! empty( $property_id ) && ! empty( $property_source ) ) {
+				$properties_data[] = array(
+					'property_id'     => $property_id,
+					'property_source' => $property_source,
+					'property_title'  => $property_title,
+				);
+			}
+		}
+	}
+
+	return $properties_data;
+}
+
+/**
+ * Handles the rentfetch form AJAX submission, validation, and API submission.
+ */
+function rentfetch_handle_ajax_form_submit() {
+	
+	// Verify the nonce
+	if ( ! isset( $_POST['rentfetch_form_nonce'] ) || ! wp_verify_nonce( $_POST['rentfetch_form_nonce'], 'rentfetch_form_submit' ) ) {
+		wp_send_json_error( array( 'errors' => array( 'Security check failed.' ) ) );
+	}
+
+	// Basic honeypot check
+	if ( ! empty( $_POST['rentfetch_address'] ) ) {
+		wp_send_json_error( array( 'errors' => array( 'Spam detected.' ) ) );
+	}
+
+	// Sanitize and validate form data
+	$first_name = isset( $_POST['rentfetch_first_name'] ) ? sanitize_text_field( $_POST['rentfetch_first_name'] ) : '';
+	$last_name  = isset( $_POST['rentfetch_last_name'] ) ? sanitize_text_field( $_POST['rentfetch_last_name'] ) : '';
+	$email      = isset( $_POST['rentfetch_email'] ) ? sanitize_email( $_POST['rentfetch_email'] ) : '';
+	$phone      = isset( $_POST['rentfetch_phone'] ) ? sanitize_text_field( $_POST['rentfetch_phone'] ) : '';
+	$property   = isset( $_POST['rentfetch_property'] ) ? sanitize_text_field( $_POST['rentfetch_property'] ) : '';
+	$message    = isset( $_POST['rentfetch_message'] ) ? sanitize_textarea_field( $_POST['rentfetch_message'] ) : '';
+
+	$errors = array();
+
+	if ( empty( $first_name ) ) {
+		$errors[] = 'First name is required.';
+	}
+
+	if ( empty( $last_name ) ) {
+		$errors[] = 'Last name is required.';
+	}
+
+	if ( empty( $email ) || ! is_email( $email ) ) {
+		$errors[] = 'A valid email address is required.';
+	}
+
+	if ( empty( $property ) ) {
+		$errors[] = 'Property is required.';
+	}
+
+	// If there are validation errors, send JSON error response
+	if ( ! empty( $errors ) ) {
+		wp_send_json_error( array( 'errors' => $errors ) );
+	}
+
+	// Validation successful. Prepare data for API submission.
+	$form_data = array(
+		'first_name' => $first_name,
+		'last_name'  => $last_name,
+		'email'      => $email,
+		'phone'      => $phone,
+		'property'   => $property,
+		'message'    => $message,
+		// Add any other necessary fields
+	);
+	
+	// do a query for posts of the type 'properties' with the property_id as a meta key
+	$property_post = get_posts( array(
+		'post_type'   => 'properties',
+		'meta_key'    => 'property_id',
+		'meta_value'  => $property,
+		'numberposts' => 1,
+		'post_status' => 'publish', // Ensure the post is published
+	) );
+	
+	if ( ! empty( $property_post ) ) {
+		$property_post = $property_post[0];
+	} else {
+		wp_send_json_error( array( 'errors' => array( 'This property cannot be found in our database.' ) ) );
+	}
+	
+	// get the property_source for the property
+	$property_source = get_post_meta( $property_post->ID, 'property_source', true );
+	if ( empty( $property_source ) ) {
+		wp_send_json_error( array( 'errors' => array( 'This property has no corresponding API to send data to.' ) ) );
+	}
+	
+	if ( 'entrata' === $property_source ) {
+		$response = rentfetch_send_lead_to_entrata( $form_data, $property_source, $property );
+	} elseif ( 'yardi' === $property_source ) {
+		$response = rentfetch_send_lead_to_yardi( $form_data, $property_source, $property );
+	} elseif ( 'rentmanager' === $property_source ) {
+		$response = rentfetch_send_lead_to_rentmanager( $form_data, $property_source, $property );
+	} elseif ( 'realpage' === $property_source ) {
+		$response = rentfetch_send_lead_to_realpage( $form_data, $property_source, $property );
+	} else {
+		wp_send_json_error( array( 'errors' => array( 'This property has no corresponding API to send data to.' ) ) );
+		
+	}
+
+	if ( 200 === (int) $response ) {
+		$message = apply_filters( 'rentfetch_form_success_message', 'Thanks! We have received your message.' );
+		wp_send_json_success( array( 'message' => $message, 'data' => $form_data ) );
+	} else {
+		wp_send_json_error( array( 'errors' => array( 'API error encountered: ' . $response . '. Your message was not received.' ) ) );
+	}
+	
+}
+add_action( 'wp_ajax_rentfetch_ajax_submit_form', 'rentfetch_handle_ajax_form_submit' );
+add_action( 'wp_ajax_nopriv_rentfetch_ajax_submit_form', 'rentfetch_handle_ajax_form_submit' );
+
+/**
+ * Sends lead data to Entrata API.
+ *
+ * @param array  $form_data    The form data submitted by the user.
+ * @param string $integration  The integration type (e.g., 'entrata').
+ * @param string $property_id  The property ID associated with the lead.
+ *
+ * @return int|string The HTTP response code or error message.
+ */
+function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id ) {
+	
+	$args = [
+		'integration' => $integration,
+		'property_id' => $property_id,
+		'credentials' => rfs_get_credentials(),
+		'floorplan_id' => null,
+	];
+	
+	$api_key   = rfs_get_entrata_api_key();
+	$subdomain = $args['credentials']['entrata']['subdomain'];
+	$property_id = $args['property_id'];
+
+	// Bail if required arguments are missing.
+	if ( ! $api_key || ! $subdomain || ! $property_id ) {
+		wp_send_json_error( array( 'errors' => array( 'Missing required API information to send request.' ) ) );
+		return;
+	}
+	
+	// Set the URL for the API request.
+	$url = sprintf( 'https://apis.entrata.com/ext/orgs/%s/v1/leads', $subdomain );
+	
+	// Set the body for the request.
+	$body_array = array(
+		'auth'      => array(
+			'type' => 'apikey',
+		),
+		'requestId' => '15',
+		'method'    => array(
+			'name'   => 'sendLeads',
+			'params' => array(
+				'propertyId' => $property_id,
+				'doNotSendConfirmationEmail' => '1',
+				'isWaitList' => '0',
+				'prospects' => array(
+					'prospect' => array(
+						'createdDate' => date( 'm/d/Y\TH:i:s' ),
+						'customers' => array(
+							'customer' => array(
+								'name' => array(
+									'firstName' => $form_data['first_name'],
+									'lastName'  => $form_data['last_name'],
+								),
+								'phone' => array(
+									'personalPhoneNumber' => $form_data['phone'],
+								),
+								'email' => $form_data['email'],
+							),
+						),
+						'customerPreferences' => array(
+							'desiredMoveInDate' => ! empty( $form_data['desired_move_in_date'] ) ? $form_data['desired_move_in_date'] : null,
+							// 'desiredFloorplanId' => 1234,
+							// 'desiredUnitTypeId'  => 1234,
+							// 'desiredUnitId'      => 1234,
+							'comment'            => ! empty( $form_data['message'] ) ? $form_data['message'] : 'customer Preferences Comment',
+						),
+						// 'events'            => array(
+						// 	array(
+						// 		'type'         => 'Show',
+						// 		'eventTypeId'  => '78',
+						// 		'date'         => 'MM/DD/YYYYTHH:MM:SS',
+						// 		'agentId'      => 12345,
+						// 		'unitSpaceIds' => '1234,1234',
+						// 		'comments'     => 'Comments',
+						// 		'eventReasonId' => 1234,
+						// 	),
+						// 	array(
+						// 		'type'        => 'Note',
+						// 		'eventTypeId' => '8',
+						// 		'date'        => 'MM/DD/YYYYTHH:MM:SS',
+						// 		'eventResultId' => 1234,
+						// 		'comments'    => 'comments',
+						// 	),
+						// 	array(
+						// 		'type'         => 'VirtualTour',
+						// 		'eventTypeId'  => '449',
+						// 		'date'         => 'MM/DD/YYYYTHH:MM:SS',
+						// 		'agentId'      => '1234',
+						// 		'unitSpaceIds' => '1234',
+						// 		'comments'     => 'Comments',
+						// 		'eventReasonId' => '1234',
+						// 	),
+						// 	array(
+						// 		'type'         => 'SelfGuidedTour',
+						// 		'eventTypeId'  => '442',
+						// 		'date'         => 'MM/DD/YYYYTHH:MM:SS',
+						// 		'agentId'      => '10481',
+						// 		'unitSpaceIds' => '1234',
+						// 		'comments'     => 'Comments',
+						// 		'eventReasonId' => '1234',
+						// 	),
+						// ),
+					),
+				),
+			),
+		),
+	);
+
+	// Convert the body to JSON format.
+	$body_json = wp_json_encode( $body_array );
+
+	// Set the headers for the request.
+	$headers = array(
+		'X-Api-Key'    => $api_key,
+		'Content-Type' => 'application/json',
+	);
+
+	// Make the API request using wp_remote_post.
+	$response = wp_remote_post(
+		$url,
+		array(
+			'headers' => $headers,
+			'body'    => $body_json,
+			'timeout' => 10,
+		)
+	);
+	
+	// Retrieve and decode the response body.
+	$response_body = wp_remote_retrieve_body( $response );
+		
+	return $response['response']['code'];
+	
+}
+
+function rentfetch_send_lead_to_yardi( $form_data, $property_source, $property ) {
+	return 'Yardi API not currently implemented for leads';	
+}
+
+function rentfetch_send_lead_to_rentmanager( $form_data, $property_source, $property ) {
+	return 'RentManager API not currently implemented for leads';	
+}
+
+function rentfetch_send_lead_to_realpage( $form_data, $property_source, $property ) {
+	return 'Realpage API not currently implemented for leads';	
+}
