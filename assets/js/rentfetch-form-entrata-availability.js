@@ -124,6 +124,8 @@ jQuery(document).ready(function ($) {
 		let dateHtml = '<ul>';
 		let timeHtml = '';
 
+		console.log(availableTours);
+
 		availableTours.forEach((tour) => {
 			const date = new Date(tour.tourDate);
 			const options = { weekday: 'long', month: 'long', day: 'numeric' };
