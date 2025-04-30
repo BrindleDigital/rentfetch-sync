@@ -32,11 +32,19 @@ add_action( 'admin_enqueue_scripts', 'rfs_enqueue_backend_scripts' );
  */
 function rfs_enqueue_frontend_scripts() {
 	wp_register_script(
-		'rentfetch-form-script', // Handle
-		RENTFETCHSYNC_PATH . '/assets/js/rentfetch-form-submission-handler.js', // Path to your JS file (adjust path relative to enqueue.php)
-		array( 'jquery' ), // Dependencies
-		RENTFETCHSYNC_VERSION, // Version
-		true // In footer
+		'rentfetch-form-script',
+		RENTFETCHSYNC_PATH . '/assets/js/rentfetch-form-submission-handler.js',
+		array( 'jquery' ),
+		RENTFETCHSYNC_VERSION,
+		true
+	);
+	
+	wp_register_script(
+		'rentfetch-form-entrata-availability',
+		RENTFETCHSYNC_PATH . '/assets/js/rentfetch-form-entrata-availability.js',
+		array( 'jquery' ),
+		RENTFETCHSYNC_VERSION,
+		true
 	);
 }
 add_action( 'wp_enqueue_scripts', 'rfs_enqueue_frontend_scripts' );

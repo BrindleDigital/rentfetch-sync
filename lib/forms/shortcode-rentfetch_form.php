@@ -76,7 +76,9 @@ function rentfetch_output_form( $atts ) {
 							if ( $single_property && isset( $property['property_id'] ) ) {
 								$selected = ' selected="selected"';
 							}
-							printf( '<option value="%s"%s>%s</option>', esc_attr( $property['property_id'] ), $selected, esc_html( $property['property_title'] ) );
+							// Add the data-property-source attribute
+							$data_source = isset( $property['property_source'] ) ? ' data-property-source="' . esc_attr( $property['property_source'] ) . '"' : '';
+							printf( '<option value="%s"%s%s>%s</option>', esc_attr( $property['property_id'] ), $selected, $data_source, esc_html( $property['property_title'] ) );
 						}
 					echo '</select>';
 				echo '</div>';
@@ -85,7 +87,30 @@ function rentfetch_output_form( $atts ) {
 					echo '<label for="rentfetch-form-property" class="rentfetch-form-label">Property not found.</label>';
 				echo '</div>';
 			}
-	
+			
+			if ( 'tour' === $a['type'] ) {
+				
+				// Enqueue and localize the script to fetch availability for Entrata
+				wp_enqueue_script( 'rentfetch-form-entrata-availability' );
+				
+				wp_localize_script(
+					'rentfetch-form-entrata-availability',
+					'rentfetchEntrataTourAvailabilityAjax',
+					array(
+						'ajaxurl' => esc_url( admin_url( 'admin-ajax.php' ) ),
+						'nonce'   => wp_create_nonce( 'rentfetch_entrata_tour_availability_check' ),
+					)
+				);
+				
+				echo '<div class="rentfetch-availability-dates" style="display:none;"></div>';
+				echo '<div class="rentfetch-availability-times" style="display:none;"></div>';
+				
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-schedule">';
+					echo '<label for="rentfetch-form-schedule" class="rentfetch-form-label">Schedule</label>';
+					echo '<input type="text" id="rentfetch-form-schedule" name="rentfetch_schedule" class="rentfetch-form-input">';
+				echo '</div>';
+			}
+			
 			echo '<fieldset class="rentfetch-form-fieldset rentfetch-form-fieldset-name">';
 				echo '<legend class="rentfetch-form-label">Your Name <span class="rentfetch-form-required-label">(Required)</span></legend>';
 				echo '<div class="rentfetch-form-field-group rentfetch-form-field-first-name">';

@@ -7,8 +7,6 @@ jQuery(document).ready(function ($) {
 		var submitButton = form.find('button[type="submit"]');
 		var originalButtonText = submitButton.text();
 
-		console.log('Form data:', formData); // Debugging line to check form data
-
 		// Disable button and show loading state
 		submitButton.prop('disabled', true).text('Submitting...');
 
