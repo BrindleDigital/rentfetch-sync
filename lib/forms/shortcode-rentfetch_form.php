@@ -61,6 +61,30 @@ function rentfetch_output_form( $atts ) {
 
 	printf( '<form id="rentfetch-form" class="rentfetch-form %s" method="post">', $classes );
 		echo '<div class="rentfetch-form-body">';
+		
+			if ( ! empty( $properties_data ) ) {
+				$property_field_class = 'rentfetch-form-field-group rentfetch-form-field-property';
+				if ( $single_property ) {
+					$property_field_class .= ' rentfetch-form-field-hidden';
+				}
+				printf( '<div class="%s">', esc_attr( $property_field_class ) );
+					echo '<label for="rentfetch-form-property" class="rentfetch-form-label">Property <span class="rentfetch-form-required-label">(Required)</span></label>';
+					echo '<select required id="rentfetch-form-property" name="rentfetch_property" class="rentfetch-form-select" required>';
+						echo '<option value="">Select a property</option>';
+						foreach ( $properties_data as $property ) {
+							$selected = '';
+							if ( $single_property && isset( $property['property_id'] ) ) {
+								$selected = ' selected="selected"';
+							}
+							printf( '<option value="%s"%s>%s</option>', esc_attr( $property['property_id'] ), $selected, esc_html( $property['property_title'] ) );
+						}
+					echo '</select>';
+				echo '</div>';
+			} else {
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-property">';
+					echo '<label for="rentfetch-form-property" class="rentfetch-form-label">Property not found.</label>';
+				echo '</div>';
+			}
 	
 			echo '<fieldset class="rentfetch-form-fieldset rentfetch-form-fieldset-name">';
 				echo '<legend class="rentfetch-form-label">Your Name <span class="rentfetch-form-required-label">(Required)</span></legend>';
@@ -85,30 +109,6 @@ function rentfetch_output_form( $atts ) {
 				echo '<label for="rentfetch-form-phone" class="rentfetch-form-label">Phone <span class="rentfetch-form-required-label">(Required)</span></label>';
 				echo '<input type="tel" id="rentfetch-form-phone" name="rentfetch_phone" class="rentfetch-form-input" required>';
 			echo '</div>';
-			
-			if ( ! empty( $properties_data ) ) {
-				$property_field_class = 'rentfetch-form-field-group rentfetch-form-field-property';
-				if ( $single_property ) {
-					$property_field_class .= ' rentfetch-form-field-hidden';
-				}
-				printf( '<div class="%s">', esc_attr( $property_field_class ) );
-					echo '<label for="rentfetch-form-property" class="rentfetch-form-label">Property <span class="rentfetch-form-required-label">(Required)</span></label>';
-					echo '<select required id="rentfetch-form-property" name="rentfetch_property" class="rentfetch-form-select" required>';
-						echo '<option value="">Select a property</option>';
-						foreach ( $properties_data as $property ) {
-							$selected = '';
-							if ( $single_property && isset( $property['property_id'] ) ) {
-								$selected = ' selected="selected"';
-							}
-							printf( '<option value="%s"%s>%s</option>', esc_attr( $property['property_id'] ), $selected, esc_html( $property['property_title'] ) );
-						}
-					echo '</select>';
-				echo '</div>';
-			} else {
-				echo '<div class="rentfetch-form-field-group rentfetch-form-field-property">';
-					echo '<label for="rentfetch-form-property" class="rentfetch-form-label">Property not found.</label>';
-				echo '</div>';
-			}
 
 			echo '<div class="rentfetch-form-field-group rentfetch-form-field-message">';
 				echo '<label for="rentfetch-form-message" class="rentfetch-form-label">Message</label>';
