@@ -379,7 +379,7 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 				'isWaitList' => '0',
 				'prospects' => array(
 					'prospect' => array(
-						'createdDate' => date( 'm/d/Y\TH:i:s' ),
+						'createdDate' => gmdate( 'm/d/Y\TH:i:s', strtotime( '-6 hours' ) ), // this API requires mountain time
 						'customers' => array(
 							'customer' => array(
 								'name' => array(
@@ -477,8 +477,18 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 	
 	// Retrieve and decode the response body.
 	$response_body = wp_remote_retrieve_body( $response );
+	
+	// let's decode the response body
+	$response_body = json_decode( $response_body, true );
+	
+	$message = $response_body['response']['result']['prospects']['prospect']['message'];
 		
-	return $response['response']['code'];
+	if ( 200 === (int) $response['response']['code'] ) {
+		return (int) $response['response']['code'];
+	} else {
+		// If the response is not 200, return the error message.
+		return $response['response']['code'] . ' - ' . $message;
+	}
 	
 }
 
