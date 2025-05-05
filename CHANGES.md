@@ -1,3 +1,7 @@
+## 0.8.3
+
+-   Adding capabilities for Entrata to use a lead source.
+
 ## 0.8.2
 
 -   Bugfix: the forms were getting the response code from wp_remote_get, rather than from the response body. We've updated that and fixed a bug related to Entrata's weird need to have us give them the current date and time, but only in MDT, which is curiously not documented within their sendLeads API docs.

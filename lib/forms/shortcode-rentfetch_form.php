@@ -25,6 +25,7 @@ function rentfetch_output_form( $atts ) {
 			'type'               => 'leads',
 			'confirmation'       => 'Thanks for your submission. We will get back to you shortly.',
 			'property'           => null,
+			'lead_source'        => null,
 		),
 		$atts
 	);
@@ -32,6 +33,11 @@ function rentfetch_output_form( $atts ) {
 	// let's also look in the URL for properties, using the same format as the shortcode
 	if ( isset( $_GET['property'] ) ) {
 		$a['property'] = sanitize_text_field( $_GET['property'] );
+	}
+
+	// Override the lead source if it's set in the URL.
+	if ( isset( $_GET['lead_source'] ) ) {
+		$a['lead_source'] = sanitize_text_field( $_GET['lead_source'] );
 	}
 
 	// Get properties using the new function
@@ -133,6 +139,11 @@ function rentfetch_output_form( $atts ) {
 			echo '<div class="rentfetch-form-field-group rentfetch-form-field-phone">';
 				echo '<label for="rentfetch-form-phone" class="rentfetch-form-label">Phone <span class="rentfetch-form-required-label">(Required)</span></label>';
 				echo '<input type="tel" id="rentfetch-form-phone" name="rentfetch_phone" class="rentfetch-form-input" required>';
+			echo '</div>';
+
+			echo '<div class="rentfetch-form-field-group rentfetch-form-field-lead_source">';
+				echo '<label for="rentfetch-form-lead_source" class="rentfetch-form-label">Lead source</label>';
+				printf('<input type="text" id="rentfetch-form-lead_source" name="rentfetch_lead_source" class="rentfetch-form-input" value="%s" readonly>', $a['lead_source'] );
 			echo '</div>';
 
 			echo '<div class="rentfetch-form-field-group rentfetch-form-field-message">';
@@ -248,12 +259,13 @@ function rentfetch_handle_ajax_form_submit() {
 	}
 
 	// Sanitize and validate form data
-	$first_name = isset( $_POST['rentfetch_first_name'] ) ? sanitize_text_field( $_POST['rentfetch_first_name'] ) : '';
-	$last_name  = isset( $_POST['rentfetch_last_name'] ) ? sanitize_text_field( $_POST['rentfetch_last_name'] ) : '';
-	$email      = isset( $_POST['rentfetch_email'] ) ? sanitize_email( $_POST['rentfetch_email'] ) : '';
-	$phone      = isset( $_POST['rentfetch_phone'] ) ? sanitize_text_field( $_POST['rentfetch_phone'] ) : '';
-	$property   = isset( $_POST['rentfetch_property'] ) ? sanitize_text_field( $_POST['rentfetch_property'] ) : '';
-	$message    = isset( $_POST['rentfetch_message'] ) ? sanitize_textarea_field( $_POST['rentfetch_message'] ) : '';
+	$first_name   = isset( $_POST['rentfetch_first_name'] ) ? sanitize_text_field( $_POST['rentfetch_first_name'] ) : '';
+	$last_name    = isset( $_POST['rentfetch_last_name'] ) ? sanitize_text_field( $_POST['rentfetch_last_name'] ) : '';
+	$email        = isset( $_POST['rentfetch_email'] ) ? sanitize_email( $_POST['rentfetch_email'] ) : '';
+	$phone        = isset( $_POST['rentfetch_phone'] ) ? sanitize_text_field( $_POST['rentfetch_phone'] ) : '';
+	$property     = isset( $_POST['rentfetch_property'] ) ? sanitize_text_field( $_POST['rentfetch_property'] ) : '';
+	$lead_source  = isset( $_POST['rentfetch_lead_source'] ) ? sanitize_textarea_field( $_POST['rentfetch_lead_source'] ) : '';
+	$message      = isset( $_POST['rentfetch_message'] ) ? sanitize_textarea_field( $_POST['rentfetch_message'] ) : '';
 
 	$errors = array();
 
@@ -280,12 +292,13 @@ function rentfetch_handle_ajax_form_submit() {
 
 	// Validation successful. Prepare data for API submission.
 	$form_data = array(
-		'first_name' => $first_name,
-		'last_name'  => $last_name,
-		'email'      => $email,
-		'phone'      => $phone,
-		'property'   => $property,
-		'message'    => $message,
+		'first_name'  => ! empty( $first_name ) ? $first_name : null,
+		'last_name'   => ! empty( $last_name ) ? $last_name : null,
+		'email'       => ! empty( $email ) ? $email : null,
+		'phone'       => ! empty( $phone ) ? $phone : null,
+		'property'    => ! empty( $property ) ? $property : null,
+		'message'     => ! empty( $message ) ? $message : null,
+		'lead_source' => ! empty( $lead_source ) ? $lead_source : null,
 		// Add any other necessary fields
 	);
 	
@@ -362,6 +375,11 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 		return;
 	}
 	
+	// If the lead_source is not set, set it to the default value.
+	if ( empty( $form_data['lead_source'] ) ) {
+		$form_data['lead_source'] = '105949'; // Default lead source ID
+	}
+	
 	// Set the URL for the API request.
 	$url = sprintf( 'https://apis.entrata.com/ext/orgs/%s/v1/leads', $subdomain );
 	
@@ -379,6 +397,10 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 				'isWaitList' => '0',
 				'prospects' => array(
 					'prospect' => array(
+						'leadSource' => array(
+							'originatingLeadSourceId' => $form_data['lead_source'],
+							// 'additionalLeadSourceIds' => '123,456,789',
+						),
 						'createdDate' => gmdate( 'm/d/Y\TH:i:s', strtotime( '-6 hours' ) ), // this API requires mountain time
 						'customers' => array(
 							'customer' => array(
