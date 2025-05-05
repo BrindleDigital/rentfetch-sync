@@ -491,7 +491,7 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 	
 	// If  $form_data['schedule'] is set, add it to the body
 	if ( ! empty( $form_data['schedule'] ) ) {
-		$body_array['method']['params']['prospects']['prospect']['events'] = array(
+		$body_array['method']['params']['prospects']['prospect']['events']['event'] = array(
 			array(
 				'type'            => 'Appointment',
 				'eventTypeId'     => '17',

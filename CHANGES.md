@@ -1,3 +1,7 @@
+## 0.8.9
+
+-   Potential fix for the Entrata forms not properly scheduling an event when one is expected.
+
 ## 0.8.8
 
 -   More functionality for Entrata forms, changed how we submit tours.
