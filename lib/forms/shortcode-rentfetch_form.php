@@ -141,7 +141,7 @@ function rentfetch_output_form( $atts ) {
 				echo '<input type="tel" id="rentfetch-form-phone" name="rentfetch_phone" class="rentfetch-form-input" required>';
 			echo '</div>';
 
-			echo '<div class="rentfetch-form-field-group rentfetch-form-field-lead_source">';
+			echo '<div class="rentfetch-form-field-group rentfetch-form-field-lead_source" style="display: none;">';
 				echo '<label for="rentfetch-form-lead_source" class="rentfetch-form-label">Lead source</label>';
 				printf('<input type="text" id="rentfetch-form-lead_source" name="rentfetch_lead_source" class="rentfetch-form-input" value="%s" readonly>', $a['lead_source'] );
 			echo '</div>';
@@ -502,12 +502,11 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 	
 	// let's decode the response body
 	$response_body = json_decode( $response_body, true );
-	
-	$message = $response_body['response']['result']['prospects']['prospect']['message'];
 		
 	if ( 200 === (int) $response['response']['code'] ) {
 		return (int) $response['response']['code'];
 	} else {
+		$message = isset( $response_body['response']['result']['prospects']['prospect']['message'] ) ? $response_body['response']['result']['prospects']['prospect']['message'] : null;
 		// If the response is not 200, return the error message.
 		return $response['response']['code'] . ' - ' . $message;
 	}

@@ -1,3 +1,8 @@
+## 0.8.4
+
+-   Bugfix: in the Entrata form submission, if the code is 200, the message isn't set. Fixing the exception.
+-   Hiding the lead_source field in the same.
+
 ## 0.8.3
 
 -   Adding capabilities for Entrata to use a lead source.
