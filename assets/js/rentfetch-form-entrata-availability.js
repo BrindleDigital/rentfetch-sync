@@ -171,11 +171,21 @@ jQuery(document).ready(function ($) {
 						/ [A-Z]{3,4}/g,
 						''
 					);
-					const formattedTime = timeWithoutTimezone
-						.replace(/(\d{2}):(\d{2})/, (match, hour, minute) => {
-							return `${parseInt(hour, 10)}:${minute}`;
-						})
-						.replace(' - ', ' to ');
+					const formattedTime = timeWithoutTimezone.replace(
+						/(\d{2}):(\d{2}) - (\d{2}):(\d{2})/,
+						(match, hour1, minute1, hour2, minute2) => {
+							const hour1Int = parseInt(hour1, 10);
+							const hour2Int = parseInt(hour2, 10);
+							const period = hour2Int >= 12 ? 'pm' : 'am';
+							const hour12_1 = hour1Int % 12 || 12;
+							const hour12_2 = hour2Int % 12 || 12;
+							const min1Display =
+								minute1 === '00' ? '' : ':' + minute1;
+							const min2Display =
+								minute2 === '00' ? '' : ':' + minute2;
+							return `${hour12_1}${min1Display} to ${hour12_2}${min2Display} ${period}`;
+						}
+					);
 					currentTimeHtml += `<li>${formattedTime}</li>`;
 				});
 				currentTimeHtml += '</ul>';

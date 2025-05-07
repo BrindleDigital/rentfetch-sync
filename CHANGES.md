@@ -3,6 +3,7 @@
 -   Remove the form on succesful submission
 -   Move the success message outside of the form
 -   Better validation for the phone number field
+-   Fixing timezones in the Entrata display of times for the form
 
 ## 0.8.4
 
