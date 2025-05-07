@@ -280,6 +280,17 @@ function rentfetch_handle_ajax_form_submit() {
 	if ( empty( $email ) || ! is_email( $email ) ) {
 		$errors[] = 'A valid email address is required.';
 	}
+	
+	// add validation for the phone number
+	if ( empty( $phone ) ) {
+		$errors[] = 'Phone number is required.';
+	} elseif ( ! preg_match( '/^\+?[0-9\s\-()]+$/', $phone ) ) {
+		$errors[] = 'Invalid phone number format.';
+	} elseif ( preg_match_all( '/\d/', $phone ) < 10 ) {
+		$errors[] = 'Phone number must contain at least 10 digits.';
+	} elseif ( preg_match_all( '/\d/', $phone ) > 15 ) {
+		$errors[] = 'Phone number must not contain more than 15 digits.';
+	}
 
 	if ( empty( $property ) ) {
 		$errors[] = 'Property is required.';

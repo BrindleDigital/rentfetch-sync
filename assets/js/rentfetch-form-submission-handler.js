@@ -27,13 +27,13 @@ jQuery(document).ready(function ($) {
 				if (response.success) {
 					// Display success message
 					// Assuming success response will have response.data.message
-					form.prepend(
+					form.before(
 						'<div class="rentfetch-form-message-area success"><p>' +
 							response.data.message +
 							'</p></div>'
 					);
-					// Optionally clear the form
-					form[0].reset();
+					// Remove the form element
+					form.remove();
 				} else {
 					// Display error messages
 					var errorHtml =

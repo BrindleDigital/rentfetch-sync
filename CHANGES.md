@@ -1,3 +1,9 @@
+## 0.8.5
+
+-   Remove the form on succesful submission
+-   Move the success message outside of the form
+-   Better validation for the phone number field
+
 ## 0.8.4
 
 -   Bugfix: in the Entrata form submission, if the code is 200, the message isn't set. Fixing the exception.
