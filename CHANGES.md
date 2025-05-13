@@ -1,3 +1,7 @@
+## 0.8.7
+
+-   Added numerous new parameters for the form, allowing for more customization of that (confirmation message, redirect url, etc.)
+
 ## 0.8.6
 
 -   Added more debug information for forms to diagnose issues.
