@@ -1,3 +1,7 @@
+## 0.8.6
+
+-   Added more debug information for forms to diagnose issues.
+
 ## 0.8.5
 
 -   Remove the form on succesful submission

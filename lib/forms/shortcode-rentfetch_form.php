@@ -156,10 +156,18 @@ function rentfetch_output_form( $atts ) {
 				echo '<input type="text" id="rentfetch-form-address" name="rentfetch_address" tabindex="-1" autocomplete="off">';
 			echo '</div>';
 			
+			// get the parameter from the URL for debug. If it is set, output the debug field
+			if ( isset( $_GET['debug'] ) ) {
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-debug" style="display: none;">';
+					echo '<label for="rentfetch-form-debug" class="rentfetch-form-label">Debug</label>';
+					echo '<input type="text" id="rentfetch-form-debug" name="rentfetch_debug" tabindex="-1" autocomplete="off" value="1" readonly>';
+				echo '</div>';
+			}
+
 		echo '</div>'; // Close form body
-		
+
 		echo '<div class="rentfetch-form-submit-group">';
-		
+
 			// if this is a tour, set the $submit_label to "Schedule Tour"
 			$submit_label = 'Schedule Tour';
 
@@ -266,6 +274,7 @@ function rentfetch_handle_ajax_form_submit() {
 	$property     = isset( $_POST['rentfetch_property'] ) ? sanitize_text_field( $_POST['rentfetch_property'] ) : '';
 	$lead_source  = isset( $_POST['rentfetch_lead_source'] ) ? sanitize_textarea_field( $_POST['rentfetch_lead_source'] ) : '';
 	$message      = isset( $_POST['rentfetch_message'] ) ? sanitize_textarea_field( $_POST['rentfetch_message'] ) : '';
+	$debug        = isset( $_POST['rentfetch_debug'] ) ? sanitize_textarea_field( $_POST['rentfetch_debug'] ) : '';
 
 	$errors = array();
 
@@ -310,6 +319,7 @@ function rentfetch_handle_ajax_form_submit() {
 		'property'    => ! empty( $property ) ? $property : null,
 		'message'     => ! empty( $message ) ? $message : null,
 		'lead_source' => ! empty( $lead_source ) ? $lead_source : null,
+		'debug'       => ! empty( $debug ) ? $debug : null,
 		// Add any other necessary fields
 	);
 	
@@ -343,8 +353,7 @@ function rentfetch_handle_ajax_form_submit() {
 	} elseif ( 'realpage' === $property_source ) {
 		$response = rentfetch_send_lead_to_realpage( $form_data, $property_source, $property );
 	} else {
-		wp_send_json_error( array( 'errors' => array( 'This property has no corresponding API to send data to.' ) ) );
-		
+		wp_send_json_error( array( 'errors' => array( 'This property has no corresponding API to send data to.' ) ) );	
 	}
 
 	if ( 200 === (int) $response ) {
@@ -511,6 +520,12 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 	// Retrieve and decode the response body.
 	$response_body = wp_remote_retrieve_body( $response );
 	
+	//! This is important for every API. Needs to work similarly once those are implemented.
+	// if the debug parameter is 1, output the response body
+	if ( isset( $form_data['debug'] ) && 1 === (int) $form_data['debug'] ) {
+		wp_send_json( $response_body );
+	}
+
 	// let's decode the response body
 	$response_body = json_decode( $response_body, true );
 		

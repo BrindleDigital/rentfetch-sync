@@ -34,21 +34,44 @@ jQuery(document).ready(function ($) {
 					);
 					// Remove the form element
 					form.remove();
-				} else {
-					// Display error messages
-					var errorHtml =
-						'<div class="rentfetch-form-message-area error"><ul>';
-					// Ensure response.data.errors exists and is an array
-					if (response.data && Array.isArray(response.data.errors)) {
-						$.each(response.data.errors, function (index, error) {
-							errorHtml += '<li>' + error + '</li>';
-						});
-					} else {
-						// errorHtml += '<li>An unknown error occurred.</li>';
-						errorHtml += response;
+
+					// If ?debug is in the URL, log the response
+					if (
+						new URLSearchParams(window.location.search).has('debug')
+					) {
+						console.log(response);
 					}
-					errorHtml += '</ul></div>';
-					form.prepend(errorHtml);
+				} else {
+					// If ?debug is in the URL, log the response
+					if (
+						new URLSearchParams(window.location.search).has('debug')
+					) {
+						var noticeHtml =
+							'<div class="rentfetch-form-message-area notice"><p>See console log for response details.</p></div>';
+						form.prepend(noticeHtml);
+						console.log(response);
+					} else {
+						// Display error messages
+						var errorHtml =
+							'<div class="rentfetch-form-message-area error"><ul>';
+						// Ensure response.data.errors exists and is an array
+						if (
+							response.data &&
+							Array.isArray(response.data.errors)
+						) {
+							$.each(
+								response.data.errors,
+								function (index, error) {
+									errorHtml += '<li>' + error + '</li>';
+								}
+							);
+						} else {
+							// errorHtml += '<li>An unknown error occurred.</li>';
+							errorHtml += response;
+						}
+						errorHtml += '</ul></div>';
+						form.prepend(errorHtml);
+					}
 				}
 			},
 			error: function (xhr, status, error) {
