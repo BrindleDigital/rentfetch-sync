@@ -25,6 +25,20 @@ jQuery(document).ready(function ($) {
 				rentfetchFormAjax.nonce,
 			success: function (response) {
 				if (response.success) {
+					// Redirect if we need to.
+					if (
+						!new URLSearchParams(window.location.search).has(
+							'debug'
+						)
+					) {
+						var redirectUrl = form
+							.find('#rentfetch-form-redirection-url')
+							.val();
+						if (redirectUrl) {
+							window.location.href = redirectUrl;
+						}
+					}
+
 					// Display success message
 					// Assuming success response will have response.data.message
 					form.before(

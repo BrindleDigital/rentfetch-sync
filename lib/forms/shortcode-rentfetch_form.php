@@ -27,6 +27,7 @@ function rentfetch_output_form( $atts ) {
 			'property'           => null,
 			'lead_source'        => null,
 			'submit_label'       => null,
+			'redirection_url'    => null,
 		),
 		$atts
 	);
@@ -168,6 +169,14 @@ function rentfetch_output_form( $atts ) {
 				echo '<div class="rentfetch-form-field-group rentfetch-form-field-confirmation" style="display: none;">';
 					echo '<label for="rentfetch-form-confirmation" class="rentfetch-form-label">Confirmation</label>';
 					printf('<input type="text" id="rentfetch-form-confirmation" name="rentfetch_confirmation" class="rentfetch-form-input" value="%s" readonly>', esc_html( $a['confirmation'] ) );
+				echo '</div>';
+			}
+			
+			// Redirection URL set in the shortcode.
+			if ( isset( $a['redirection_url'] ) ) {
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-redirection_url" style="display: none;">';
+					echo '<label for="rentfetch-form-redirection-url" class="rentfetch-form-label">Redirection URL</label>';
+					printf('<input type="text" id="rentfetch-form-redirection-url" name="rentfetch_redirection_url" class="rentfetch-form-input" value="%s" readonly>', esc_url( $a['redirection_url'] ) );
 				echo '</div>';
 			}
 			
