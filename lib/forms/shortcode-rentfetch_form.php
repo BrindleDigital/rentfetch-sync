@@ -26,6 +26,7 @@ function rentfetch_output_form( $atts ) {
 			'confirmation'       => 'Thanks for your submission. We will get back to you shortly.',
 			'property'           => null,
 			'lead_source'        => null,
+			'submit_label'       => null,
 		),
 		$atts
 	);
@@ -117,6 +118,7 @@ function rentfetch_output_form( $atts ) {
 				echo '</div>';
 			}
 			
+			// First and last name fields.
 			echo '<fieldset class="rentfetch-form-fieldset rentfetch-form-fieldset-name">';
 				echo '<legend class="rentfetch-form-label">Your Name <span class="rentfetch-form-required-label">(Required)</span></legend>';
 				echo '<div class="rentfetch-form-field-group rentfetch-form-field-first-name">';
@@ -129,34 +131,47 @@ function rentfetch_output_form( $atts ) {
 					echo '<label for="rentfetch-form-last-name" class="rentfetch-form-label-subfield">Last Name</label>';
 				echo '</div>';
 
-			echo '</fieldset>'; // Close fieldset for name
+			echo '</fieldset>';
 
+			// Email field.
 			echo '<div class="rentfetch-form-field-group rentfetch-form-field-email">';
 				echo '<label for="rentfetch-form-email" class="rentfetch-form-label">Email <span class="rentfetch-form-required-label">(Required)</span></label>';
 				echo '<input type="email" id="rentfetch-form-email" name="rentfetch_email" class="rentfetch-form-input" required>';
 			echo '</div>';
 
+			// Phone field.
 			echo '<div class="rentfetch-form-field-group rentfetch-form-field-phone">';
 				echo '<label for="rentfetch-form-phone" class="rentfetch-form-label">Phone <span class="rentfetch-form-required-label">(Required)</span></label>';
 				echo '<input type="tel" id="rentfetch-form-phone" name="rentfetch_phone" class="rentfetch-form-input" required>';
 			echo '</div>';
 
+			// Lead source field.
 			echo '<div class="rentfetch-form-field-group rentfetch-form-field-lead_source" style="display: none;">';
 				echo '<label for="rentfetch-form-lead_source" class="rentfetch-form-label">Lead source</label>';
 				printf('<input type="text" id="rentfetch-form-lead_source" name="rentfetch_lead_source" class="rentfetch-form-input" value="%s" readonly>', $a['lead_source'] );
 			echo '</div>';
 
+			// Message field.
 			echo '<div class="rentfetch-form-field-group rentfetch-form-field-message">';
 				echo '<label for="rentfetch-form-message" class="rentfetch-form-label">Message</label>';
 				echo '<textarea id="rentfetch-form-message" name="rentfetch_message" rows="3" class="rentfetch-form-textarea"></textarea>';
 			echo '</div>';
-
+			
+			// Honeypot field for spam prevention.
 			echo '<div class="rentfetch-form-honeypot" style="display: none;">';
 				echo '<label for="rentfetch-form-address">Street Address:</label>';
 				echo '<input type="text" id="rentfetch-form-address" name="rentfetch_address" tabindex="-1" autocomplete="off">';
 			echo '</div>';
 			
-			// get the parameter from the URL for debug. If it is set, output the debug field
+			// Confirmation text set in the shortcode.
+			if ( isset( $a['confirmation'] ) ) {
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-confirmation" style="display: none;">';
+					echo '<label for="rentfetch-form-confirmation" class="rentfetch-form-label">Confirmation</label>';
+					printf('<input type="text" id="rentfetch-form-confirmation" name="rentfetch_confirmation" class="rentfetch-form-input" value="%s" readonly>', esc_html( $a['confirmation'] ) );
+				echo '</div>';
+			}
+			
+			// Debug field for verifying API response (add ?debug to the URL to use this field).
 			if ( isset( $_GET['debug'] ) ) {
 				echo '<div class="rentfetch-form-field-group rentfetch-form-field-debug" style="display: none;">';
 					echo '<label for="rentfetch-form-debug" class="rentfetch-form-label">Debug</label>';
@@ -168,13 +183,15 @@ function rentfetch_output_form( $atts ) {
 
 		echo '<div class="rentfetch-form-submit-group">';
 
-			// if this is a tour, set the $submit_label to "Schedule Tour"
-			$submit_label = 'Schedule Tour';
-
+			// Set up the submit button label based on the form type.
 			if ( 'leads' === $a['type'] ) {
-				$submit_label = apply_filters( 'rentfetch_form_submit_leads_label', 'Send Message' );
+				$submit_label = 'Send Message';
 			} elseif ( 'tour' === $a['type'] ) {
-				$submit_label = apply_filters( 'rentfetch_form_submit_tour_label', 'Schedule Tour' );
+				$submit_label = 'Schedule Tour';
+			}
+			
+			if ( isset( $a['submit_label'] ) ) {
+				$submit_label = $a['submit_label'];
 			}
 		
 			printf( '<button type="submit" class="rentfetch-form-button">%s</button>', esc_html( $submit_label ) );
@@ -275,6 +292,7 @@ function rentfetch_handle_ajax_form_submit() {
 	$lead_source  = isset( $_POST['rentfetch_lead_source'] ) ? sanitize_textarea_field( $_POST['rentfetch_lead_source'] ) : '';
 	$message      = isset( $_POST['rentfetch_message'] ) ? sanitize_textarea_field( $_POST['rentfetch_message'] ) : '';
 	$debug        = isset( $_POST['rentfetch_debug'] ) ? sanitize_textarea_field( $_POST['rentfetch_debug'] ) : '';
+	$confirmation = isset( $_POST['rentfetch_confirmation'] ) ? sanitize_textarea_field( $_POST['rentfetch_confirmation'] ) : '';
 
 	$errors = array();
 
@@ -312,14 +330,14 @@ function rentfetch_handle_ajax_form_submit() {
 
 	// Validation successful. Prepare data for API submission.
 	$form_data = array(
-		'first_name'  => ! empty( $first_name ) ? $first_name : null,
-		'last_name'   => ! empty( $last_name ) ? $last_name : null,
-		'email'       => ! empty( $email ) ? $email : null,
-		'phone'       => ! empty( $phone ) ? $phone : null,
-		'property'    => ! empty( $property ) ? $property : null,
-		'message'     => ! empty( $message ) ? $message : null,
-		'lead_source' => ! empty( $lead_source ) ? $lead_source : null,
-		'debug'       => ! empty( $debug ) ? $debug : null,
+		'first_name'    => ! empty( $first_name ) ? $first_name : null,
+		'last_name'     => ! empty( $last_name ) ? $last_name : null,
+		'email'         => ! empty( $email ) ? $email : null,
+		'phone'         => ! empty( $phone ) ? $phone : null,
+		'property'      => ! empty( $property ) ? $property : null,
+		'message'       => ! empty( $message ) ? $message : null,
+		'lead_source'   => ! empty( $lead_source ) ? $lead_source : null,
+		'debug'         => ! empty( $debug ) ? $debug : null,
 		// Add any other necessary fields
 	);
 	
@@ -357,7 +375,7 @@ function rentfetch_handle_ajax_form_submit() {
 	}
 
 	if ( 200 === (int) $response ) {
-		$message = apply_filters( 'rentfetch_form_success_message', 'Thanks! We have received your message.' );
+		$message = apply_filters( 'rentfetch_form_success_message', $confirmation );
 		wp_send_json_success( array( 'message' => $message, 'data' => $form_data ) );
 	} else {
 		wp_send_json_error( array( 'errors' => array( 'API error encountered: ' . $response . '. Your message was not received.' ) ) );
