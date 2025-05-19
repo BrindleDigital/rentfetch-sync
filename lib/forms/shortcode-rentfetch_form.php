@@ -114,19 +114,19 @@ function rentfetch_output_form( $atts ) {
 				echo '<div class="rentfetch-availability-times" style="display:none;"></div>';
 				
 				// Appointment date field.
-				echo '<div class="rentfetch-form-field-group rentfetch-form-field-appointment_date">';
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-appointment_date" style="display:none;">';
 					echo '<label for="rentfetch-form-appointment_date" class="rentfetch-form-label">Appointment Date</label>';
 					printf('<input type="text" id="rentfetch-form-appointment_date" name="rentfetch_appointment_date" class="rentfetch-form-input" value="%s" readonly>', $a['lead_source'] );
 				echo '</div>';
 				
 				// Appointment start time field.
-				echo '<div class="rentfetch-form-field-group rentfetch-form-field-appointment_start_time">';
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-appointment_start_time" style="display:none;">';
 					echo '<label for="rentfetch-form-appointment_start_time" class="rentfetch-form-label">Appointment Start Time</label>';
 					printf('<input type="text" id="rentfetch-form-appointment_start_time" name="rentfetch_appointment_start_time" class="rentfetch-form-input" value="%s" readonly>', $a['lead_source'] );
 				echo '</div>';
 				
 				// Appointment end time field.
-				echo '<div class="rentfetch-form-field-group rentfetch-form-field-appointment_end_time">';
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-appointment_end_time" style="display:none;">';
 					echo '<label for="rentfetch-form-appointment_end_time" class="rentfetch-form-label">Appointment End Time</label>';
 					printf('<input type="text" id="rentfetch-form-appointment_end_time" name="rentfetch_appointment_end_time" class="rentfetch-form-input" value="%s" readonly>', $a['lead_source'] );
 				echo '</div>';
