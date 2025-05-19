@@ -1,3 +1,7 @@
+## 0.8.8
+
+-   More functionality for Entrata forms, changed how we submit tours.
+
 ## 0.8.7
 
 -   Added numerous new parameters for the form, allowing for more customization of that (confirmation message, redirect url, etc.)
