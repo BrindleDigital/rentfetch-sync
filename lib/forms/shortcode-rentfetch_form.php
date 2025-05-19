@@ -113,9 +113,22 @@ function rentfetch_output_form( $atts ) {
 				echo '<div class="rentfetch-availability-dates" style="display:none;"></div>';
 				echo '<div class="rentfetch-availability-times" style="display:none;"></div>';
 				
-				echo '<div class="rentfetch-form-field-group rentfetch-form-field-schedule" style="display: none;">';
-					echo '<label for="rentfetch-form-schedule" class="rentfetch-form-label">Schedule</label>';
-					echo '<input type="text" id="rentfetch-form-schedule" name="rentfetch_schedule" class="rentfetch-form-input">';
+				// Appointment date field.
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-appointment_date">';
+					echo '<label for="rentfetch-form-appointment_date" class="rentfetch-form-label">Appointment Date</label>';
+					printf('<input type="text" id="rentfetch-form-appointment_date" name="rentfetch_appointment_date" class="rentfetch-form-input" value="%s" readonly>', $a['lead_source'] );
+				echo '</div>';
+				
+				// Appointment start time field.
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-appointment_start_time">';
+					echo '<label for="rentfetch-form-appointment_start_time" class="rentfetch-form-label">Appointment Start Time</label>';
+					printf('<input type="text" id="rentfetch-form-appointment_start_time" name="rentfetch_appointment_start_time" class="rentfetch-form-input" value="%s" readonly>', $a['lead_source'] );
+				echo '</div>';
+				
+				// Appointment end time field.
+				echo '<div class="rentfetch-form-field-group rentfetch-form-field-appointment_end_time">';
+					echo '<label for="rentfetch-form-appointment_end_time" class="rentfetch-form-label">Appointment End Time</label>';
+					printf('<input type="text" id="rentfetch-form-appointment_end_time" name="rentfetch_appointment_end_time" class="rentfetch-form-input" value="%s" readonly>', $a['lead_source'] );
 				echo '</div>';
 			}
 			
@@ -302,6 +315,9 @@ function rentfetch_handle_ajax_form_submit() {
 	$message      = isset( $_POST['rentfetch_message'] ) ? sanitize_textarea_field( $_POST['rentfetch_message'] ) : '';
 	$debug        = isset( $_POST['rentfetch_debug'] ) ? sanitize_textarea_field( $_POST['rentfetch_debug'] ) : '';
 	$confirmation = isset( $_POST['rentfetch_confirmation'] ) ? sanitize_textarea_field( $_POST['rentfetch_confirmation'] ) : '';
+	$appointment_date = isset( $_POST['rentfetch_appointment_date'] ) ? sanitize_text_field( $_POST['rentfetch_appointment_date'] ) : '';
+	$appointment_start_time = isset( $_POST['rentfetch_appointment_start_time'] ) ? sanitize_text_field( $_POST['rentfetch_appointment_start_time'] ) : '';
+	$appointment_end_time = isset( $_POST['rentfetch_appointment_end_time'] ) ? sanitize_text_field( $_POST['rentfetch_appointment_end_time'] ) : '';
 
 	$errors = array();
 
@@ -346,6 +362,9 @@ function rentfetch_handle_ajax_form_submit() {
 		'property'      => ! empty( $property ) ? $property : null,
 		'message'       => ! empty( $message ) ? $message : null,
 		'lead_source'   => ! empty( $lead_source ) ? $lead_source : null,
+		'appointment_date' => ! empty( $appointment_date ) ? $appointment_date : null,
+		'appointment_start_time' => ! empty( $appointment_start_time ) ? $appointment_start_time : null,
+		'appointment_end_time' => ! empty( $appointment_end_time ) ? $appointment_end_time : null,
 		'debug'         => ! empty( $debug ) ? $debug : null,
 		// Add any other necessary fields
 	);
@@ -440,13 +459,12 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 			'name'   => 'sendLeads',
 			'params' => array(
 				'propertyId' => $property_id,
-				'doNotSendConfirmationEmail' => '1',
+				'doNotSendConfirmationEmail' => '0',
 				'isWaitList' => '0',
 				'prospects' => array(
 					'prospect' => array(
 						'leadSource' => array(
 							'originatingLeadSourceId' => $form_data['lead_source'],
-							// 'additionalLeadSourceIds' => '123,456,789',
 						),
 						'createdDate' => gmdate( 'm/d/Y\TH:i:s', strtotime( '-6 hours' ) ), // this API requires mountain time
 						'customers' => array(
@@ -463,47 +481,8 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 						),
 						'customerPreferences' => array(
 							'desiredMoveInDate' => ! empty( $form_data['desired_move_in_date'] ) ? $form_data['desired_move_in_date'] : null,
-							// 'desiredFloorplanId' => 1234,
-							// 'desiredUnitTypeId'  => 1234,
-							// 'desiredUnitId'      => 1234,
 							'comment'            => ! empty( $form_data['message'] ) ? $form_data['message'] : 'customer Preferences Comment',
 						),
-						// 'events'            => array(
-						// 	array(
-						// 		'type'         => 'Show',
-						// 		'eventTypeId'  => '78',
-						// 		'date'         => 'MM/DD/YYYYTHH:MM:SS',
-						// 		'agentId'      => 12345,
-						// 		'unitSpaceIds' => '1234,1234',
-						// 		'comments'     => 'Comments',
-						// 		'eventReasonId' => 1234,
-						// 	),
-						// 	array(
-						// 		'type'        => 'Note',
-						// 		'eventTypeId' => '8',
-						// 		'date'        => 'MM/DD/YYYYTHH:MM:SS',
-						// 		'eventResultId' => 1234,
-						// 		'comments'    => 'comments',
-						// 	),
-						// 	array(
-						// 		'type'         => 'VirtualTour',
-						// 		'eventTypeId'  => '449',
-						// 		'date'         => 'MM/DD/YYYYTHH:MM:SS',
-						// 		'agentId'      => '1234',
-						// 		'unitSpaceIds' => '1234',
-						// 		'comments'     => 'Comments',
-						// 		'eventReasonId' => '1234',
-						// 	),
-						// 	array(
-						// 		'type'         => 'SelfGuidedTour',
-						// 		'eventTypeId'  => '442',
-						// 		'date'         => 'MM/DD/YYYYTHH:MM:SS',
-						// 		'agentId'      => '10481',
-						// 		'unitSpaceIds' => '1234',
-						// 		'comments'     => 'Comments',
-						// 		'eventReasonId' => '1234',
-						// 	),
-						// ),
 					),
 				),
 			),
@@ -514,20 +493,22 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 	if ( ! empty( $form_data['schedule'] ) ) {
 		$body_array['method']['params']['prospects']['prospect']['events'] = array(
 			array(
-				'type'         => 'Show',
-				'eventTypeId'  => '78',
-				'date'         => $form_data['schedule'],
-				// 'agentId'      => 12345,
-				// 'unitSpaceIds' => '1234,1234',
-				// 'comments'     => $form_data['schedule'],
-				// 'eventReasonId' => 1234,
+				'type'            => 'Appointment',
+				'eventTypeId'     => '17',
+				'subtypeId'       => '454',
+				'date'            => gmdate( 'm/d/Y\TH:i:s', strtotime( '-6 hours' ) ), // this API requires mountain time
+				'appointmentDate' => $form_data['appointment_date'],
+				'timeFrom'        => $form_data['appointment_start_time'],
+				'timeTo'          => $form_data['appointment_end_time'],
+				'eventReasons'    => 'Tour',
+				'comments'        => '',
 			),
 		);
 	}
 
 	// Convert the body to JSON format.
 	$body_json = wp_json_encode( $body_array );
-
+	
 	// Set the headers for the request.
 	$headers = array(
 		'X-Api-Key'    => $api_key,
