@@ -1,3 +1,7 @@
+## 0.8.10
+
+-   Minor markup updates to align with new styles
+
 ## 0.8.9
 
 -   Potential fix for the Entrata forms not properly scheduling an event when one is expected.
