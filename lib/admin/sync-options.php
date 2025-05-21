@@ -31,10 +31,8 @@ function rentfetch_settings_sync() {
 
 		<div class="row">
 			<div class="section">
-				<label for="rentfetch_options_data_sync">Data Sync</label>
+				<label class="label-large" for="rentfetch_options_data_sync">Data Sync</label>
 				<p class="description">When you start syncing from data from your management software, it generally takes 5-15 seconds per property to sync. <strong>Rome wasn't built in a day.</strong></p>
-			</div>
-			<div class="section">
 				<ul class="radio">
 					<li>
 						<label>
@@ -61,9 +59,7 @@ function rentfetch_settings_sync() {
 
 		<div class="row">
 			<div class="section">
-				<label for="rentfetch_options_enabled_integrations">Enabled Integrations</label>
-			</div>
-			<div class="section">
+			<label class="label-large" for="rentfetch_options_enabled_integrations">Enabled Integrations</label>
 				<script type="text/javascript">
 					jQuery(document).ready(function( $ ) {
 		
@@ -122,9 +118,7 @@ function rentfetch_settings_sync() {
 		
 		<div class="row integration yardi">
 			<div class="section">
-				<label>Yardi/RentCafe</label>
-			</div>
-			<div class="section">
+				<label class="label-large">Yardi/RentCafe</label>
 				<div class="white-box">
 					<label for="rentfetch_options_yardi_integration_creds_yardi_api_key">Yardi API token</label>
 					<input type="text" name="rentfetch_options_yardi_integration_creds_yardi_api_key" id="rentfetch_options_yardi_integration_creds_yardi_api_key" value="<?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_api_key' ) ); ?>">
@@ -140,7 +134,7 @@ function rentfetch_settings_sync() {
 				</div> -->
 				<div class="white-box">
 					<label for="rentfetch_options_yardi_integration_creds_yardi_property_code">Yardi Property Codes</label>
-					<textarea rows="10" style="width: 100%;" name="rentfetch_options_yardi_integration_creds_yardi_property_code" id="rentfetch_options_yardi_integration_creds_yardi_property_code"><?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_property_code' ) ); ?></textarea>
+					<textarea rows="5" style="width: 100%;" name="rentfetch_options_yardi_integration_creds_yardi_property_code" id="rentfetch_options_yardi_integration_creds_yardi_property_code"><?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_property_code' ) ); ?></textarea>
 					<p class="description">Multiple property codes should be entered separated by commas</p>
 				</div>
 				<!-- <div class="white-box">
@@ -163,9 +157,7 @@ function rentfetch_settings_sync() {
 		
 		<div class="row integration entrata">
 			<div class="section">
-				<label>Entrata</label>
-			</div>
-			<div class="section">
+				<label class="label-large">Entrata</label>
 				<div class="white-box">
 					<label for="rentfetch_options_entrata_integration_creds_entrata_subdomain">Entrata Subdomain </label>
 					<input type="text" name="rentfetch_options_entrata_integration_creds_entrata_subdomain" id="rentfetch_options_entrata_integration_creds_entrata_subdomain" value="<?php echo esc_attr( get_option( 'rentfetch_options_entrata_integration_creds_entrata_subdomain' ) ); ?>">
@@ -173,7 +165,7 @@ function rentfetch_settings_sync() {
 				</div>
 				<div class="white-box">
 					<label for="rentfetch_options_entrata_integration_creds_entrata_property_ids">Entrata Property IDs</label>
-					<textarea rows="10" style="width: 100%;" name="rentfetch_options_entrata_integration_creds_entrata_property_ids" id="rentfetch_options_entrata_integration_creds_entrata_property_ids"><?php echo esc_attr( get_option( 'rentfetch_options_entrata_integration_creds_entrata_property_ids' ) ); ?></textarea>
+					<textarea rows="5" style="width: 100%;" name="rentfetch_options_entrata_integration_creds_entrata_property_ids" id="rentfetch_options_entrata_integration_creds_entrata_property_ids"><?php echo esc_attr( get_option( 'rentfetch_options_entrata_integration_creds_entrata_property_ids' ) ); ?></textarea>
 					<p class="description">If there are multiple properties to be pulled in, enter those separated by commas.</p>
 				</div>
 			</div>
@@ -274,7 +266,6 @@ function rentfetch_settings_sync() {
 			</div>
 		</div>
 		<?php
-		submit_button();
 
 		echo '</div>';
 	echo '</section>';
