@@ -196,18 +196,25 @@ jQuery(document).ready(function ($) {
 		console.log(availableTours);
 
 		availableTours.forEach((tour) => {
-			const date = new Date(tour.tourDate);
+			// Parse the date string manually to avoid timezone issues
+			const dateParts = tour.tourDate.split('-');
+			const year = parseInt(dateParts[0]);
+			const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+			const day = parseInt(dateParts[2]);
+
+			// Create date object with explicit local timezone
+			const date = new Date(year, month, day);
 			const options = { weekday: 'long', month: 'long', day: 'numeric' };
 			const formattedDate = date.toLocaleDateString('en-US', options);
 
 			const [weekday, monthDay] = formattedDate.split(', ');
-			const [month, day] = monthDay.split(' ');
+			const [monthName, dayNum] = monthDay.split(' ');
 
 			dateHtml += `<li data-date="${tour.tourDate}">
 				<span class="rentfetch-weekday">${weekday}</span>
 				<span class="rentfetch-date">
-					<span class="rentfetch-month">${month}</span> 
-					<span class="rentfetch-day">${day}</span>
+					<span class="rentfetch-month">${monthName}</span> 
+					<span class="rentfetch-day">${dayNum}</span>
 				</span>
 			</li>`;
 		});

@@ -19,6 +19,7 @@ function rentfetch_fetch_entrata_availability_callback() {
 	
 	// check for a transient for this property id
 	$transient_key = 'entrata_tour_availability_' . $property_id;
+	
 	$cached_data = get_transient( $transient_key );
 	if ( $cached_data ) {
 		wp_send_json_success( $cached_data );
@@ -111,16 +112,17 @@ function rentfetch_fetch_entrata_availability_callback() {
 	}
 
 	// Set the transient before sending the response
-	set_transient( $transient_key, $api_response_data, HOUR_IN_SECONDS );
-
+	set_transient( $transient_key, $api_response_data, 5 * MINUTE_IN_SECONDS );
+	
 	// Send the API response back to the JavaScript
 	wp_send_json_success( $api_response_data );
 
-	// Check if the API response contains the expected data
-	if ( ! isset( $api_response_data['response']['result']['CalendarAvailability'] ) ) {
-		wp_send_json_error( array( 'message' => 'Invalid API response structure.' ) );
-		wp_die();
-	}
+	// I don't think this is doing anything; this isn't the right structure, it's [response][result][availableTours][availableTour]
+	// // Check if the API response contains the expected data
+	// if ( ! isset( $api_response_data['response']['result']['CalendarAvailability'] ) ) {
+	// 	wp_send_json_error( array( 'message' => 'Invalid API response structure.' ) );
+	// 	wp_die();
+	// }
 }
 
 // Hook the AJAX handler for both logged-in and non-logged-in users

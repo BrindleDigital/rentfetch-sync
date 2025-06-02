@@ -1,3 +1,11 @@
+## 0.8.12
+
+-   Bugfix: incorrect date handling when pulling in availability for tours from Entrata.
+
+## 0.8.11
+
+-   Removing capability for unit editing from core
+
 ## 0.8.10
 
 -   Minor markup updates to align with new styles
