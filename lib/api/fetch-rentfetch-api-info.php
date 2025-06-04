@@ -68,6 +68,7 @@ function rfs_get_info_from_rentfetch_api() {
 	if ( in_array( 'entrata', $apis_enabled, true ) ) {
 		$apis_used['entrata'] = array(
 			'subdomain'             => get_option( 'rentfetch_options_entrata_integration_creds_entrata_subdomain' ),
+			'property_codes'        => get_option( 'rentfetch_options_entrata_integration_creds_entrata_property_ids' ),
 			'number_of_properties'  => rfs_get_number_of_properties( 'entrata' ),
 			// we'd love to add the Brindle partner token here, but we get this from the RF API (so trying to do that creates a loop).
 		);

@@ -1,3 +1,7 @@
+## 0.8.13
+
+-   Adding the Entrata property codes used into the request to the Rent Fetch API, to allow for easier access for troubleshooting (this was left out in error)
+
 ## 0.8.12
 
 -   Bugfix: incorrect date handling when pulling in availability for tours from Entrata.
