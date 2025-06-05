@@ -46,7 +46,7 @@ jQuery(document).ready(function ($) {
 
 	function updateScheduleFields() {
 		const selectedDate = $availabilityDatesContainer
-			.find('li.selected')
+			.find('.availability-date.selected')
 			.data('date');
 		const selectedTime = $availabilityTimesContainer
 			.find('li.selected')
@@ -190,7 +190,16 @@ jQuery(document).ready(function ($) {
 	}
 
 	function displayAvailability(availableTours) {
-		let dateHtml = '<ul>';
+		let dateHtml = `
+		<label class="rentfetch-form-label">Select a date <span class="rentfetch-form-required-label">(Required)</span></label>
+			<div class="blaze-slider">
+				<div class="blaze-buttons">
+					<button type="button" class="blaze-prev"></button>
+					<button type="button" class="blaze-next"></button>
+				</div>
+				<div class="blaze-container">
+					<div class="blaze-track-container">
+						<div class="blaze-track">`;
 		let timeHtml = '';
 
 		console.log(availableTours);
@@ -210,97 +219,114 @@ jQuery(document).ready(function ($) {
 			const [weekday, monthDay] = formattedDate.split(', ');
 			const [monthName, dayNum] = monthDay.split(' ');
 
-			dateHtml += `<li data-date="${tour.tourDate}">
+			dateHtml += `<div class="availability-date" data-date="${tour.tourDate}">
 				<span class="rentfetch-weekday">${weekday}</span>
 				<span class="rentfetch-date">
 					<span class="rentfetch-month">${monthName}</span> 
 					<span class="rentfetch-day">${dayNum}</span>
 				</span>
-			</li>`;
+			</div>`;
 		});
 
-		dateHtml += '</ul>';
+		dateHtml += `
+						</div>
+					</div>
+				</div>
+			</div>`;
+
 		$availabilityDatesContainer.html(dateHtml);
 		$availabilityTimesContainer.html(timeHtml);
 		$availabilityTimesContainer
 			.removeClass('rentfetch-visible')
 			.addClass('rentfetch-hidden');
 
-		$availabilityDatesContainer.find('li').on('click', function () {
-			$availabilityDatesContainer.find('li').removeClass('selected');
-			$(this).addClass('selected');
+		// Trigger custom event for slider initialization
+		$(document).trigger('rentfetch:availability-content-updated', [
+			$availabilityDatesContainer,
+		]);
 
-			updateScheduleFields();
+		$availabilityDatesContainer
+			.find('.availability-date')
+			.on('click', function () {
+				$availabilityDatesContainer
+					.find('.availability-date')
+					.removeClass('selected');
+				$(this).addClass('selected');
 
-			// clear the time selection
-			$appointmentStartTimeField.val('');
-			$appointmentEndTimeField.val('');
+				updateScheduleFields();
 
-			// Clear the schedule field and hide button when a new date is selected
-			$scheduleField.val('');
-			$submitButton.hide();
+				// clear the time selection
+				$appointmentStartTimeField.val('');
+				$appointmentEndTimeField.val('');
 
-			const selectedDate = $(this).data('date');
-			const selectedTour = availableTours.find(
-				(tour) => tour.tourDate === selectedDate
-			);
+				// Clear the schedule field and hide button when a new date is selected
+				$scheduleField.val('');
+				$submitButton.hide();
 
-			$availabilityTimesContainer.empty();
-			if (selectedTour && selectedTour.tourTime.length > 0) {
-				let currentTimeHtml = '<ul>';
-				selectedTour.tourTime.forEach((time) => {
-					const timeWithoutTimezone = time.replace(
-						/ [A-Z]{3,4}/g,
-						''
-					);
-					const formattedTime = timeWithoutTimezone.replace(
-						/(\d{2}):(\d{2}) - (\d{2}):(\d{2})/,
-						(match, hour1, minute1, hour2, minute2) => {
-							const hour1Int = parseInt(hour1, 10);
-							const hour2Int = parseInt(hour2, 10);
-							const period1 = hour1Int >= 12 ? 'pm' : 'am';
-							const period2 = hour2Int >= 12 ? 'pm' : 'am';
-							const hour12_1 = hour1Int % 12 || 12;
-							const hour12_2 = hour2Int % 12 || 12;
-							const min1Display =
-								minute1 === '00' ? '' : ':' + minute1;
-							const min2Display =
-								minute2 === '00' ? '' : ':' + minute2;
+				const selectedDate = $(this).data('date');
+				const selectedTour = availableTours.find(
+					(tour) => tour.tourDate === selectedDate
+				);
 
-							// If periods match, only show once at the end
-							if (period1 === period2) {
-								return `${hour12_1}${min1Display} to ${hour12_2}${min2Display} ${period2}`;
-							} else {
-								return `${hour12_1}${min1Display} ${period1} to ${hour12_2}${min2Display} ${period2}`;
+				$availabilityTimesContainer.empty();
+				if (selectedTour && selectedTour.tourTime.length > 0) {
+					let currentTimeHtml =
+						'<label class="rentfetch-form-label">Select a time <span class="rentfetch-form-required-label">(Required)</span></label><ul>';
+					selectedTour.tourTime.forEach((time) => {
+						const timeWithoutTimezone = time.replace(
+							/ [A-Z]{3,4}/g,
+							''
+						);
+						const formattedTime = timeWithoutTimezone.replace(
+							/(\d{2}):(\d{2}) - (\d{2}):(\d{2})/,
+							(match, hour1, minute1, hour2, minute2) => {
+								const hour1Int = parseInt(hour1, 10);
+								const hour2Int = parseInt(hour2, 10);
+								const period1 = hour1Int >= 12 ? 'pm' : 'am';
+								const period2 = hour2Int >= 12 ? 'pm' : 'am';
+								const hour12_1 = hour1Int % 12 || 12;
+								const hour12_2 = hour2Int % 12 || 12;
+								const min1Display =
+									minute1 === '00' ? '' : ':' + minute1;
+								const min2Display =
+									minute2 === '00' ? '' : ':' + minute2;
+
+								// If periods match, only show once at the end
+								if (period1 === period2) {
+									return `${hour12_1}${min1Display} to ${hour12_2}${min2Display} ${period2}`;
+								} else {
+									return `${hour12_1}${min1Display} ${period1} to ${hour12_2}${min2Display} ${period2}`;
+								}
 							}
-						}
-					);
-					currentTimeHtml += `<li>${formattedTime}</li>`;
-				});
-				currentTimeHtml += '</ul>';
-				$availabilityTimesContainer.html(currentTimeHtml);
-				$availabilityTimesContainer
-					.removeClass('rentfetch-hidden')
-					.addClass('rentfetch-visible');
+						);
+						currentTimeHtml += `<li>${formattedTime}</li>`;
+					});
+					currentTimeHtml += '</ul>';
+					$availabilityTimesContainer.html(currentTimeHtml);
+					$availabilityTimesContainer
+						.removeClass('rentfetch-hidden')
+						.addClass('rentfetch-visible');
 
-				// Add click handler for time selection
-				$availabilityTimesContainer.find('li').on('click', function () {
+					// Add click handler for time selection
 					$availabilityTimesContainer
 						.find('li')
-						.removeClass('selected');
-					$(this).addClass('selected');
-					updateScheduleFields();
-					toggleSubmitButton();
-				});
-			} else {
-				$availabilityTimesContainer.html(
-					'<p>No times available for this date.</p>'
-				);
-				$availabilityTimesContainer
-					.removeClass('rentfetch-hidden')
-					.addClass('rentfetch-visible');
-			}
-		});
+						.on('click', function () {
+							$availabilityTimesContainer
+								.find('li')
+								.removeClass('selected');
+							$(this).addClass('selected');
+							updateScheduleFields();
+							toggleSubmitButton();
+						});
+				} else {
+					$availabilityTimesContainer.html(
+						'<p>No times available for this date.</p>'
+					);
+					$availabilityTimesContainer
+						.removeClass('rentfetch-hidden')
+						.addClass('rentfetch-visible');
+				}
+			});
 	}
 
 	function checkAndFetchAvailability() {

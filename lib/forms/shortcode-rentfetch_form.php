@@ -98,6 +98,10 @@ function rentfetch_output_form( $atts ) {
 			
 			if ( 'tour' === $a['type'] ) {
 				
+				wp_enqueue_style( 'blaze-style' );
+				wp_enqueue_script( 'blaze-script' );
+				wp_enqueue_script( 'rentfetch-form-availability-blaze-slider-init' );
+				
 				// Enqueue and localize the script to fetch availability for Entrata
 				wp_enqueue_script( 'rentfetch-form-entrata-availability' );
 				

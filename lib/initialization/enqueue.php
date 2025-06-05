@@ -46,5 +46,13 @@ function rfs_enqueue_frontend_scripts() {
 		RENTFETCHSYNC_VERSION,
 		true
 	);
+	
+	wp_register_script(
+		'rentfetch-form-availability-blaze-slider-init',
+		RENTFETCHSYNC_PATH . '/assets/js/rentfetch-form-availability-blaze-slider-init.js',
+		array( 'blaze-script' ),
+		RENTFETCHSYNC_VERSION,
+		true
+	);
 }
 add_action( 'wp_enqueue_scripts', 'rfs_enqueue_frontend_scripts' );

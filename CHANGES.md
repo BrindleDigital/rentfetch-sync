@@ -1,3 +1,8 @@
+## 0.8.14
+
+-   Adding labels to the form that display when appropriate for dates/times
+-   Adding the blaze slider to the dates and configuring that such that it should work across the board on all devices.
+
 ## 0.8.13
 
 -   Adding the Entrata property codes used into the request to the Rent Fetch API, to allow for easier access for troubleshooting (this was left out in error)
