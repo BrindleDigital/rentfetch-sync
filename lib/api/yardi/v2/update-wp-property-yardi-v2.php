@@ -79,7 +79,7 @@ function rfs_yardi_v2_update_property_meta( $args, $property_data ) {
 		'state' => esc_html( $data['state'] ),
 		'zipcode' => esc_html( $data['zipcode'] ),
 		'url' => esc_url( $data['url'] ),
-		'description' => esc_attr( $data['description'] ),
+		'description' => esc_html( $data['description'] ),
 		'email' => esc_html( $data['email'] ),
 		'phone' => esc_html( $data['phone'] ),
 		'latitude' => esc_html( $data['latitude'] ),
