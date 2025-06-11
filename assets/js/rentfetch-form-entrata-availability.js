@@ -53,7 +53,14 @@ jQuery(document).ready(function ($) {
 			.text();
 
 		if (selectedDate) {
-			const date = new Date(selectedDate);
+			// const date = new Date(selectedDate); // Original problematic line
+			// Parse the date string to avoid timezone issues, ensuring it's treated as local time.
+			const dateParts = selectedDate.split('-');
+			const year = parseInt(dateParts[0], 10);
+			const month = parseInt(dateParts[1], 10) - 1; // JavaScript months are 0-indexed
+			const day = parseInt(dateParts[2], 10);
+			const date = new Date(year, month, day);
+
 			const formattedDate = `${(date.getMonth() + 1)
 				.toString()
 				.padStart(2, '0')}/${date
@@ -61,6 +68,8 @@ jQuery(document).ready(function ($) {
 				.toString()
 				.padStart(2, '0')}/${date.getFullYear()}`;
 			$appointmentDateField.val(formattedDate);
+
+			console.log('Selected date:', formattedDate);
 		}
 
 		if (selectedTime) {
@@ -122,9 +131,11 @@ jQuery(document).ready(function ($) {
 					}
 
 					// Format as HH:MM:SS
-					return `${hours
+					const formattedTime = `${hours
 						.toString()
 						.padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
+
+					return formattedTime;
 				};
 
 				const formattedStartTime = formatTo24Hour(startTime);
@@ -132,6 +143,10 @@ jQuery(document).ready(function ($) {
 
 				$appointmentStartTimeField.val(formattedStartTime);
 				$appointmentEndTimeField.val(formattedEndTime);
+
+				// log both of these values
+				console.log('Formatted start time:', formattedStartTime);
+				console.log('Formatted end time:', formattedEndTime);
 			}
 		}
 	}

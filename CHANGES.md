@@ -1,3 +1,7 @@
+## 0.8.15
+
+-   Fixing javascript UTC time zone bug that was resulting in us sending the wrong date into the Entrata API (off by 1 day, so we were always sending the _day before_)
+
 ## 0.8.14
 
 -   Adding labels to the form that display when appropriate for dates/times
