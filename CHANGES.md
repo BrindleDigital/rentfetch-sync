@@ -1,3 +1,7 @@
+## 0.8.16
+
+-   Entrata forms now uses EITHER the sendLeads or updateLeads API to send in the lead. Now, when someone submits a form, we look use getLeads to figure out if someone with this email address has ever had a lead with this particular property, then choose which API to use and submit it.
+
 ## 0.8.15
 
 -   Fixing javascript UTC time zone bug that was resulting in us sending the wrong date into the Entrata API (off by 1 day, so we were always sending the _day before_)
