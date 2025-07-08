@@ -1,3 +1,7 @@
+## 0.8.17
+
+-   Compatibility fix: Popup Maker seems to do something a little odd with add_meta_boxes, causing our addition of the units metabox to run before the RF plugin is fully loaded. The result of this is an error on PUM pages on the site, which can be fixed when RFS is disabled. Adding more specific logic to make sure that we're only loading the meta boxes for the units when we're actualy on a units pag in the admin.
+
 ## 0.8.16
 
 -   Entrata forms now uses EITHER the sendLeads or updateLeads API to send in the lead. Now, when someone submits a form, we look use getLeads to figure out if someone with this email address has ever had a lead with this particular property, then choose which API to use and submit it.
