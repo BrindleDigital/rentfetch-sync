@@ -43,7 +43,7 @@ function rentfetch_settings_sync() {
 					<li>
 						<label>
 							<input type="radio" name="rentfetch_options_data_sync" id="rentfetch_options_data_sync" value="updatesync" <?php checked( get_option( 'rentfetch_options_data_sync' ), 'updatesync' ); ?>>
-							Update data on this site with data from the API. This option should never modify manually-added properties/floorplans, nor should it overwrite any custom data you've added to otherwise synced properties/floorplans.
+							Update data on this site with data from the API. This option should never modify manually-added properties/floor plans, nor should it overwrite any custom data you've added to otherwise synced properties/floor plans.
 						</label>
 					</li>
 					<li>
