@@ -2,7 +2,7 @@
 
 -   Add cookie-based lead source persistence: the frontend now stores the captured `lead_source` parameter in a sitewide cookie named `rentfetch_lead_source` for 30 days.
 -   JavaScript now uses the cookie as a fallback when session storage doesn't contain the tracking parameter, ensuring outgoing external links still receive the lead source parameter.
--   Shortcode update: `rentfetch_output_form()` now prefers an explicit `?lead_source` URL parameter, otherwise will fall back to the `rentfetch_lead_source` cookie (which overrides the shortcode `lead_source` attribute if present). This ensures cookie-based values do not overwrite explicit URL parameters.
+-   Shortcode update: `rfs_output_form()` now prefers an explicit `?lead_source` URL parameter, otherwise will fall back to the `rentfetch_lead_source` cookie (which overrides the shortcode `lead_source` attribute if present). This ensures cookie-based values do not overwrite explicit URL parameters.
 
 ## 0.8.17
 
