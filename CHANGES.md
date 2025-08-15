@@ -1,3 +1,9 @@
+## 0.8.18
+
+-   Add cookie-based lead source persistence: the frontend now stores the captured `switch_cls[id]` parameter in a sitewide cookie named `rentfetch_lead_source` for 30 days.
+-   JavaScript now uses the cookie as a fallback when session storage doesn't contain the tracking parameter, ensuring outgoing external links still receive the lead source parameter.
+-   Shortcode update: `rentfetch_output_form()` now prefers an explicit `?lead_source` URL parameter, otherwise will fall back to the `rentfetch_lead_source` cookie (which overrides the shortcode `lead_source` attribute if present). This ensures cookie-based values do not overwrite explicit URL parameters.
+
 ## 0.8.17
 
 -   Compatibility fix: Popup Maker seems to do something a little odd with add_meta_boxes, causing our addition of the units metabox to run before the RF plugin is fully loaded. The result of this is an error on PUM pages on the site, which can be fixed when RFS is disabled. Adding more specific logic to make sure that we're only loading the meta boxes for the units when we're actualy on a units page in the admin.

@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @return string The HTML output of the form.
  */
-function rentfetch_output_form( $atts ) {
+function rfs_output_form( $atts ) {
 	$a = shortcode_atts(
 		array(
 			'type'               => 'leads',
@@ -39,7 +39,14 @@ function rentfetch_output_form( $atts ) {
 
 	// Override the lead source if it's set in the URL.
 	if ( isset( $_GET['lead_source'] ) ) {
-		$a['lead_source'] = sanitize_text_field( $_GET['lead_source'] );
+		$a['lead_source'] = sanitize_text_field( wp_unslash( $_GET['lead_source'] ) );
+	} else {
+		// If no lead_source in the query string, check for the rentfetch_lead_source cookie.
+		// If present, use the cookie to override the shortcode attribute (but do not override ?lead_source).
+		if ( isset( $_COOKIE['rentfetch_lead_source'] ) && '' !== trim( $_COOKIE['rentfetch_lead_source'] ) ) {
+			$cookie_value = rawurldecode( wp_unslash( $_COOKIE['rentfetch_lead_source'] ) );
+			$a['lead_source'] = sanitize_text_field( $cookie_value );
+		}
 	}
 
 	// Get properties using the new function
@@ -228,7 +235,7 @@ function rentfetch_output_form( $atts ) {
 
 	return ob_get_clean();
 }
-add_shortcode( 'rentfetch_form', 'rentfetch_output_form' );
+add_shortcode( 'rentfetch_form', 'rfs_output_form' );
 
 /**
  * Get the properties and return the appropriate information for each to the form.
