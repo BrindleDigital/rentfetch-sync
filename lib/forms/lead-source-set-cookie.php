@@ -1,13 +1,13 @@
 <?php
 /**
- * Handle setting the rentfetch_lead_source cookie when a ?lead_source=... parameter is present.
+ * Handle setting the wordpress_rentfetch_lead_source cookie when a ?lead_source=... parameter is present.
  *
  * This file is intentionally small and is safe to load on every request. It will not output
  * anything to the browser; it only sets/updates a cookie and updates $_COOKIE for the
  * current request so other parts of the plugin can read it immediately.
  *
  * Cookie specifics:
- * - Name: rentfetch_lead_source
+ * - Name: wordpress_rentfetch_lead_source
  * - Lifetime: 30 days
  * - Path: /
  * - SameSite: Lax (to allow general navigation while mitigating CSRF risk)
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Set/update the rentfetch_lead_source cookie when a ?lead_source query param is present.
+ * Set/update the wordpress_rentfetch_lead_source cookie when a ?lead_source query param is present.
  *
  * This function is intentionally small and safe to call on every request. It will set a
  * sitewide cookie for 30 days and update $_COOKIE for the current request so other
@@ -37,7 +37,8 @@ function rfs_set_lead_source_cookie() {
 		return;
 	}
 
-	$cookie_name = 'rentfetch_lead_source';
+	// Use the new cookie name to avoid collisions with other plugins/sites.
+	$cookie_name = 'wordpress_rentfetch_lead_source';
 	$cookie_lifetime_seconds = 30 * 24 * 60 * 60; // 30 days
 	$expires = time() + $cookie_lifetime_seconds;
 

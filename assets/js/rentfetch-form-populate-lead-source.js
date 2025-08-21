@@ -42,7 +42,8 @@ jQuery(document).ready(function ($) {
 		return;
 	}
 
-	var cookieValue = getCookieValue('rentfetch_lead_source');
+	// Read from the new cookie name; keep legacy name in comments for reference.
+	var cookieValue = getCookieValue('wordpress_rentfetch_lead_source');
 	if (cookieValue) {
 		$leadSourceInput.val(cookieValue).attr('value', cookieValue);
 		console.log(
