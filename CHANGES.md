@@ -4,12 +4,14 @@
 -   Minor fixes to nomenclature (one of the javascript files wasn't named prefixed with rentfetch- which might be confusing for debugging)
 -   Added debugging to console for the lead source to denote what's being set and the source of that (e.g. "lead_source set to 393 via cookie, etc.)
 -   Storing all relevant API responses in meta so that we don't have to guess at what the API told us more recently (or more likely, doing manual requests in postman)
+-   Updating the cookie we use for lead sources to 'wordpress_rentfetch_lead_source' to match existing likely host Fastly caching exclusions.
+-   LOTS of changes around how we display the sync button, and the information associated with that.
 
 ## 0.8.18
 
--   Add cookie-based lead source persistence: the frontend now stores the captured `lead_source` parameter in a sitewide cookie named `wordpress_rentfetch_lead_source` for 30 days.
+-   Add cookie-based lead source persistence: the frontend now stores the captured `lead_source` parameter in a sitewide cookie named `rentfetch_lead_source` for 30 days.
 -   JavaScript now uses the cookie as a fallback when session storage doesn't contain the tracking parameter, ensuring outgoing external links still receive the lead source parameter.
--   Shortcode update: `rfs_output_form()` now prefers an explicit `?lead_source` URL parameter, otherwise will fall back to the `wordpress_rentfetch_lead_source` cookie (which overrides the shortcode `lead_source` attribute if present). This ensures cookie-based values do not overwrite explicit URL parameters.
+-   Shortcode update: `rfs_output_form()` now prefers an explicit `?lead_source` URL parameter, otherwise will fall back to the `rentfetch_lead_source` cookie (which overrides the shortcode `lead_source` attribute if present). This ensures cookie-based values do not overwrite explicit URL parameters.
 
 ## 0.8.17
 
