@@ -1,3 +1,9 @@
+## 0.8.19
+
+-   We found that there are instances on some caching where the lead_source component of the tour and contact forms was getting cached, so we moved the setting of that value to client-side instead, to avoid having that cached.
+-   Minor fixes to nomenclature (one of the javascript files wasn't named prefixed with rentfetch- which might be confusing for debugging)
+-   Added debugging to console for the lead source to denote what's being set and the source of that (e.g. "lead_source set to 393 via cookie, etc.)
+
 ## 0.8.18
 
 -   Add cookie-based lead source persistence: the frontend now stores the captured `lead_source` parameter in a sitewide cookie named `rentfetch_lead_source` for 30 days.

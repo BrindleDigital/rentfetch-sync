@@ -16,8 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function rfs_enqueue_backend_scripts() {
 	wp_register_script(
-		'ajax-property-sync',
-		RENTFETCHSYNC_PATH . '/assets/js/ajax-property-sync.js',
+		'rentfetch-ajax-property-sync',
+		RENTFETCHSYNC_PATH . '/assets/js/rentfetch-ajax-property-sync.js',
 		array( 'jquery' ),
 		RENTFETCHSYNC_VERSION,
 		true
@@ -34,6 +34,15 @@ function rfs_enqueue_frontend_scripts() {
 	wp_register_script(
 		'rentfetch-form-script',
 		RENTFETCHSYNC_PATH . '/assets/js/rentfetch-form-submission-handler.js',
+		array( 'jquery' ),
+		RENTFETCHSYNC_VERSION,
+		true
+	);
+
+	// Script that populates runtime-only values (lead_source) to avoid cached HTML values
+	wp_register_script(
+		'rentfetch-form-populate',
+		RENTFETCHSYNC_PATH . '/assets/js/rentfetch-form-populate-lead-source.js',
 		array( 'jquery' ),
 		RENTFETCHSYNC_VERSION,
 		true

@@ -20,6 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return string The HTML output of the form.
  */
 function rfs_output_form( $atts ) {
+	
+	
+	
 	$a = shortcode_atts(
 		array(
 			'type'               => 'leads',
@@ -32,22 +35,16 @@ function rfs_output_form( $atts ) {
 		$atts
 	);
 	
+	ob_start();
+	    	
 	// let's also look in the URL for properties, using the same format as the shortcode
 	if ( isset( $_GET['property'] ) ) {
 		$a['property'] = sanitize_text_field( $_GET['property'] );
 	}
 
-	// Override the lead source if it's set in the URL.
-	if ( isset( $_GET['lead_source'] ) ) {
-		$a['lead_source'] = sanitize_text_field( wp_unslash( $_GET['lead_source'] ) );
-	} else {
-		// If no lead_source in the query string, check for the rentfetch_lead_source cookie.
-		// If present, use the cookie to override the shortcode attribute (but do not override ?lead_source).
-		if ( isset( $_COOKIE['rentfetch_lead_source'] ) && '' !== trim( $_COOKIE['rentfetch_lead_source'] ) ) {
-			$cookie_value = rawurldecode( wp_unslash( $_COOKIE['rentfetch_lead_source'] ) );
-			$a['lead_source'] = sanitize_text_field( $cookie_value );
-		}
-	}
+	// NOTE: We intentionally do NOT set or embed a lead_source server-side (from URL or cookie)
+	// because that value may be cached into HTML. The hidden lead_source input is always
+	// rendered empty and will be populated client-side by a non-minified runtime script.
 
 	// Get properties using the new function
 	$properties_data = rentfetch_get_properties_for_form( $a['property'] );
@@ -57,20 +54,24 @@ function rfs_output_form( $atts ) {
 		$single_property = true;
 	}
 	
-	// Enqueue and localize the script only when the shortcode is present
-	wp_enqueue_script( 'rentfetch-form-script' ); // Enqueue the registered script
+	// Enqueue form handler and populate script. We intentionally do NOT print cookie/URL-derived
+	// lead_source values into the HTML to avoid caching those values into pages.
+	wp_enqueue_script( 'rentfetch-form-script' ); // Enqueue the registered handler
+	wp_enqueue_script( 'rentfetch-form-populate' ); // Enqueue the runtime-populate script (not minified)
 
-	// Localize script to pass AJAX URL and nonce
-	wp_localize_script(
-		'rentfetch-form-script', // Handle of the script you're localizing
-		'rentfetchFormAjax', // Name of the JavaScript object
-		array(
-			'ajaxurl' => esc_url( admin_url( 'admin-ajax.php' ) ),
-			'nonce'   => wp_create_nonce( 'rentfetch_form_submit' ), // Pass the nonce
-		)
+	// Provide data to the frontend. Use wp_add_inline_script to emit a small
+	// JS object before the populate script runs so the populate script always
+	// sees `window.rentfetchFormAjax` without relying on localization order.
+	$rentfetch_js_object = array(
+		'ajaxurl' => esc_url( admin_url( 'admin-ajax.php' ) ),
+		'nonce'   => wp_create_nonce( 'rentfetch_form_submit' ),
+		'shortcode_lead_source' => $a['lead_source'],
 	);
 
-	ob_start();
+	$inline_js = 'window.rentfetchFormAjax = ' . wp_json_encode( $rentfetch_js_object ) . ';';
+
+	// Print this inline script before the populate script so it's available when that script runs.
+	wp_add_inline_script( 'rentfetch-form-populate', $inline_js, 'before' );
 	
 	$classes = 'rentfetch-form-' . esc_attr( $a['type'] );
 
@@ -127,19 +128,19 @@ function rfs_output_form( $atts ) {
 				// Appointment date field.
 				echo '<div class="rentfetch-form-field-group rentfetch-form-field-appointment_date" style="display:none;">';
 					echo '<label for="rentfetch-form-appointment_date" class="rentfetch-form-label">Appointment Date</label>';
-					printf('<input type="text" id="rentfetch-form-appointment_date" name="rentfetch_appointment_date" class="rentfetch-form-input" value="%s" readonly>', $a['lead_source'] );
+					printf('<input type="text" id="rentfetch-form-appointment_date" name="rentfetch_appointment_date" class="rentfetch-form-input" value="" readonly>');
 				echo '</div>';
 				
 				// Appointment start time field.
 				echo '<div class="rentfetch-form-field-group rentfetch-form-field-appointment_start_time" style="display:none;">';
 					echo '<label for="rentfetch-form-appointment_start_time" class="rentfetch-form-label">Appointment Start Time</label>';
-					printf('<input type="text" id="rentfetch-form-appointment_start_time" name="rentfetch_appointment_start_time" class="rentfetch-form-input" value="%s" readonly>', $a['lead_source'] );
+					printf('<input type="text" id="rentfetch-form-appointment_start_time" name="rentfetch_appointment_start_time" class="rentfetch-form-input" value="" readonly>');
 				echo '</div>';
 				
 				// Appointment end time field.
 				echo '<div class="rentfetch-form-field-group rentfetch-form-field-appointment_end_time" style="display:none;">';
 					echo '<label for="rentfetch-form-appointment_end_time" class="rentfetch-form-label">Appointment End Time</label>';
-					printf('<input type="text" id="rentfetch-form-appointment_end_time" name="rentfetch_appointment_end_time" class="rentfetch-form-input" value="%s" readonly>', $a['lead_source'] );
+					printf('<input type="text" id="rentfetch-form-appointment_end_time" name="rentfetch_appointment_end_time" class="rentfetch-form-input" value="" readonly>');
 				echo '</div>';
 			}
 			
@@ -170,11 +171,13 @@ function rfs_output_form( $atts ) {
 				echo '<input type="tel" id="rentfetch-form-phone" name="rentfetch_phone" class="rentfetch-form-input" required>';
 			echo '</div>';
 
-			// Lead source field.
+			// Lead source field (always empty in server-rendered HTML to avoid caching values).
+			// Use a hidden input so scripts can set its value reliably and it will be submitted with the form.
 			echo '<div class="rentfetch-form-field-group rentfetch-form-field-lead_source" style="display: none;">';
 				echo '<label for="rentfetch-form-lead_source" class="rentfetch-form-label">Lead source</label>';
-				printf('<input type="text" id="rentfetch-form-lead_source" name="rentfetch_lead_source" class="rentfetch-form-input" value="%s" readonly>', $a['lead_source'] );
-			echo '</div>';
+				// Intentionally render an empty hidden input; the runtime script will populate from URL or cookie.
+				echo '<input type="hidden" id="rentfetch-form-lead_source" name="rentfetch_lead_source" value="">';
+				echo '</div>';
 
 			// Message field.
 			echo '<div class="rentfetch-form-field-group rentfetch-form-field-message">';
