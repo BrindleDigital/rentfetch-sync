@@ -105,6 +105,16 @@ function rfs_get_sync_progress_ajax_handler() {
 	}
 
 	wp_send_json_success( $data );
+	
+	// If the progress indicates completion, clear the stored transient so it doesn't linger.
+	$step = isset( $data['step'] ) ? (int) $data['step'] : 0;
+	$total = isset( $data['total'] ) ? (int) $data['total'] : 0;
+	if ( $total > 0 && $step >= $total ) {
+		// delete the transient after capturing the data to return to the client
+		delete_transient( $key );
+	}
+
+	
 }
 add_action('wp_ajax_rfs_get_sync_progress', 'rfs_get_sync_progress_ajax_handler');
 

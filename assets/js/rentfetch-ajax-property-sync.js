@@ -1,4 +1,38 @@
 jQuery(document).ready(function ($) {
+	// Cache the single progress fill element on the page (there's only one).
+	var $globalProgressFill = $('.rfs-sync-progress-fill').first();
+
+	// Helper to force the progress bar to 100% with a short animation.
+	function forceProgressTo100() {
+		if (!($globalProgressFill && $globalProgressFill.length)) return;
+		var durationMs = 250; // animation duration
+		// apply a short transition, then set width to 100%
+		$globalProgressFill.css({
+			transition: 'width ' + durationMs + 'ms ease',
+			'will-change': 'width',
+		});
+		// trigger the width change
+		$globalProgressFill.css('width', '100%');
+		// update aria value after the animation completes
+		setTimeout(function () {
+			$globalProgressFill.attr('aria-valuenow', 100);
+			// clean up transition to avoid affecting future updates
+			$globalProgressFill.css('transition', '');
+			$globalProgressFill.css('will-change', '');
+		}, durationMs + 20);
+	}
+
+	// Inspect status meta elements and force-complete if any contains "completed at".
+	function checkCompletedAndForce() {
+		$('.rfs-sync-status-meta').each(function () {
+			var txt = $(this).text() || '';
+			if (txt.toLowerCase().indexOf('completed at') !== -1) {
+				forceProgressTo100();
+				return false; // break out of .each
+			}
+		});
+	}
+
 	$('.sync-property').on('click', async function (e) {
 		e.preventDefault();
 
@@ -64,8 +98,8 @@ jQuery(document).ready(function ($) {
 		$link.text('Sync in progress');
 
 		// Begin polling immediately so we can observe progress set by the server while it runs.
-		// allow per-link override via data-poll-interval (ms), fall back to 50ms
-		var pollInterval = parseInt($link.data('poll-interval'), 10) || 50; // ms
+		// allow per-link override via data-poll-interval (ms), fall back to 25ms for snappier UI
+		var pollInterval = parseInt($link.data('poll-interval'), 10) || 25; // ms
 		var poller = null;
 		var maxSteps = 10; // map server steps to up to 10 visible steps
 		var firstProgressAt = null; // timestamp of first non-queued progress
@@ -98,13 +132,8 @@ jQuery(document).ready(function ($) {
 				.closest('.metabox')
 				.find('.rfs-sync-status-meta');
 
-			// Find progress bar fill (search in common WP metabox containers, fall back to global)
-			var $progressFill = $link
-				.closest('.postbox, .metabox')
-				.find('.rfs-sync-progress-fill');
-			if ($progressFill.length === 0) {
-				$progressFill = $('.rfs-sync-progress-fill');
-			}
+			// Use the cached global progress fill element.
+			var $progressFill = $globalProgressFill;
 
 			// Minimal link text; full details live in the status area
 			$link.text('Sync in progress');
@@ -129,6 +158,9 @@ jQuery(document).ready(function ($) {
 						new Date().toLocaleTimeString()
 				);
 
+			// If any status meta already shows a completed timestamp, ensure progress shows 100%.
+			checkCompletedAndForce();
+
 			// Update progress bar
 			if ($progressFill.length) {
 				var percent = Math.round((visible / maxSteps) * 100);
@@ -148,6 +180,9 @@ jQuery(document).ready(function ($) {
 						: '',
 			})
 				.done(function (res) {
+					// Reset poll failure counter on any successful response
+					pollRetries = 0;
+
 					updateFromProgress(res);
 					// if server reports completion (step >= total), stop polling and show complete state
 					if (
@@ -158,6 +193,9 @@ jQuery(document).ready(function ($) {
 							parseInt(res.data.total, 10)
 					) {
 						clearInterval(poller);
+						// Ensure the progress bar shows 100% on completion.
+						forceProgressTo100();
+
 						$('.rfs-sync-status-message').text(
 							'Sync complete. Please refresh the page to see the changes.'
 						);
@@ -170,24 +208,22 @@ jQuery(document).ready(function ($) {
 						$link.data('syncing', false);
 					}
 				})
-				.fail(function (xhr) {
-					// On first poll failure, stop polling and wait for the server-side sync to finish.
+				.fail(function () {
+					// Increment retry counter but do not surface error details to the user.
+					pollRetries++;
+
+					// Keep the UI neutral and simple: show waiting state while we retry or await completion.
+					$('.rfs-sync-status-message').text('Waiting for response');
+					$('.rfs-sync-status-meta').text('');
+
+					if (pollRetries <= maxPollRetries) {
+						// still retrying silently; don't stop polling here
+						return;
+					}
+
+					// Exhausted retries: stop polling and continue showing the neutral waiting message.
 					clearInterval(poller);
 					pollingFailed = true;
-					var status =
-						xhr && xhr.status ? xhr.status : 'network error';
-					var url =
-						xhr && xhr.responseURL ? xhr.responseURL : ajaxUrl;
-					$('.rfs-sync-status-message').text(
-						'Sync in progress (waiting for server to finish)'
-					);
-					$('.rfs-sync-status-meta').text(
-						'Polling failed (' +
-							status +
-							') — Request URL: ' +
-							url +
-							' — awaiting server completion.'
-					);
 				});
 		}
 
@@ -210,9 +246,7 @@ jQuery(document).ready(function ($) {
 				$('.rfs-sync-status-message').text(
 					'Sync in progress (waiting for server to finish)'
 				);
-				$('.rfs-sync-status-meta').text(
-					'Polling timed out — awaiting server completion.'
-				);
+				$('.rfs-sync-status-meta').text('Awaiting sync completion.');
 				return;
 			}
 			_originalPoll();

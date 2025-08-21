@@ -129,8 +129,8 @@ function rfs_sync_metabox( $post ) {
 
 	// Visible status/debug area for the sync UX
 	echo '<div class="rfs-sync-status" style="margin-top:8px;font-size:12px;color:#666">';
-	echo '<strong>Status:</strong> <span class="rfs-sync-status-message">Idle</span>';
-	echo ' <span class="rfs-sync-status-meta" style="display:block;margin-top:4px;color:#999;font-size:11px">(no activity yet)</span>';
+	echo '<strong>Status:</strong> <span class="rfs-sync-status-message">Ready</span>';
+	echo ' <span class="rfs-sync-status-meta" style="display:block;margin-top:4px;color:#999;font-size:11px"></span>';
 	echo '</div>';
 
 	// Minimal progress bar (updated by JS)
