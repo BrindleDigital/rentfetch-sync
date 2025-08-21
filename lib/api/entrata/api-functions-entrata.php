@@ -22,21 +22,33 @@ function rfs_do_entrata_sync( $args ) {
 	// create a new post if needed, adding the post ID to the args if we do (don't need any API calls for this)
 	$args = rfs_maybe_create_property( $args );
 
+	// progress: property prepared
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 1, 6, 'Property prepared' );
+
 	//* Main property API (most property data)
 	
 	// perform the API calls to get the basic data for the property
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 2, 6, 'Fetching property data' );
 	$property_data = rfs_entrata_get_property_data( $args );
 			
 	if ( $property_data && is_array( $property_data ) ) {
 		rfs_entrata_update_property_meta( $args, $property_data );
+
+	// progress: property meta updated
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 3, 6, 'Property meta updated' );
 	}
 	
 	//* getMitsPropertyUnits API is the only way to get lat/long data and property images
 	
+	// progress: fetching images & mits data
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 4, 6, 'Fetching images' );
 	$property_mits_data = rfs_entrata_get_property_mits_data( $args );
 	
 	if ( $property_mits_data && is_array( $property_mits_data ) ) {
 		rfs_entrata_update_property_mits_meta( $args, $property_mits_data );
+
+	// progress: images updated
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 5, 6, 'Images updated' );
 	}
 	
 	// TODO property amenities
@@ -82,6 +94,9 @@ function rfs_do_entrata_sync( $args ) {
 	//* Get the floorplan data for this property.
 	
 	$floorplan_data = rfs_entrata_get_floorplan_data( $args );
+
+	// progress: processing floorplans and units
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 6, 6, 'Processing floorplans and units' );
 	if ( isset( $floorplan_data['response']['result']['FloorPlans']['FloorPlan'] ) ) {
 		$floorplans = $floorplan_data['response']['result']['FloorPlans']['FloorPlan'];
 	} else {

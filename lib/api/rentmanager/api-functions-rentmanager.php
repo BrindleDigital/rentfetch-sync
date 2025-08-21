@@ -28,20 +28,26 @@ function rfs_do_rentmanager_sync( $args ) {
 	rfs_remove_floorplans_that_shouldnt_be_synced();
 	rfs_remove_units_that_shouldnt_be_synced();
 
+	// progress: housekeeping done
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 1, 6, 'Preparing sync' );
+
 	// ~ With just the property ID, we can get property data, property images, and the floorplan data.
 	// create a new post if needed, adding the post ID to the args if we do (don't need any API calls for this).
 	$args = rfs_maybe_create_property( $args );
 
 	// perform the API calls to get the data.
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 2, 6, 'Fetching property data' );
 	$property_data = rfs_rentmanager_get_property_data( $args );
 
 	// get the data, then update the property post.
 	rfs_rentmanager_update_property_meta( $args, $property_data );
 
-	// get all the floorplans data for this property.
+	// progress: fetching floorplans (unit types)
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 3, 6, 'Fetching floorplans' );
 	$unit_types_data = rfs_rentmanager_get_unit_types_data( $args );
 
-	// get all of the units for this property.
+	// progress: fetching units
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 4, 6, 'Fetching units' );
 	$units_data = rfs_rentmanager_get_units_data( $args );
 		
 	if ( is_array( $units_data ) ) {
@@ -74,6 +80,8 @@ function rfs_do_rentmanager_sync( $args ) {
 	}
 
 	// create the floorplans (we actually want to do this after the units, because if there are images attached to the unit_type, that should override unit images).
+	// progress: creating/updating floorplans
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 5, 6, 'Creating/updating floorplans' );
 	foreach ( $unit_types_data as $floorplan ) {
 		
 		// continue if we don't have a $floorplan['Bedrooms'] and we don't have a valid $floorplan['Bathrooms']. We'd like to do this for price as well, but there are actually *none* of these in the API that have a price set.
@@ -96,6 +104,9 @@ function rfs_do_rentmanager_sync( $args ) {
 		rfs_rentmanager_update_floorplan_meta( $args, $floorplan );
 
 	}
+
+	// progress: finalizing
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 6, 6, 'Finalizing' );
 }
 
 /**

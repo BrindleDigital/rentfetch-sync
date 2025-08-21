@@ -37,7 +37,7 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_
 			'updated'      => current_time( 'mysql' ),
 			'api_response' => $floorplan_data_string,
 		);
-
+		
 		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
 
 		return;
@@ -62,6 +62,9 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_
 		'updated'      => current_time( 'mysql' ),
 		'api_response' => 'Updated successfully',
 	);
+	
+	// remove $api_response['apartmentavailability_api'], which was used in v1 but not here (this is still showing on some sites as of 20250820)
+	unset( $api_response['apartmentavailability_api'] );
 	
 	$yardi_floorplan_id = $floorplan_data['floorplanId'];
 	
@@ -138,6 +141,14 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_
 function rfs_yardi_v2_update_floorplan_availability( $args, $availability_data ) {
 	
 	//! BAIL FOR NOW
+	
+	// remove $api_response['apartmentavailability_api']
+	$api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
+	if ( is_array( $api_response ) && isset( $api_response['apartmentavailability_api'] ) ) {
+		unset( $api_response['apartmentavailability_api'] );
+		update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
+	}
+
 	return;
 	
 	// bail if we don't have the wordpress post ID

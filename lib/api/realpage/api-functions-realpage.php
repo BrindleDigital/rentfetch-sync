@@ -22,9 +22,13 @@ function rfs_do_realpage_sync( $args ) {
 	// create a new post if needed, adding the post ID to the args if we do (don't need any API calls for this).
 	$args = rfs_maybe_create_property( $args );
 
+	// progress: property prepared
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 1, 6, 'Property prepared' );
+
 	// Realpage doesn't have a property data API call, so we don't need to update any property stuff.
 
 	// Get all the floorplan data for this property.
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 2, 6, 'Fetching floorplans' );
 	$floorplans_data = rfs_realpage_get_floorplan_data( $args );
 
 	// We have a floorplans API that returns all of the floorplans for a property, so we can just cycle through those.
@@ -45,7 +49,8 @@ function rfs_do_realpage_sync( $args ) {
 
 	}
 	
-	// We have a units API that returns all of the units for a property, so we can just cycle through those.
+	// progress: fetching units (by property)
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 3, 6, 'Fetching units (by property)' );
 	$units_by_property_data = rfs_realpage_get_unit_by_property_data( $args );
 	$old_units			  = $units_by_property_data;
 
@@ -78,7 +83,8 @@ function rfs_do_realpage_sync( $args ) {
 
 	}
 	
-	// We have a units API that returns all of the units for a property, so we can just cycle through those.
+	// progress: fetching units (list)
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 4, 6, 'Fetching units (list)' );
 	$units_list_data = rfs_realpage_get_unit_list_data( $args );
 
 	foreach ( $units_list_data as $key => $unit ) {
@@ -112,11 +118,13 @@ function rfs_do_realpage_sync( $args ) {
 
 	// TODO we need to update this without regard to the units_data, because that's going to be coming from two separate API calls. We need to update this 
 	// TODO based on the WordPress database alone, I think.
-	// we've already updated the units, but we need to update the floorplan availability based on the units.
+	// progress: updating floorplans & availability
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 5, 6, 'Updating floorplans & availability' );
 	rfs_realpage_update_floorplan_availability_from_units( $args, $units_by_property_data );
 
 	// TODO make sure that this functionality still works right with two APIs
-	// we've already updated the units, but we need to loop back through and update the floorplan prices based on the units.
+	// progress: updating pricing & finalizing
+	rfs_set_sync_progress( $args['integration'], $args['property_id'], 6, 6, 'Finalizing updates' );
 	rfs_realpage_update_floorplan_pricing_from_units( $args );
 	
 	// TODO we need to use the GetUnitsByProperty API call do do this, because the List API call isn't pulling all of them.

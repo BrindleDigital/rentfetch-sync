@@ -33,9 +33,80 @@ function rfs_sync_single_property( $property_id, $integration ) {
 		'credentials' => rfs_get_credentials(),
 		'floorplan_id' => null,
 	];
-	
+
+	// initialize progress (0 of 1 until integrations update to finer-grained steps)
+	rfs_set_sync_progress( $integration, $property_id, 0, 1, 'Starting sync' );
+
 	do_action( 'rfs_do_sync', $args );
+
+	// finalize progress (ensure completion if integrations didn't set finer steps)
+	rfs_set_sync_progress( $integration, $property_id, 1, 1, 'Completed' );
 }
+
+
+/**
+ * Store sync progress for polling from the admin UI.
+ *
+ * @param string $integration
+ * @param string $property_id
+ * @param int    $step
+ * @param int    $total
+ * @param string $message
+ *
+ * @return void
+ */
+function rfs_set_sync_progress( $integration, $property_id, $step, $total, $message = '' ) {
+	if ( ! $integration || ! $property_id ) {
+		return;
+	}
+
+	$key = 'rfs_sync_progress_' . md5( $integration . '_' . $property_id );
+
+	$data = array(
+		'integration' => $integration,
+		'property_id' => $property_id,
+		'step' => (int) $step,
+		'total' => (int) $total,
+		'message' => $message,
+		'updated' => time(),
+	);
+
+	// store for 5 minutes
+	$stored = set_transient( $key, $data, 5 * MINUTE_IN_SECONDS );
+
+	// Helpful debugging output when WP_DEBUG is enabled — this will show in php error log/local tooling
+	if ( defined( 'WP_DEBUG' ) && WP_DEBUG && ! empty( $stored ) ) {
+		error_log( sprintf( 'rfs_set_sync_progress: key=%s step=%d total=%d msg=%s', $key, (int) $step, (int) $total, $message ) );
+	}
+
+	return $stored;
+}
+
+
+/**
+ * AJAX handler to fetch current progress for a given property+integration.
+ * Returns JSON.
+ */
+function rfs_get_sync_progress_ajax_handler() {
+	check_ajax_referer('rfs_ajax_nonce', '_ajax_nonce');
+
+	if ( ! isset( $_POST['property_id'] ) || ! isset( $_POST['integration'] ) ) {
+		wp_send_json_error( array( 'message' => 'Invalid request' ), 400 );
+	}
+
+	$property_id = sanitize_text_field( wp_unslash( $_POST['property_id'] ) );
+	$integration = sanitize_text_field( wp_unslash( $_POST['integration'] ) );
+
+	$key = 'rfs_sync_progress_' . md5( $integration . '_' . $property_id );
+	$data = get_transient( $key );
+
+	if ( ! $data ) {
+		wp_send_json_error( array( 'message' => 'no-progress' ), 404 );
+	}
+
+	wp_send_json_success( $data );
+}
+add_action('wp_ajax_rfs_get_sync_progress', 'rfs_get_sync_progress_ajax_handler');
 
 /**
  * Do the syncs

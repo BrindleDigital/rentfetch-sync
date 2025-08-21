@@ -75,11 +75,11 @@ add_action( 'add_meta_boxes', 'rfs_sync_properties_sync_metabox' );
  */
 function rfs_sync_metabox( $post ) {
 	
-	wp_enqueue_script( 'ajax-property-sync' );
+	wp_enqueue_script( 'rentfetch-ajax-property-sync' );
 
 	// Localize script to pass AJAX URL and nonce
 	wp_localize_script(
-		'ajax-property-sync',
+		'rentfetch-ajax-property-sync',
 		'rfs_ajax_object',
 		array(
 			'ajax_url' => admin_url( 'admin-ajax.php' ),
@@ -126,6 +126,19 @@ function rfs_sync_metabox( $post ) {
 	
 	printf( '<p class="post-attributes-label-wrapper menu-order-label-wrapper">%s</p>', $text );
 	printf( '<a href="#" data-property-id="%s" data-integration="%s" class="sync-property button button-large" >Sync this %s</a>', esc_attr( $property_id ), esc_attr( $integration ), $label );
+
+	// Visible status/debug area for the sync UX
+	echo '<div class="rfs-sync-status" style="margin-top:8px;font-size:12px;color:#666">';
+	echo '<strong>Status:</strong> <span class="rfs-sync-status-message">Idle</span>';
+	echo ' <span class="rfs-sync-status-meta" style="display:block;margin-top:4px;color:#999;font-size:11px">(no activity yet)</span>';
+	echo '</div>';
+
+	// Minimal progress bar (updated by JS)
+	echo '<div class="rfs-sync-progress" style="margin-top:8px;">
+		<div class="rfs-sync-progress-track" style="background:#eee;border:1px solid #ddd;height:8px;border-radius:4px;overflow:hidden;">
+			<div class="rfs-sync-progress-fill" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width:0%;height:100%;background:#eb6836;transition:width 150ms linear;"></div>
+		</div>
+	</div>';
 }
 
 /**
@@ -137,13 +150,40 @@ function rfs_sync_single_property_ajax_handler() {
 	check_ajax_referer('rfs_ajax_nonce', '_ajax_nonce');
 
 	if (isset($_POST['property_id']) && isset($_POST['integration'])) {
-		$property_id = sanitize_text_field($_POST['property_id']);
-		$integration = sanitize_text_field($_POST['integration']);
+		$property_id = sanitize_text_field( wp_unslash( $_POST['property_id'] ) );
+		$integration = sanitize_text_field( wp_unslash( $_POST['integration'] ) );
 
-		// Call your function
+		// Prepare args for the scheduled action
+		$args = array(
+			'integration' => $integration,
+			'property_id' => $property_id,
+			'credentials' => rfs_get_credentials(),
+		);
+
+		// Set an initial progress state so the UI has something to poll immediately.
+		if ( function_exists( 'rfs_set_sync_progress' ) ) {
+			rfs_set_sync_progress( $integration, $property_id, 0, 1, 'Queued for sync' );
+		}
+
+		// Run synchronously (do not schedule). The sync function handles its own progress updates.
 		rfs_sync_single_property( $property_id, $integration );
 
-		wp_die('Sync successful');
+		// After completion attempt to return the progress payload so the client can pick up final state immediately
+		$key = 'rfs_sync_progress_' . md5( $integration . '_' . $property_id );
+		$data = get_transient( $key );
+
+		if ( $data && is_array( $data ) ) {
+			wp_send_json_success( $data );
+		} else {
+			// Fallback: return a minimal completed payload
+			wp_send_json_success( array(
+				'integration' => $integration,
+				'property_id' => $property_id,
+				'step' => 1,
+				'total' => 1,
+				'message' => 'Completed',
+			) );
+		}
 	} else {
 		wp_die('Invalid request');
 	}
