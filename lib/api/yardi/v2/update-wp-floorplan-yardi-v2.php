@@ -58,9 +58,10 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_
 		$api_response = array();
 	}
 
+	// Save the actual API response payload for debugging/inspection.
 	$api_response['floorplans_api'] = array(
 		'updated'      => current_time( 'mysql' ),
-		'api_response' => 'Updated successfully',
+		'api_response' => wp_json_encode( $floorplan_data ),
 	);
 	
 	// remove $api_response['apartmentavailability_api'], which was used in v1 but not here (this is still showing on some sites as of 20250820)
@@ -119,7 +120,7 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_
 		'minimum_rent'             => floatval( $floorplan_data['minimumRent'] ?? 0 ),
 		'minimum_sqft'             => absint( $floorplan_data['minimumSQFT'] ?? 0 ),
 		'updated'                  => current_time( 'mysql' ),
-		'api_error'                => sanitize_text_field( 'Updated successfully' ),
+		'api_error'                => '',
 		'api_response'             => $api_response,
 	);
 
@@ -142,7 +143,7 @@ function rfs_yardi_v2_update_floorplan_availability( $args, $availability_data )
 	
 	//! BAIL FOR NOW
 	
-	// remove $api_response['apartmentavailability_api']
+	// remove any stale apartmentavailability_api entry
 	$api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
 	if ( is_array( $api_response ) && isset( $api_response['apartmentavailability_api'] ) ) {
 		unset( $api_response['apartmentavailability_api'] );
@@ -156,22 +157,23 @@ function rfs_yardi_v2_update_floorplan_availability( $args, $availability_data )
 		return;
 					
 	// bail if we don't have the availability data to update this
-	if ( !$availability_data ) {
-		
+	if ( ! $availability_data ) {
+
 		$api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
-		
-		if ( !is_array( $api_response ) )
-			$api_response = [];
-				
-		$api_response['apartmentavailability_api'] = [
-			'updated' => current_time('mysql'),
-			'api_response' => 'Availability data not found',
-		];
-		
+
+		if ( ! is_array( $api_response ) ) {
+			$api_response = array();
+		}
+
+		$api_response['apartmentavailability_api'] = array(
+			'updated' => current_time( 'mysql' ),
+			'api_response' => wp_json_encode( $availability_data ),
+		);
+
 		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
-		
+
 		return;
-		
+
 	}
 		
 	$available_dates = array();
@@ -211,11 +213,11 @@ function rfs_yardi_v2_update_floorplan_availability( $args, $availability_data )
 	if ( !is_array( $api_response ) )
 		$api_response = [];
 	
-	$api_response['apartmentavailability_api'] = [
-		'updated' => current_time('mysql'),
-		'api_response' => 'Updated successfully',
-	];
-	
+	$api_response['apartmentavailability_api'] = array(
+		'updated' => current_time( 'mysql' ),
+		'api_response' => wp_json_encode( $availability_data ),
+	);
+
 	$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
 			
 }
@@ -286,11 +288,14 @@ function rfs_yardi_v2_remove_availability_orphan_floorplans( $args, $floorplans_
 		if ( !is_array( $api_response ) )
 			$api_response = [];
 		
-		$api_response['apartmentavailability_api'] = [
-			'updated' => current_time('mysql'),
-			'api_response' => 'Removed successfully (no longer in API)',
-		];
-		
+		$api_response['apartmentavailability_api'] = array(
+			'updated' => current_time( 'mysql' ),
+			'api_response' => wp_json_encode( array(
+				'message' => 'Removed successfully (no longer in API)',
+				'current_api_floorplan_ids' => $floorplan_ids,
+			) ),
+		);
+
 		$success = update_post_meta( $floorplan_post->ID, 'api_response', $api_response );
 		
 	}
