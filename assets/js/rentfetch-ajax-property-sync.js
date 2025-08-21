@@ -1,32 +1,47 @@
 jQuery(document).ready(function ($) {
-	$('.sync-property').on('click', function (e) {
+	$('.sync-property').on('click', async function (e) {
 		e.preventDefault();
 
 		var $link = $(this);
 		var propertyId = $link.data('property-id');
 		var integration = $link.data('integration');
 
-		// Resolve AJAX URL with fallbacks to avoid 404s when localized object is missing or environment differs.
-		var ajaxUrl = null;
-		if (
-			typeof rfs_ajax_object !== 'undefined' &&
-			rfs_ajax_object.ajax_url
-		) {
-			ajaxUrl = rfs_ajax_object.ajax_url;
-		} else if (typeof ajaxurl !== 'undefined') {
-			ajaxUrl = ajaxurl; // WordPress often exposes this global in admin.
-		} else if (window.location && window.location.origin) {
-			ajaxUrl = window.location.origin + '/wp-admin/admin-ajax.php';
-		} else {
-			ajaxUrl = '/wp-admin/admin-ajax.php';
+		// Resolve AJAX URL by waiting briefly for the localized object to be available.
+		// Keep only a small, explicit fallback to the global `ajaxurl` if present.
+		function resolveAjaxUrl(timeoutMs = 3000, intervalMs = 50) {
+			return new Promise(function (resolve) {
+				var waited = 0;
+				var handle = setInterval(function () {
+					if (typeof rfs_ajax_object !== 'undefined' && rfs_ajax_object.ajax_url) {
+						clearInterval(handle);
+						resolve(rfs_ajax_object.ajax_url);
+						return;
+					}
+					if (typeof ajaxurl !== 'undefined' && ajaxurl) {
+						clearInterval(handle);
+						resolve(ajaxurl);
+						return;
+					}
+					waited += intervalMs;
+					if (waited >= timeoutMs) {
+						clearInterval(handle);
+						resolve(null);
+					}
+				}, intervalMs);
+			});
 		}
 
-		if (
-			ajaxUrl.indexOf('admin-ajax.php') === -1 &&
-			window.console &&
-			window.console.warn
-		) {
-			console.warn('rfs: ajax URL looks unexpected:', ajaxUrl);
+		// Resolve AJAX URL and abort early if none found
+		var ajaxUrl = await resolveAjaxUrl();
+		if (!ajaxUrl) {
+			// show a clear status in the UI and don't start polling
+			$('.rfs-sync-status-message').text(
+				'Sync failed (could not determine ajax URL)'
+			);
+			$('.rfs-sync-status-meta').text(
+				'Please reload the page or contact your administrator.'
+			);
+			return;
 		}
 
 		// Prevent double-click while a sync is in progress for this link
@@ -182,13 +197,31 @@ jQuery(document).ready(function ($) {
 					}
 				})
 				.fail(function (xhr) {
-					// if 404/no-progress yet, keep polling; but if other error, stop and indicate failure
-					if (xhr.status && xhr.status !== 404) {
-						clearInterval(poller);
-						$link.text('Sync failed');
-						$link.attr('aria-busy', 'false');
-						$link.data('syncing', false);
+					// Allow a small number of transient failures before giving up (helps when admin-ajax becomes available shortly after).
+					pollRetries++;
+					if (pollRetries <= maxPollRetries) {
+						// re-resolve ajaxUrl and continue polling after a short delay
+						setTimeout(function () {
+							resolveAjaxUrl().then(function (url) {
+								if (url) ajaxUrl = url;
+								// resume polling
+								poll();
+								poller = setInterval(pollWithDeadline, pollInterval);
+							});
+						}, retryDelay);
+						return;
 					}
+
+					// Exhausted retries; stop polling and show error
+					clearInterval(poller);
+					$link.text('Sync failed');
+					$link.attr('aria-busy', 'false');
+					$link.data('syncing', false);
+
+					var status = (xhr && xhr.status) ? xhr.status : 'network error';
+					var url = (xhr && xhr.responseURL) ? xhr.responseURL : ajaxUrl;
+					$('.rfs-sync-status-message').text('Sync failed (' + status + ')');
+					$('.rfs-sync-status-meta').text('Request URL: ' + url + ' — check ajax_url and local server configuration.');
 				});
 		}
 
@@ -204,10 +237,8 @@ jQuery(document).ready(function ($) {
 		function pollWithDeadline() {
 			if (Date.now() > pollDeadline) {
 				clearInterval(poller);
-				$link.text('Sync failed');
-				$link.attr('aria-busy', 'false');
-				$link.data('syncing', false);
-				$('.rfs-sync-status-message').text('Sync failed (timeout)');
+				// If we hit the deadline without completion, enter degraded background monitoring instead of showing failure.
+				enterDegradedMode('timeout');
 				return;
 			}
 			_originalPoll();
@@ -217,24 +248,160 @@ jQuery(document).ready(function ($) {
 		poller = setInterval(pollWithDeadline, pollInterval);
 
 		// Start the server-side sync request (async from the browser, but server run may be synchronous)
-		$.post(ajaxUrl, {
-			action: 'rfs_sync_single_property',
-			property_id: propertyId,
-			integration: integration,
-			_ajax_nonce:
-				typeof rfs_ajax_object !== 'undefined'
-					? rfs_ajax_object.nonce
-					: '',
-		})
-			.always(function () {
-				// always trigger an immediate poll to pick up any final state the server may have written
-				poll();
+
+		var startRetries = 0;
+		var maxStartRetries = 2;
+		var pollRetries = 0;
+		var maxPollRetries = 2;
+		var retryDelay = 500; // ms
+
+		var degradedMode = false;
+		var degradedPoller = null;
+		var degradedPollInterval = 5000; // 5s between checks in degraded mode
+		var degradedDeadline = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+		function enterDegradedMode(reason) {
+			if (degradedMode) return;
+			degradedMode = true;
+			clearInterval(poller);
+			// hide step UI (progress bar) and show minimal status
+			$('.rfs-sync-progress-fill').css('width', '0%').hide();
+			$('.rfs-sync-status-message').text('Sync in progress (server-side, waiting for completion)');
+			$('.rfs-sync-status-meta').text(reason + ' — will monitor in background and mark complete when done.');
+
+			// start low-frequency background polling to detect completion
+			function degradedCheck() {
+				if (Date.now() > degradedDeadline) {
+					clearInterval(degradedPoller);
+					$('.rfs-sync-status-message').text('Sync still in progress (monitor timed out)');
+					$('.rfs-sync-status-meta').text('Please refresh later to check status.');
+					$link.attr('aria-busy', 'false');
+					$link.data('syncing', false);
+					return;
+				}
+
+				$.post(ajaxUrl, {
+					action: 'rfs_get_sync_progress',
+					property_id: propertyId,
+					integration: integration,
+					_ajax_nonce:
+						typeof rfs_ajax_object !== 'undefined'
+							? rfs_ajax_object.nonce
+							: '',
+				})
+					.done(function (res) {
+						if (res && res.success && res.data && parseInt(res.data.step, 10) >= parseInt(res.data.total, 10)) {
+							clearInterval(degradedPoller);
+							$('.rfs-sync-status-message').text('Sync complete. Please refresh the page to see the changes.');
+							$('.rfs-sync-status-meta').text('completed at: ' + new Date().toLocaleTimeString());
+							$link.attr('aria-busy', 'false');
+							$link.text(originalText);
+							$link.data('syncing', false);
+						}
+					});
+			}
+
+			// start first check immediately, then interval
+			degradedCheck();
+			degradedPoller = setInterval(degradedCheck, degradedPollInterval);
+		}
+
+		function startSyncRequest() {
+			$.post(ajaxUrl, {
+				action: 'rfs_sync_single_property',
+				property_id: propertyId,
+				integration: integration,
+				_ajax_nonce:
+					typeof rfs_ajax_object !== 'undefined'
+						? rfs_ajax_object.nonce
+						: '',
 			})
-			.fail(function () {
-				// don't stop polling immediately on start-failure; allow poller to pick up any server-side progress or final state until deadline
-				$('.rfs-sync-status-message').text(
-					'Failed to start sync request'
-				);
-			});
+				.always(function () {
+					// always trigger an immediate poll to pick up any final state the server may have written
+					poll();
+				})
+				.fail(function (xhr) {
+					// On start failure, attempt a small number of retries before giving up.
+					startRetries++;
+					if (startRetries <= maxStartRetries) {
+						setTimeout(function () {
+							// re-resolve ajaxUrl in case it became available
+							resolveAjaxUrl().then(function (url) {
+								if (url) {
+									ajaxUrl = url;
+								}
+								startSyncRequest();
+							});
+						}, retryDelay);
+						return;
+					}
+					// Exhausted retries; enter degraded mode so we monitor server-side completion instead of failing loudly.
+					var status = (xhr && xhr.status) ? xhr.status : 'network error';
+					var url = (xhr && xhr.responseURL) ? xhr.responseURL : ajaxUrl;
+					enterDegradedMode('Failed to start sync request (' + status + ') — Request URL: ' + url);
+				});
+		}
+
+		startSyncRequest();
+
+		// Degraded mode: attempt background monitoring (1s interval, 30s max) and mark complete if the server reports completion.
+		function enterDegradedMode(reason) {
+			// stop any existing poller
+			clearInterval(poller);
+
+			// hide detailed step UI (we're in degraded mode)
+			$('.rfs-sync-progress').hide();
+
+			$('.rfs-sync-status-message').text('Monitoring sync in background...');
+			$('.rfs-sync-status-meta').text('Degraded mode: ' + reason + ' — polling every 1s for up to 30s');
+
+			var degradedInterval = 1000; // 1s
+			var degradedDeadline = Date.now() + 30000; // 30s
+			var degradedPoller = null;
+
+			function degradedPoll() {
+				if (Date.now() > degradedDeadline) {
+					clearInterval(degradedPoller);
+					$('.rfs-sync-status-message').text('Sync status unknown — please refresh to confirm.');
+					$('.rfs-sync-status-meta').text('Monitoring ended after 30s without confirmation.');
+					$link.attr('aria-busy', 'false');
+					$link.text($link.data('original-text') || $link.text());
+					$link.data('syncing', false);
+					return;
+				}
+
+				// ensure we have a valid ajaxUrl each time
+				resolveAjaxUrl().then(function (url) {
+					if (url) ajaxUrl = url;
+					$.post(ajaxUrl, {
+						action: 'rfs_get_sync_progress',
+						property_id: propertyId,
+						integration: integration,
+						_ajax_nonce:
+							typeof rfs_ajax_object !== 'undefined'
+								? rfs_ajax_object.nonce
+								: '',
+					})
+						.done(function (res) {
+							if (res && res.success && res.data && parseInt(res.data.step, 10) >= parseInt(res.data.total, 10)) {
+								clearInterval(degradedPoller);
+								$('.rfs-sync-status-message').text('Sync complete. Please refresh the page to see the changes.');
+								$('.rfs-sync-status-meta').text('completed at: ' + new Date().toLocaleTimeString());
+								$link.attr('aria-busy', 'false');
+								$link.text($link.data('original-text') || $link.text());
+								$link.data('syncing', false);
+							}
+						})
+						.fail(function () {
+							// ignore transient failures in degraded mode; we'll try again until deadline
+						});
+				});
+			}
+
+			// start degraded polling
+			degradedPoller = setInterval(degradedPoll, degradedInterval);
+			// run one immediately
+			degradedPoll();
+		}
 	});
 });
