@@ -1,8 +1,9 @@
-## 0.8.19
+## 0.9
 
 -   We found that there are instances on some caching where the lead_source component of the tour and contact forms was getting cached, so we moved the setting of that value to client-side instead, to avoid having that cached.
 -   Minor fixes to nomenclature (one of the javascript files wasn't named prefixed with rentfetch- which might be confusing for debugging)
 -   Added debugging to console for the lead source to denote what's being set and the source of that (e.g. "lead_source set to 393 via cookie, etc.)
+-   Storing all relevant API responses in meta so that we don't have to guess at what the API told us more recently (or more likely, doing manual requests in postman)
 
 ## 0.8.18
 

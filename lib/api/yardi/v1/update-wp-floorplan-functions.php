@@ -51,9 +51,11 @@ function rfs_yardi_update_floorplan_meta( $args, $floorplan_data ) {
 	if ( !is_array( $api_response ) )
 		$api_response = [];
 	
+	$floorplan_data_string = wp_json_encode( $floorplan_data );
+
 	$api_response['floorplans_api'] = [
 		'updated' => current_time('mysql'),
-		'api_response' => 'Updated successfully',
+		'api_response' => $floorplan_data_string,
 	];
 		
 	//* Update the meta
@@ -75,7 +77,7 @@ function rfs_yardi_update_floorplan_meta( $args, $floorplan_data ) {
 		// 'property_show_specials' => esc_html( $floorplan_data['PropertyShowsSpecials'] ),
 		// 'unit_type_mapping' => esc_html( $floorplan_data['UnitTypeMapping'] ),
 		'updated' => current_time('mysql'), 
-		'api_error' => 'Updated successfully',
+		'api_error' => wp_json_encode( $floorplan_data ),
 		'api_response' => $api_response,
 	];
 	
@@ -153,9 +155,11 @@ function rfs_yardi_update_floorplan_availability( $args, $availability_data ) {
 	if ( !is_array( $api_response ) )
 		$api_response = [];
 	
+	$availability_data_string = wp_json_encode( $availability_data );
+
 	$api_response['apartmentavailability_api'] = [
 		'updated' => current_time('mysql'),
-		'api_response' => 'Updated successfully',
+		'api_response' => $availability_data_string,
 	];
 	
 	$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );

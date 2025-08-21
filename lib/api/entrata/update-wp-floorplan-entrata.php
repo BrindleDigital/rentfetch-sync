@@ -58,9 +58,11 @@ function rfs_entrata_update_floorplan_meta( $args, $floorplan_data, $units ) {
 		$api_response = array();
 	}
 
+	$floorplan_data_string = wp_json_encode( $floorplan_data );
+
 	$api_response['floorplans_api'] = array(
 		'updated'      => current_time( 'mysql' ),
-		'api_response' => 'Updated successfully',
+		'api_response' => $floorplan_data_string,
 	);
 	
 	// Process the beds and baths
@@ -144,7 +146,7 @@ function rfs_entrata_update_floorplan_meta( $args, $floorplan_data, $units ) {
 		// 'maximum_deposit'          => floatval( $floorplan_data['maximumDeposit'] ?? 0 ),
 		// 'minimum_deposit'          => floatval( $floorplan_data['minimumDeposit'] ?? 0 ),
 		'updated'                  => current_time( 'mysql' ),
-		'api_error'                => sanitize_text_field( 'Updated successfully' ),
+		'api_error'                => wp_json_encode( $floorplan_data ),
 		'api_response'             => $api_response,
 	);
 

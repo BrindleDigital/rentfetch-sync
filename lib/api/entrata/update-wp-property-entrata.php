@@ -66,9 +66,11 @@ function rfs_entrata_update_property_meta( $args, $property_data ) {
 	if ( !is_array( $api_response ) )
 		$api_response = [];
 	
+	$property_data_string = wp_json_encode( $data );
+
 	$api_response['properties_api'] = [
 		'updated' => current_time('mysql'),
-		'api_response' => 'Updated successfully',
+		'api_response' => $property_data_string,
 	];
 		
 	//* Update the meta
@@ -144,9 +146,11 @@ function rfs_entrata_update_property_mits_meta( $args, $property_data ) {
 	if ( !is_array( $api_response ) )
 		$api_response = [];
 	
+	$property_data_string = wp_json_encode( $data );
+
 	$api_response['getMitsPropertyUnits'] = [
 		'updated' => current_time('mysql'),
-		'api_response' => 'Updated successfully',
+		'api_response' => $property_data_string,
 	];
 	
 	// TODO add the photos from $data['File']

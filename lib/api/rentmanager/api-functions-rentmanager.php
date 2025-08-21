@@ -204,9 +204,11 @@ function rfs_rentmanager_update_property_meta( $args, $property_data ) {
 		$api_response = array();
 	}
 
+	$property_data_string = wp_json_encode( $property_data );
+
 	$api_response['properties_api'] = array(
 		'updated'      => current_time( 'mysql' ),
-		'api_response' => 'Updated successfully',
+		'api_response' => $property_data_string,
 	);
 
 	$street  = null;
@@ -458,7 +460,7 @@ function rfs_rentmanager_update_floorplan_meta( $args, $floorplan_data ) {
 		'floorplan_image_url' => $images ?? '',
 		'availability_date' => null,
 		'updated'   => current_time( 'mysql' ),
-		'api_error' => 'Updated successfully',
+		'api_error' => wp_json_encode( $floorplan_data ),
 	);
 
 	foreach ( $meta as $key => $value ) {
@@ -588,7 +590,7 @@ function rfs_rentmanager_update_unit_meta( $args, $unit ) {
 		'specials'                  => null,
 		'unit_source'               => 'rentmanager',
 		'updated'                   => current_time( 'mysql' ),
-		'api_error'                 => 'Updated successfully',
+		'api_error'                 => wp_json_encode( $unit ),
 		// 'api_response'              => $api_response,
 	);
 

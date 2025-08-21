@@ -57,9 +57,11 @@ function rfs_yardi_update_property_meta( $args, $property_data ) {
 	if ( !is_array( $api_response ) )
 		$api_response = [];
 	
+	$property_data_string = wp_json_encode( $data );
+
 	$api_response['properties_api'] = [
 		'updated' => current_time('mysql'),
-		'api_response' => 'Updated successfully',
+		'api_response' => $property_data_string,
 	];
 		
 	//* Update the meta
@@ -103,7 +105,7 @@ function rfs_yardi_update_property_images( $args, $property_images ) {
 		
 		$api_response['property_images_api'] = [
 			'updated' => current_time('mysql'),
-			'api_response' => 'No response from API',
+			'api_response' => wp_json_encode( $property_images ),
 		];
 		
 		return;
@@ -140,7 +142,7 @@ function rfs_yardi_update_property_images( $args, $property_images ) {
 		
 		$api_response['property_images_api'] = [
 			'updated' => current_time('mysql'),
-			'api_response' => 'Updated successfully',
+			'api_response' => wp_json_encode( $property_images ),
 		];
 		
 		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );

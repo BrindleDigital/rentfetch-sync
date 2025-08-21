@@ -66,7 +66,7 @@ function rfs_yardi_update_unit_meta( $args, $unit ) {
 
 	$api_response['apartmentavailability_api'] = array(
 		'updated'      => current_time( 'mysql' ),
-		'api_response' => 'Updated successfully',
+		'api_response' => wp_json_encode( $unit ),
 	);
 
 	// further processing the amenities.
@@ -92,7 +92,7 @@ function rfs_yardi_update_unit_meta( $args, $unit ) {
 		'yardi_unit_image_urls'     => $UnitImageURLs,
 		'unit_source'               => 'yardi',
 		'updated'                   => current_time( 'mysql' ),
-		'api_error'                 => 'Updated successfully',
+		'api_error'                 => wp_json_encode( $unit ),
 		'api_response'              => $api_response,
 	);
 

@@ -81,9 +81,11 @@ function rfs_realpage_update_unit_from_list_meta( $args, $unit ) {
 		$api_response = array();
 	}
 
+	$unit_data_string = wp_json_encode( $unit );
+
 	$api_response['units_list_api'] = array(
 		'updated'      => current_time( 'mysql' ),
-		'api_response' => 'Updated successfully',
+		'api_response' => $unit_data_string,
 	);
 
 	// remove the old meta call we don't use anymore.
@@ -252,9 +254,11 @@ function rfs_realpage_update_unit_by_property_meta( $args, $unit ) {
 		$api_response = array();
 	}
 
+	$unit_data_string = wp_json_encode( $unit );
+
 	$api_response['units_by_property_api'] = array(
 		'updated'      => current_time( 'mysql' ),
-		'api_response' => 'Updated successfully',
+		'api_response' => $unit_data_string,
 	);
 
 	// remove the old meta call we don't use anymore.

@@ -52,9 +52,11 @@ function rfs_realpage_update_floorplan_meta( $args, $floorplan_data ) {
 		$api_response = array();
 	}
 
+	$floorplan_data_string = wp_json_encode( $floorplan_data );
+
 	$api_response['floorplans_api'] = array(
 		'updated'      => current_time( 'mysql' ),
-		'api_response' => 'Updated successfully',
+		'api_response' => $floorplan_data_string,
 	);
 
 	// * Update the meta
@@ -67,7 +69,7 @@ function rfs_realpage_update_floorplan_meta( $args, $floorplan_data ) {
 		'minimum_sqft'    => floatval( $floorplan_data['RentableSquareFootage'] ),
 		'available_units' => 0,
 		'updated'         => current_time( 'mysql' ),
-		'api_error'       => 'Updated successfully',
+		'api_error'       => wp_json_encode( $floorplan_data ),
 		'api_response'    => $api_response,
 	);
 
