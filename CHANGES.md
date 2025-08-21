@@ -1,3 +1,7 @@
+## 0.9.1
+
+-   Minor update due to version mismatch.
+
 ## 0.9
 
 -   We found that there are instances on some caching where the lead_source component of the tour and contact forms was getting cached, so we moved the setting of that value to client-side instead, to avoid having that cached.
