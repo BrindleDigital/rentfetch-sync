@@ -70,9 +70,6 @@ function rfs_require_files_recursive( $directory ) {
 // require_once all files in /lib and its subdirectories.
 rfs_require_files_recursive( RENTFETCHSYNC_DIR . 'lib' );
 
-// start the engine.
-add_action( 'wp_loaded', 'rfs_perform_syncs' );
-
 // Load Plugin Update Checker.
 require RENTFETCHSYNC_DIR . 'vendor/plugin-update-checker/plugin-update-checker.php';
 $update_checker = Puc_v4_Factory::buildUpdateChecker(

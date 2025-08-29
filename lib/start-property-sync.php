@@ -125,6 +125,24 @@ add_action('wp_ajax_rfs_get_sync_progress', 'rfs_get_sync_progress_ajax_handler'
  */
 function rfs_perform_syncs() {
 	
+	// --- Throttle and context guard ------------------------------------------------
+    // Run immediately when in admin, WP-CLI, or during cron jobs.
+    // For front-end hits, only run once per hour (transient guard) to avoid
+    // repeating expensive scheduling checks on every page load.
+	$is_admin_or_cron = is_admin() || ( defined( 'WP_CLI' ) && constant( 'WP_CLI' ) ) || ( defined( 'DOING_CRON' ) && DOING_CRON );
+
+    if ( ! $is_admin_or_cron ) {
+        // If we've run recently, skip doing work for this request.
+        if ( false !== get_transient( 'rfs_perform_syncs_last_run' ) ) {
+            return;
+        }
+        // Mark we've run — TTL controls how often front-end requests can trigger this.
+        // Use 1 hour as a reasonable default; adjust if needed.
+        set_transient( 'rfs_perform_syncs_last_run', 1, 15 * MINUTE_IN_SECONDS );
+    }
+    // ------------------------------------------------------------------------------
+
+	
 	// if data syncing is not enabled, kill all the scheduled actions and bail
 	$data_sync_enabled = get_option( 'rentfetch_options_data_sync' );
 	if ( $data_sync_enabled != 'updatesync' ) {
@@ -253,6 +271,7 @@ function rfs_perform_syncs() {
 	
 	
 }
+add_action( 'wp_loaded', 'rfs_perform_syncs' );
 
 /**
  * Trigger a specific function after we determine which integration to use
