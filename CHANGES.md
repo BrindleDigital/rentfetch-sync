@@ -1,3 +1,8 @@
+## 0.9.2
+
+-   Adding option to disable transients (just a minor markup change, the actual functionality is in RF)
+-   Preventing extra queries on every pageload, which should result in performance improvements
+
 ## 0.9.1
 
 -   Minor update due to version mismatch.
