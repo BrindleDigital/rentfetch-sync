@@ -266,6 +266,7 @@ function rentfetch_settings_sync() {
 			</div>
 		</div>
 		<?php
+		do_action( 'rentfetch_do_settings_general_shared' );
 
 		echo '</div>';
 	echo '</section>';
