@@ -24,15 +24,7 @@ function rfs_get_credentials() {
 			// the Entrata API key will come from the Rent Fetch API, and therefore is not stored in the WP options or available in the $credentials array.
 		];
 	}
-	
-	if ( in_array( 'realpage', $enabled ) ) {
-		$credentials['realpage'] = [
-			'user' => get_option( 'rentfetch_options_realpage_integration_creds_realpage_user' ),
-			'password' => get_option( 'rentfetch_options_realpage_integration_creds_realpage_pass' ),
-			'pmc_id' => get_option( 'rentfetch_options_realpage_integration_creds_realpage_pmc_id' ),
-		];
-	}
-	
+		
 	if ( in_array( 'appfolio', $enabled ) ) {
 		$credentials['appfolio'] = [
 			'database' => get_option( 'rentfetch_options_appfolio_integration_creds_appfolio_database_name' ),

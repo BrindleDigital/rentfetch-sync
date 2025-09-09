@@ -219,29 +219,6 @@ function rfs_perform_syncs() {
 		
 	}
 	
-	//* Realpage
-	
-	if ( in_array( 'realpage', $enabled_integrations ) ) {
-		
-		// get the properties for yardi, then turn it into an array
-		$realpage_properties = get_option( 'rentfetch_options_realpage_integration_creds_realpage_site_ids' );
-		$realpage_properties = str_replace( ' ', '', $realpage_properties );
-		$realpage_properties = explode( ',', $realpage_properties );
-			
-		foreach( $realpage_properties as $realpage_property ) {
-			$args = [
-				'integration' => 'realpage',
-				'property_id' => $realpage_property,
-				'credentials' => rfs_get_credentials(),
-			];
-			
-			if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
-				// need to pass the $args inside an array
-				as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_do_sync', array( $args ), 'rentfetch' );
-			}	
-		}
-	}
-	
 	//* Rent Manager
 	
 	if ( in_array( 'rentmanager', $enabled_integrations ) ) {
@@ -294,11 +271,6 @@ function rfs_trigger_specific_api_sync( $args ) {
 		case 'yardi':
 			
 			rfs_do_yardi_sync( $args );
-						
-			break;
-		case 'realpage':
-			
-			rfs_do_realpage_sync( $args );
 						
 			break;
 		case 'rentmanager':

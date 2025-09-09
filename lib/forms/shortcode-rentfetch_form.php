@@ -410,8 +410,6 @@ function rentfetch_handle_ajax_form_submit() {
 		$response = rentfetch_send_lead_to_yardi( $form_data, $property_source, $property );
 	} elseif ( 'rentmanager' === $property_source ) {
 		$response = rentfetch_send_lead_to_rentmanager( $form_data, $property_source, $property );
-	} elseif ( 'realpage' === $property_source ) {
-		$response = rentfetch_send_lead_to_realpage( $form_data, $property_source, $property );
 	} else {
 		wp_send_json_error( array( 'errors' => array( 'This property has no corresponding API to send data to.' ) ) );	
 	}
@@ -632,8 +630,4 @@ function rentfetch_send_lead_to_yardi( $form_data, $property_source, $property )
 
 function rentfetch_send_lead_to_rentmanager( $form_data, $property_source, $property ) {
 	return 'RentManager API not currently implemented for leads';	
-}
-
-function rentfetch_send_lead_to_realpage( $form_data, $property_source, $property ) {
-	return 'Realpage API not currently implemented for leads';	
 }

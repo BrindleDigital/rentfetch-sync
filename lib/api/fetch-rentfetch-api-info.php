@@ -43,18 +43,7 @@ function rfs_get_info_from_rentfetch_api() {
 			'number_of_properties' => rfs_get_number_of_properties( 'yardi' ),
 		);
 	}
-	
-	// get the RealPage integration settings.
-	if ( in_array( 'realpage', $apis_enabled, true ) ) {
-		$apis_used['realpage'] = array(
-			'username'             => get_option( 'rentfetch_options_realpage_integration_creds_realpage_user' ),
-			'password'             => get_option( 'rentfetch_options_realpage_integration_creds_realpage_pass' ),
-			'pmc_id'               => get_option( 'rentfetch_options_realpage_integration_creds_realpage_pmc_id' ),
-			'site_ids'             => get_option( 'rentfetch_options_realpage_integration_creds_realpage_site_ids' ),
-			'number_of_properties' => rfs_get_number_of_properties( 'realpage' ),
-		);
-	}
-	
+		
 	// get the Rent Manager integration settings.
 	if ( in_array( 'rentmanager', $apis_enabled, true ) ) {
 		$apis_used['rentmanager'] = array(
