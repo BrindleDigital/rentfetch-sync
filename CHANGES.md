@@ -1,3 +1,7 @@
+## 0.10
+
+-   Removing RealPage
+
 ## 0.9.2
 
 -   Adding option to disable transients (just a minor markup change, the actual functionality is in RF)
