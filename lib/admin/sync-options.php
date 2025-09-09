@@ -94,13 +94,6 @@ function rentfetch_settings_sync() {
 							Entrata
 						</label>
 					</li>
-					<li>
-						<label>
-							<input type="checkbox" name="rentfetch_options_enabled_integrations[]" value="realpage" <?php checked( in_array( 'realpage', get_option( 'rentfetch_options_enabled_integrations', array() ) ) ); ?>>
-							RealPage
-						</label>
-					</li>
-					<li>
 						<label>
 							<input type="checkbox" name="rentfetch_options_enabled_integrations[]" value="rentmanager" <?php checked( in_array( 'rentmanager', get_option( 'rentfetch_options_enabled_integrations', array() ) ) ); ?>>
 							Rent Manager
@@ -171,30 +164,6 @@ function rentfetch_settings_sync() {
 			</div>
 		</div>
 		
-		<div class="row integration realpage">
-			<div class="section">
-				<label>RealPage</label>
-			</div>
-			<div class="section">
-				<div class="white-box">
-					<label for="rentfetch_options_realpage_integration_creds_realpage_user">RealPage Username</label>
-					<input type="text" name="rentfetch_options_realpage_integration_creds_realpage_user" id="rentfetch_options_realpage_integration_creds_realpage_user" value="<?php echo esc_attr( get_option( 'rentfetch_options_realpage_integration_creds_realpage_user' ) ); ?>">
-				</div>
-				<div class="white-box">
-					<label for="rentfetch_options_realpage_integration_creds_realpage_pass">RealPage Password</label>
-					<input type="text" name="rentfetch_options_realpage_integration_creds_realpage_pass" id="rentfetch_options_realpage_integration_creds_realpage_pass" value="<?php echo esc_attr( get_option( 'rentfetch_options_realpage_integration_creds_realpage_pass' ) ); ?>">
-				</div>
-				<div class="white-box">
-					<label for="rentfetch_options_realpage_integration_creds_realpage_pmc_id">RealPage PMC ID</label>
-					<input type="text" name="rentfetch_options_realpage_integration_creds_realpage_pmc_id" id="rentfetch_options_realpage_integration_creds_realpage_pmc_id" value="<?php echo esc_attr( get_option( 'rentfetch_options_realpage_integration_creds_realpage_pmc_id' ) ); ?>">
-				</div>
-				<div class="white-box">
-					<label for="rentfetch_options_realpage_integration_creds_realpage_site_ids">RealPage Site IDs</label>
-					<textarea rows="10" style="width: 100%;" name="rentfetch_options_realpage_integration_creds_realpage_site_ids" id="rentfetch_options_realpage_integration_creds_realpage_site_ids"><?php echo esc_attr( get_option( 'rentfetch_options_realpage_integration_creds_realpage_site_ids' ) ); ?></textarea>
-					<p class="description">If there are multiple properties to be pulled in, enter those separated by commas</p>
-				</div>
-			</div>
-		</div>
 		<div class="row integration rentmanager">
 			<div class="section">
 				<label>Rent Manager</label>
