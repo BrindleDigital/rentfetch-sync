@@ -26,7 +26,7 @@ function rfs_add_lead_source_field( $form ) {
 	foreach ( $form['fields'] as $field ) {
 		error_log( '[rentfetch] Checking existing field: ' . $field->label . ' (type: ' . $field->type . ', cssClass: ' . (isset($field->cssClass) ? $field->cssClass : 'none') . ', inputName: ' . (isset($field->inputName) ? $field->inputName : 'none') . ')' );
 
-		if ( $field->type === 'hidden' && isset( $field->cssClass ) && strpos( $field->cssClass, 'lead-source-field' ) !== false ) {
+		if ( $field->type === 'text' && isset( $field->cssClass ) && strpos( $field->cssClass, 'lead-source-field' ) !== false ) {
 			$has_lead_source_field = true;
 			error_log( '[rentfetch] Found existing lead source field by cssClass, skipping' );
 			break;
@@ -48,7 +48,8 @@ function rfs_add_lead_source_field( $form ) {
 	if ( ! $has_lead_source_field ) {
 		error_log( '[rentfetch] Adding new lead source field to form' );
 
-		$lead_source_field = new GF_Field_Hidden();
+		$lead_source_field = new GF_Field_Text();
+		$lead_source_field->id = 999999;
 		$lead_source_field->label = 'Lead Source';
 		$lead_source_field->cssClass = 'lead-source-field';
 		$lead_source_field->inputName = 'lead_source';
@@ -68,3 +69,14 @@ function rfs_add_lead_source_field( $form ) {
 }
 add_filter( 'gform_pre_render', 'rfs_add_lead_source_field' );
 add_filter( 'gform_pre_validation', 'rfs_add_lead_source_field' );
+
+/**
+ * Prepopulate the lead source field server-side from cookie
+ */
+function rfs_get_lead_source_value() {
+	if ( isset( $_COOKIE['wordpress_rentfetch_lead_source'] ) ) {
+		return sanitize_text_field( $_COOKIE['wordpress_rentfetch_lead_source'] );
+	}
+	return '';
+}
+add_filter( 'gform_field_value_lead_source', 'rfs_get_lead_source_value' );

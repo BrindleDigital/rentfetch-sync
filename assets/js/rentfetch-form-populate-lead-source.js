@@ -51,7 +51,7 @@ jQuery(document).ready(function ($) {
 				// Look for the automatically added lead source field
 				$.each(form.fields, function (index, field) {
 					if (
-						field.type === 'hidden' &&
+						field.type === 'text' &&
 						field.cssClass &&
 						field.cssClass.includes('lead-source-field')
 					) {
@@ -108,7 +108,7 @@ jQuery(document).ready(function ($) {
 				console.log('[rentfetch] Dynamic form rendered:', formId);
 				var $form = $('#gform_wrapper_' + formId);
 				var $targetField = $form.find(
-					'.gfield.lead-source-field input[type="hidden"]'
+					'.gfield.lead-source-field input[type="text"]'
 				);
 
 				if ($targetField.length > 0) {
