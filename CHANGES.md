@@ -1,6 +1,7 @@
 ## 0.10
 
 -   Removing RealPage
+-   Adding Gforms integration that allows the cookie value from wordpress*rentfetch_lead_source to automatically be passed into \_every* gravity form entry and notification, if set. Please note that this functionality requires that someone re-save each form again before the field will fully activate.
 
 ## 0.9.2
 
