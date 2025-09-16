@@ -21,12 +21,8 @@ function rfs_do_yardi_sync( $args ) {
 	// ~ With just the property ID, we can get property data, property images, and the floorplan data.
 	// create a new post if needed, adding the post ID to the args if we do (don't need any API calls for this)
 	$args = rfs_maybe_create_property( $args );
-	// step 1: property record ensured
-	rfs_set_sync_progress( $args['integration'], $args['property_id'], 1, 6, 'Property record ready' );
 
 	// perform the API calls to get the data.
-	// step 2: fetching property data
-	rfs_set_sync_progress( $args['integration'], $args['property_id'], 2, 6, 'Fetching property data' );
 	$property_data_v2 = rfs_yardi_v2_get_property_data( $args );
 
 	// validate that we're getting legitimate data from the v2 API. If we are, we'll use that data instead of the v1 data.
@@ -36,25 +32,17 @@ function rfs_do_yardi_sync( $args ) {
 
 		// get the data, then update the property post.
 		rfs_yardi_v2_update_property_meta( $args, $property_data_v2 );
-		// step 3: property meta updated
-		rfs_set_sync_progress( $args['integration'], $args['property_id'], 3, 6, 'Property meta updated' );
 
 		// get the property images.
-		// step 4: fetching images
-		rfs_set_sync_progress( $args['integration'], $args['property_id'], 4, 6, 'Fetching property images' );
 		$property_images_v2 = rfs_yardi_v2_get_property_images( $args );
 
 		// update the images for this property.
 		rfs_yardi_v2_update_property_images( $args, $property_images_v2 );
-		// step 5: images updated
-		rfs_set_sync_progress( $args['integration'], $args['property_id'], 5, 6, 'Property images updated' );
 
 		// add the amenities.
 		rfs_yardi_v2_update_property_amenities( $args, $property_data_v2 );
 		
 		// get the floorplans data for this property.
-		// step 6: fetching floorplans and units
-		rfs_set_sync_progress( $args['integration'], $args['property_id'], 6, 6, 'Fetching floorplans and units' );
 		$floorplans_data_v2 = rfs_yardi_v2_get_floorplan_data( $args );
 		
 		// get the availability data (this should be the units), which we'll need both for the floorplan and the unit.
@@ -119,32 +107,18 @@ function rfs_do_yardi_sync( $args ) {
 		// ! V1 API (fallback)
 		$property_data = rfs_yardi_get_property_data( $args );
 
-		// step 2: fetching property data (v1)
-		rfs_set_sync_progress( $args['integration'], $args['property_id'], 2, 6, 'Fetching property data (v1)' );
-
 		// get the data, then update the property post.
 		rfs_yardi_update_property_meta( $args, $property_data );
 
-		// step 3: property meta updated (v1)
-		rfs_set_sync_progress( $args['integration'], $args['property_id'], 3, 6, 'Property meta updated (v1)' );
-
 		$property_images = rfs_yardi_get_property_images( $args );
-
-		// step 4: fetching images (v1)
-		rfs_set_sync_progress( $args['integration'], $args['property_id'], 4, 6, 'Fetching property images (v1)' );
 
 		// get the images, then update the images for this property.
 		rfs_yardi_update_property_images( $args, $property_images );
-
-		// step 5: images updated (v1)
-		rfs_set_sync_progress( $args['integration'], $args['property_id'], 5, 6, 'Property images updated (v1)' );
 
 		// add the amenities.
 		rfs_yardi_update_property_amenities( $args, $property_data );
 
 		// get all the floorplan data for this property.
-		// step 6: fetching floorplans and units (v1)
-		rfs_set_sync_progress( $args['integration'], $args['property_id'], 6, 6, 'Fetching floorplans and units (v1)' );
 		$floorplans_data = rfs_yardi_get_floorplan_data( $args );
 
 		// remove availability for floorplans that no longer are found in the API (we don't delete these because Yardi sometimes doesn't show floorplans with zero availability).

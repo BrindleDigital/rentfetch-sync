@@ -133,10 +133,10 @@ function rfs_sync_metabox( $post ) {
 	echo ' <span class="rfs-sync-status-meta" style="display:block;margin-top:4px;color:#999;font-size:11px"></span>';
 	echo '</div>';
 
-	// Minimal progress bar (updated by JS)
+	// Simple progress indicator
 	echo '<div class="rfs-sync-progress" style="margin-top:8px;">
 		<div class="rfs-sync-progress-track" style="background:#eee;border:1px solid #ddd;height:8px;border-radius:4px;overflow:hidden;">
-			<div class="rfs-sync-progress-fill" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width:0%;height:100%;background:#eb6836;transition:width 150ms linear;"></div>
+			<div class="rfs-sync-progress-fill" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width:0%;height:100%;background:#eb6836;transition:width 300ms ease;"></div>
 		</div>
 	</div>';
 }
@@ -159,11 +159,6 @@ function rfs_sync_single_property_ajax_handler() {
 			'property_id' => $property_id,
 			'credentials' => rfs_get_credentials(),
 		);
-
-		// Set an initial progress state so the UI has something to poll immediately.
-		if ( function_exists( 'rfs_set_sync_progress' ) ) {
-			rfs_set_sync_progress( $integration, $property_id, 0, 1, 'Queued for sync' );
-		}
 
 		// Run synchronously (do not schedule). The sync function handles its own progress updates.
 		rfs_sync_single_property( $property_id, $integration );

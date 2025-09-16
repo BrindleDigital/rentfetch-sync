@@ -34,13 +34,7 @@ function rfs_sync_single_property( $property_id, $integration ) {
 		'floorplan_id' => null,
 	];
 
-	// initialize progress (0 of 1 until integrations update to finer-grained steps)
-	rfs_set_sync_progress( $integration, $property_id, 0, 1, 'Starting sync' );
-
 	do_action( 'rfs_do_sync', $args );
-
-	// finalize progress (ensure completion if integrations didn't set finer steps)
-	rfs_set_sync_progress( $integration, $property_id, 1, 1, 'Completed' );
 }
 
 
