@@ -132,7 +132,7 @@ function rfs_rentmanager_get_property_data( $args ) {
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_ENCODING       => '',
 			CURLOPT_MAXREDIRS      => 10,
-			CURLOPT_TIMEOUT        => 0,
+			CURLOPT_TIMEOUT        => 30, // Set a reasonable timeout (30 seconds)
 			CURLOPT_FOLLOWLOCATION => true,
 			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
 			CURLOPT_CUSTOMREQUEST  => 'GET',
@@ -140,15 +140,27 @@ function rfs_rentmanager_get_property_data( $args ) {
 				$partner_token_header,
 				'Content-Type: application/json',
 			),
+			CURLOPT_SSL_VERIFYPEER => true, // Enable SSL verification
+			CURLOPT_SSL_VERIFYHOST => 2,
 		)
 	);
 
-	$response      = curl_exec( $curl );
-	$property_data = json_decode( $response, true ); // decode the JSON feed.
-
+	$response = curl_exec( $curl );
+	$error    = curl_error( $curl );
 	curl_close( $curl );
 
-	return $property_data[0];
+	if ( $error ) {
+		error_log( 'cURL error in rfs_rentmanager_get_property_data: ' . $error );
+		return array(); // Return empty array to prevent errors
+	}
+
+	$property_data = json_decode( $response, true );
+	if ( json_last_error() !== JSON_ERROR_NONE ) {
+		error_log( 'JSON decode error in rfs_rentmanager_get_property_data: ' . json_last_error_msg() );
+		return array(); // Return empty array
+	}
+
+	return $property_data[0] ?? array(); // Ensure it returns an array
 }
 
 /**
@@ -293,7 +305,7 @@ function rfs_rentmanager_get_unit_types_data( $args ) {
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_ENCODING       => '',
 			CURLOPT_MAXREDIRS      => 10,
-			CURLOPT_TIMEOUT        => 0,
+			CURLOPT_TIMEOUT        => 30, // Set a reasonable timeout (30 seconds)
 			CURLOPT_FOLLOWLOCATION => true,
 			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
 			CURLOPT_CUSTOMREQUEST  => 'GET',
@@ -301,15 +313,27 @@ function rfs_rentmanager_get_unit_types_data( $args ) {
 				$partner_token_header,
 				'Content-Type: application/json',
 			),
+			CURLOPT_SSL_VERIFYPEER => true, // Enable SSL verification
+			CURLOPT_SSL_VERIFYHOST => 2,
 		)
 	);
 
-	$response        = curl_exec( $curl );
-	$unit_types_data = json_decode( $response, true ); // decode the JSON feed.
-
+	$response = curl_exec( $curl );
+	$error    = curl_error( $curl );
 	curl_close( $curl );
 
-	return $unit_types_data;
+	if ( $error ) {
+		error_log( 'cURL error in rfs_rentmanager_get_unit_types_data: ' . $error );
+		return array(); // Return empty array to prevent errors
+	}
+
+	$unit_types_data = json_decode( $response, true );
+	if ( json_last_error() !== JSON_ERROR_NONE ) {
+		error_log( 'JSON decode error in rfs_rentmanager_get_unit_types_data: ' . json_last_error_msg() );
+		return array(); // Return empty array
+	}
+
+	return $unit_types_data ?: array(); // Ensure it returns an array
 }
 
 /**
@@ -491,7 +515,7 @@ function rfs_rentmanager_get_units_data( $args ) {
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_ENCODING       => '',
 			CURLOPT_MAXREDIRS      => 10,
-			CURLOPT_TIMEOUT        => 0,
+			CURLOPT_TIMEOUT        => 30, // Set a reasonable timeout (30 seconds)
 			CURLOPT_FOLLOWLOCATION => true,
 			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
 			CURLOPT_CUSTOMREQUEST  => 'GET',
@@ -499,15 +523,27 @@ function rfs_rentmanager_get_units_data( $args ) {
 				$partner_token_header,
 				'Content-Type: application/json',
 			),
+			CURLOPT_SSL_VERIFYPEER => true, // Enable SSL verification
+			CURLOPT_SSL_VERIFYHOST => 2,
 		)
 	);
 
-	$response      = curl_exec( $curl );
-	$units_data = json_decode( $response, true ); // decode the JSON feed.
-
+	$response = curl_exec( $curl );
+	$error    = curl_error( $curl );
 	curl_close( $curl );
 
-	return $units_data;
+	if ( $error ) {
+		error_log( 'cURL error in rfs_rentmanager_get_units_data: ' . $error );
+		return array(); // Return empty array to prevent errors
+	}
+
+	$units_data = json_decode( $response, true );
+	if ( json_last_error() !== JSON_ERROR_NONE ) {
+		error_log( 'JSON decode error in rfs_rentmanager_get_units_data: ' . json_last_error_msg() );
+		return array(); // Return empty array
+	}
+
+	return $units_data ?: array(); // Ensure it returns an array
 }
 
 function rfs_rentmanager_update_unit_meta( $args, $unit ) {
