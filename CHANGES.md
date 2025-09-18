@@ -1,3 +1,7 @@
+## 0.10.1
+
+-   Updating Rentmanager unit types API endpoint to accommodate their API being broken (they're fixing).
+
 ## 0.10
 
 -   Removing RealPage
