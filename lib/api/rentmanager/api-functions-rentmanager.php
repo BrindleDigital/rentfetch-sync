@@ -34,6 +34,11 @@ function rfs_do_rentmanager_sync( $args ) {
 
 	// perform the API calls to get the data.
 	$property_data = rfs_rentmanager_get_property_data( $args );
+	
+	// update $args with the numerical rentmanager property ID, found in $property_data['PropertyID']. This is to allow for using a different API while their normal one gets fixed.
+	if ( isset( $property_data['PropertyID'] ) ) {
+		$args['rentmanager_property_id'] = $property_data['PropertyID'];
+	}
 
 	// get the data, then update the property post.
 	rfs_rentmanager_update_property_meta( $args, $property_data );
@@ -281,7 +286,7 @@ function rfs_rentmanager_get_unit_types_data( $args ) {
 	$curl = curl_init();
 
 	$rentmanager_company_code = $args['credentials']['rentmanager']['companycode'];
-	$url                      = sprintf( 'https://%s.api.rentmanager.com/UnitTypes?embeds=Images,Images.File,Images.ImageType&filters=Properties.ShortName,eq,%s', $rentmanager_company_code, $args['property_id'] );
+	$url                      = sprintf( 'https://%s.api.rentmanager.com/Properties/%s/UnitTypes?embeds=Images,Images.File,Images.ImageType', $rentmanager_company_code, $args['rentmanager_property_id'] );
 
 	$partner_token        = $args['credentials']['rentmanager']['partner_token'];
 	$partner_token_header = sprintf( 'X-RM12API-PartnerToken: %s', $partner_token );
