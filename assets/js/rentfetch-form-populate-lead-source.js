@@ -173,7 +173,7 @@ jQuery(document).ready(function ($) {
 
 	// Final fallback: use the shortcode-provided lead_source (passed via localized JS)
 	if (
-		window.rentfetchFormAjax &&
+		typeof rentfetchFormAjax !== 'undefined' &&
 		rentfetchFormAjax.shortcode_lead_source &&
 		rentfetchFormAjax.shortcode_lead_source.trim() !== ''
 	) {

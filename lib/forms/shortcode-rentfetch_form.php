@@ -59,19 +59,15 @@ function rfs_output_form( $atts ) {
 	wp_enqueue_script( 'rentfetch-form-script' ); // Enqueue the registered handler
 	wp_enqueue_script( 'rentfetch-form-populate' ); // Enqueue the runtime-populate script (not minified)
 
-	// Provide data to the frontend. Use wp_add_inline_script to emit a small
-	// JS object before the populate script runs so the populate script always
-	// sees `window.rentfetchFormAjax` without relying on localization order.
-	$rentfetch_js_object = array(
+	// Provide data to the frontend. Use wp_localize_script to emit the JS object for both scripts
+	$localized_data = array(
 		'ajaxurl' => esc_url( admin_url( 'admin-ajax.php' ) ),
 		'nonce'   => wp_create_nonce( 'rentfetch_form_submit' ),
 		'shortcode_lead_source' => $a['lead_source'],
 	);
-
-	$inline_js = 'window.rentfetchFormAjax = ' . wp_json_encode( $rentfetch_js_object ) . ';';
-
-	// Print this inline script before the populate script so it's available when that script runs.
-	wp_add_inline_script( 'rentfetch-form-populate', $inline_js, 'before' );
+	
+	wp_localize_script( 'rentfetch-form-script', 'rentfetchFormAjax', $localized_data );
+	wp_localize_script( 'rentfetch-form-populate', 'rentfetchFormAjax', $localized_data );
 	
 	$classes = 'rentfetch-form-' . esc_attr( $a['type'] );
 
@@ -613,7 +609,7 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 
 	// let's decode the response body
 	$response_body = json_decode( $response_body, true );
-		
+			
 	if ( 200 === (int) $response['response']['code'] ) {
 		return (int) $response['response']['code'];
 	} else {
