@@ -301,18 +301,222 @@ function rentfetch_get_properties_for_form( $property_ids_string = '' ) {
 }
 
 /**
+ * Save form submission data and API response to rentfetchentries post type
+ *
+ * @param array $form_data The sanitized form data
+ * @param string $property_source The property source (entrata, yardi, etc.)
+ * @param mixed $api_response The API response (int for status code or string for error)
+ * @param array $additional_data Additional data like property post ID, validation errors, etc.
+ * @return int The post ID of the created entry
+ */
+function rentfetch_save_form_entry( $form_data, $property_source, $api_response, $additional_data = array() ) {
+	
+	// Create a title for the entry
+	$title = sprintf( '%s %s - %s', $form_data['first_name'], $form_data['last_name'], date( 'M j, Y g:i A' ) );
+	
+	// Create the post
+	$post_data = array(
+		'post_title'   => $title,
+		'post_content' => '', // Keep content empty, data is in meta boxes
+		'post_type'    => 'rentfetchentries',
+		'post_status'  => 'publish',
+		'meta_input'   => array(
+			'form_data'       => $form_data,
+			'property_source' => $property_source,
+			'api_response'    => $api_response,
+			'submission_time' => current_time( 'mysql' ),
+			'submission_ip'   => $_SERVER['REMOTE_ADDR'] ?? '',
+			'user_agent'      => $_SERVER['HTTP_USER_AGENT'] ?? '',
+		),
+	);
+	
+	// Add additional meta data
+	if ( ! empty( $additional_data ) ) {
+		$post_data['meta_input'] = array_merge( $post_data['meta_input'], $additional_data );
+	}
+	
+	$post_id = wp_insert_post( $post_data );
+	
+	return $post_id;
+}
+
+/**
+ * Add meta boxes for rentfetchentries post type
+ */
+function rentfetch_entries_meta_boxes() {
+	add_meta_box(
+		'rentfetch_entry_details',
+		'Form Submission Details',
+		'rentfetch_entry_details_meta_box',
+		'rentfetchentries',
+		'normal',
+		'high'
+	);
+	
+	add_meta_box(
+		'rentfetch_entry_api_response',
+		'API Response',
+		'rentfetch_entry_api_response_meta_box',
+		'rentfetchentries',
+		'normal',
+		'high'
+	);
+}
+add_action( 'add_meta_boxes', 'rentfetch_entries_meta_boxes' );
+
+/**
+ * Display the form submission details meta box
+ */
+function rentfetch_entry_details_meta_box( $post ) {
+	$form_data = get_post_meta( $post->ID, 'form_data', true );
+	$submission_time = get_post_meta( $post->ID, 'submission_time', true );
+	$submission_ip = get_post_meta( $post->ID, 'submission_ip', true );
+	$user_agent = get_post_meta( $post->ID, 'user_agent', true );
+	
+	if ( empty( $form_data ) ) {
+		echo '<p>No form data available.</p>';
+		return;
+	}
+	
+	echo '<table class="widefat fixed" style="border: none;">';
+	echo '<tbody>';
+	
+	foreach ( $form_data as $key => $value ) {
+		if ( empty( $value ) ) continue;
+		
+		$label = ucfirst( str_replace( '_', ' ', $key ) );
+		echo '<tr>';
+		echo '<td style="width: 150px; font-weight: bold;">' . esc_html( $label ) . ':</td>';
+		echo '<td>' . esc_html( $value ) . '</td>';
+		echo '</tr>';
+	}
+	
+	if ( ! empty( $submission_time ) ) {
+		echo '<tr>';
+		echo '<td style="font-weight: bold;">Submission Time:</td>';
+		echo '<td>' . esc_html( $submission_time ) . '</td>';
+		echo '</tr>';
+	}
+	
+	if ( ! empty( $submission_ip ) ) {
+		echo '<tr>';
+		echo '<td style="font-weight: bold;">IP Address:</td>';
+		echo '<td>' . esc_html( $submission_ip ) . '</td>';
+		echo '</tr>';
+	}
+	
+	if ( ! empty( $user_agent ) ) {
+		echo '<tr>';
+		echo '<td style="font-weight: bold;">User Agent:</td>';
+		echo '<td style="word-break: break-all;">' . esc_html( $user_agent ) . '</td>';
+		echo '</tr>';
+	}
+	
+	echo '</tbody>';
+	echo '</table>';
+}
+
+/**
+ * Display the API response meta box
+ */
+function rentfetch_entry_api_response_meta_box( $post ) {
+	$api_response = get_post_meta( $post->ID, 'api_response', true );
+	$property_source = get_post_meta( $post->ID, 'property_source', true );
+	
+	echo '<table class="widefat fixed" style="border: none;">';
+	echo '<tbody>';
+	
+	echo '<tr>';
+	echo '<td style="width: 150px; font-weight: bold;">Property Source:</td>';
+	echo '<td>' . esc_html( $property_source ) . '</td>';
+	echo '</tr>';
+	
+	echo '<tr>';
+	echo '<td style="font-weight: bold;">API Response:</td>';
+	echo '<td>';
+	
+	if ( 200 === $api_response && is_int( $api_response ) ) {
+		echo '<span style="color: green; font-weight: bold;">Success (HTTP 200)</span>';
+	} elseif ( is_int( $api_response ) ) {
+		echo '<span style="color: red; font-weight: bold;">Error (HTTP ' . esc_html( $api_response ) . ')</span>';
+	} elseif ( is_string( $api_response ) && strpos( $api_response, ' - ' ) !== false ) {
+		list( $status_code, $message ) = explode( ' - ', $api_response, 2 );
+		echo '<span style="color: red; font-weight: bold;">Error (HTTP ' . esc_html( $status_code ) . ')</span><br>';
+		echo '<strong>Message:</strong> ' . esc_html( $message );
+	} else {
+		echo '<span style="color: red; font-weight: bold;">Error:</span> ' . esc_html( $api_response );
+	}
+	
+	echo '</td>';
+	echo '</tr>';
+	
+	// Display additional error information if available
+	$validation_errors = get_post_meta( $post->ID, 'validation_errors', true );
+	$error_message = get_post_meta( $post->ID, 'error_message', true );
+	
+	if ( ! empty( $validation_errors ) ) {
+		echo '<tr>';
+		echo '<td style="font-weight: bold;">Validation Errors:</td>';
+		echo '<td>';
+		if ( is_array( $validation_errors ) ) {
+			echo '<ul>';
+			foreach ( $validation_errors as $error ) {
+				echo '<li>' . esc_html( $error ) . '</li>';
+			}
+			echo '</ul>';
+		} else {
+			echo esc_html( $validation_errors );
+		}
+		echo '</td>';
+		echo '</tr>';
+	}
+	
+	if ( ! empty( $error_message ) ) {
+		echo '<tr>';
+		echo '<td style="font-weight: bold;">Error Message:</td>';
+		echo '<td>' . esc_html( $error_message ) . '</td>';
+		echo '</tr>';
+	}
+	
+	echo '</tbody>';
+	echo '</table>';
+}
+
+/**
  * Handles the rentfetch form AJAX submission, validation, and API submission.
  */
 function rentfetch_handle_ajax_form_submit() {
 	
 	// Verify the nonce
 	if ( ! isset( $_POST['rentfetch_form_nonce'] ) || ! wp_verify_nonce( $_POST['rentfetch_form_nonce'], 'rentfetch_form_submit' ) ) {
-		wp_send_json_error( array( 'errors' => array( 'Security check failed.' ) ) );
+		// Save the failed submission
+		$raw_form_data = array(
+			'first_name' => isset( $_POST['rentfetch_first_name'] ) ? sanitize_text_field( $_POST['rentfetch_first_name'] ) : '',
+			'last_name'  => isset( $_POST['rentfetch_last_name'] ) ? sanitize_text_field( $_POST['rentfetch_last_name'] ) : '',
+			'email'      => isset( $_POST['rentfetch_email'] ) ? sanitize_email( $_POST['rentfetch_email'] ) : '',
+			'phone'      => isset( $_POST['rentfetch_phone'] ) ? sanitize_text_field( $_POST['rentfetch_phone'] ) : '',
+			'property'   => isset( $_POST['rentfetch_property'] ) ? sanitize_text_field( $_POST['rentfetch_property'] ) : '',
+			'message'    => isset( $_POST['rentfetch_message'] ) ? sanitize_textarea_field( $_POST['rentfetch_message'] ) : '',
+		);
+		$entry_id = rentfetch_save_form_entry( $raw_form_data, 'nonce_failed', 'security_check_failed', array( 'error_message' => 'Security check failed.' ) );
+		
+		wp_send_json_error( array( 'errors' => array( 'Security check failed.' ), 'entry_id' => $entry_id ) );
 	}
 
 	// Basic honeypot check
 	if ( ! empty( $_POST['rentfetch_address'] ) ) {
-		wp_send_json_error( array( 'errors' => array( 'Spam detected.' ) ) );
+		// Save the failed submission
+		$raw_form_data = array(
+			'first_name' => isset( $_POST['rentfetch_first_name'] ) ? sanitize_text_field( $_POST['rentfetch_first_name'] ) : '',
+			'last_name'  => isset( $_POST['rentfetch_last_name'] ) ? sanitize_text_field( $_POST['rentfetch_last_name'] ) : '',
+			'email'      => isset( $_POST['rentfetch_email'] ) ? sanitize_email( $_POST['rentfetch_email'] ) : '',
+			'phone'      => isset( $_POST['rentfetch_phone'] ) ? sanitize_text_field( $_POST['rentfetch_phone'] ) : '',
+			'property'   => isset( $_POST['rentfetch_property'] ) ? sanitize_text_field( $_POST['rentfetch_property'] ) : '',
+			'message'    => isset( $_POST['rentfetch_message'] ) ? sanitize_textarea_field( $_POST['rentfetch_message'] ) : '',
+		);
+		$entry_id = rentfetch_save_form_entry( $raw_form_data, 'spam_detected', 'honeypot_triggered', array( 'error_message' => 'Spam detected.' ) );
+		
+		wp_send_json_error( array( 'errors' => array( 'Spam detected.' ), 'entry_id' => $entry_id ) );
 	}
 
 	// Sanitize and validate form data
@@ -360,7 +564,25 @@ function rentfetch_handle_ajax_form_submit() {
 
 	// If there are validation errors, send JSON error response
 	if ( ! empty( $errors ) ) {
-		wp_send_json_error( array( 'errors' => $errors ) );
+		// Prepare partial form data for logging
+		$partial_form_data = array(
+			'first_name'    => ! empty( $first_name ) ? $first_name : null,
+			'last_name'     => ! empty( $last_name ) ? $last_name : null,
+			'email'         => ! empty( $email ) ? $email : null,
+			'phone'         => ! empty( $phone ) ? $phone : null,
+			'property'      => ! empty( $property ) ? $property : null,
+			'message'       => ! empty( $message ) ? $message : null,
+			'lead_source'   => ! empty( $lead_source ) ? $lead_source : null,
+			'appointment_date' => ! empty( $appointment_date ) ? $appointment_date : null,
+			'appointment_start_time' => ! empty( $appointment_start_time ) ? $appointment_start_time : null,
+			'appointment_end_time' => ! empty( $appointment_end_time ) ? $appointment_end_time : null,
+			'debug'         => ! empty( $debug ) ? $debug : null,
+		);
+		
+		// Save the failed submission
+		$entry_id = rentfetch_save_form_entry( $partial_form_data, 'validation_error', 'validation_failed', array( 'validation_errors' => $errors ) );
+		
+		wp_send_json_error( array( 'errors' => $errors, 'entry_id' => $entry_id ) );
 	}
 
 	// Validation successful. Prepare data for API submission.
@@ -391,13 +613,19 @@ function rentfetch_handle_ajax_form_submit() {
 	if ( ! empty( $property_post ) ) {
 		$property_post = $property_post[0];
 	} else {
-		wp_send_json_error( array( 'errors' => array( 'This property cannot be found in our database.' ) ) );
+		// Save the failed submission
+		$entry_id = rentfetch_save_form_entry( $form_data, 'property_not_found', 'property_not_found', array( 'error_message' => 'This property cannot be found in our database.' ) );
+		
+		wp_send_json_error( array( 'errors' => array( 'This property cannot be found in our database.' ), 'entry_id' => $entry_id ) );
 	}
 	
 	// get the property_source for the property
 	$property_source = get_post_meta( $property_post->ID, 'property_source', true );
 	if ( empty( $property_source ) ) {
-		wp_send_json_error( array( 'errors' => array( 'This property has no corresponding API to send data to.' ) ) );
+		// Save the failed submission
+		$entry_id = rentfetch_save_form_entry( $form_data, 'no_api_configured', 'no_api_configured', array( 'error_message' => 'This property has no corresponding API to send data to.' ) );
+		
+		wp_send_json_error( array( 'errors' => array( 'This property has no corresponding API to send data to.' ), 'entry_id' => $entry_id ) );
 	}
 	
 	if ( 'entrata' === $property_source ) {
@@ -407,13 +635,20 @@ function rentfetch_handle_ajax_form_submit() {
 	} elseif ( 'rentmanager' === $property_source ) {
 		$response = rentfetch_send_lead_to_rentmanager( $form_data, $property_source, $property );
 	} else {
-		wp_send_json_error( array( 'errors' => array( 'This property has no corresponding API to send data to.' ) ) );	
+		// Save the failed submission
+		$entry_id = rentfetch_save_form_entry( $form_data, $property_source, 'unsupported_api', array( 'error_message' => 'This property has no corresponding API to send data to.' ) );
+		
+		wp_send_json_error( array( 'errors' => array( 'This property has no corresponding API to send data to.' ), 'entry_id' => $entry_id ) );	
 	}
 
 	// Check if the API call was successful (only exact 200 integer indicates success)
 	if ( 200 === $response && is_int( $response ) ) {
 		$message = apply_filters( 'rentfetch_form_success_message', $confirmation );
-		wp_send_json_success( array( 'message' => $message, 'data' => $form_data ) );
+		
+		// Save the form entry to the database
+		$entry_id = rentfetch_save_form_entry( $form_data, $property_source, $response );
+		
+		wp_send_json_success( array( 'message' => $message, 'data' => $form_data, 'entry_id' => $entry_id ) );
 	} else {
 		// Handle error response
 		$error_msg = 'Your message was not received.';
@@ -432,7 +667,10 @@ function rentfetch_handle_ajax_form_submit() {
 			$error_msg = "API error: {$response}. Your message was not received.";
 		}
 		
-		wp_send_json_error( array( 'errors' => array( $error_msg ) ) );
+		// Save the form entry to the database even on error
+		$entry_id = rentfetch_save_form_entry( $form_data, $property_source, $response );
+		
+		wp_send_json_error( array( 'errors' => array( $error_msg ), 'entry_id' => $entry_id ) );
 	}
 	
 }
