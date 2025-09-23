@@ -1,6 +1,8 @@
 ## 0.10.2
 
 -   Fixing an error with rentfetchFormAjax coming back undefined.
+-   Adding the ability to log form entries
+-   Improvements to form error handling (Entrata has a LOT of different ways they return error codes; we found at least four of them through testing, and those have been added to both the frontend and the backend logging).
 
 ## 0.10.1
 

@@ -301,188 +301,6 @@ function rentfetch_get_properties_for_form( $property_ids_string = '' ) {
 }
 
 /**
- * Save form submission data and API response to rentfetchentries post type
- *
- * @param array $form_data The sanitized form data
- * @param string $property_source The property source (entrata, yardi, etc.)
- * @param mixed $api_response The API response (int for status code or string for error)
- * @param array $additional_data Additional data like property post ID, validation errors, etc.
- * @return int The post ID of the created entry
- */
-function rentfetch_save_form_entry( $form_data, $property_source, $api_response, $additional_data = array() ) {
-	
-	// Create a title for the entry
-	$title = sprintf( '%s %s - %s', $form_data['first_name'], $form_data['last_name'], date( 'M j, Y g:i A' ) );
-	
-	// Create the post
-	$post_data = array(
-		'post_title'   => $title,
-		'post_content' => '', // Keep content empty, data is in meta boxes
-		'post_type'    => 'rentfetchentries',
-		'post_status'  => 'publish',
-		'meta_input'   => array(
-			'form_data'       => $form_data,
-			'property_source' => $property_source,
-			'api_response'    => $api_response,
-			'submission_time' => current_time( 'mysql' ),
-			'submission_ip'   => $_SERVER['REMOTE_ADDR'] ?? '',
-			'user_agent'      => $_SERVER['HTTP_USER_AGENT'] ?? '',
-		),
-	);
-	
-	// Add additional meta data
-	if ( ! empty( $additional_data ) ) {
-		$post_data['meta_input'] = array_merge( $post_data['meta_input'], $additional_data );
-	}
-	
-	$post_id = wp_insert_post( $post_data );
-	
-	return $post_id;
-}
-
-/**
- * Add meta boxes for rentfetchentries post type
- */
-function rentfetch_entries_meta_boxes() {
-	add_meta_box(
-		'rentfetch_entry_details',
-		'Form Submission Details',
-		'rentfetch_entry_details_meta_box',
-		'rentfetchentries',
-		'normal',
-		'high'
-	);
-	
-	add_meta_box(
-		'rentfetch_entry_api_response',
-		'API Response',
-		'rentfetch_entry_api_response_meta_box',
-		'rentfetchentries',
-		'normal',
-		'high'
-	);
-}
-add_action( 'add_meta_boxes', 'rentfetch_entries_meta_boxes' );
-
-/**
- * Display the form submission details meta box
- */
-function rentfetch_entry_details_meta_box( $post ) {
-	$form_data = get_post_meta( $post->ID, 'form_data', true );
-	$submission_time = get_post_meta( $post->ID, 'submission_time', true );
-	$submission_ip = get_post_meta( $post->ID, 'submission_ip', true );
-	$user_agent = get_post_meta( $post->ID, 'user_agent', true );
-	
-	if ( empty( $form_data ) ) {
-		echo '<p>No form data available.</p>';
-		return;
-	}
-	
-	echo '<table class="widefat fixed" style="border: none;">';
-	echo '<tbody>';
-	
-	foreach ( $form_data as $key => $value ) {
-		if ( empty( $value ) ) continue;
-		
-		$label = ucfirst( str_replace( '_', ' ', $key ) );
-		echo '<tr>';
-		echo '<td style="width: 150px; font-weight: bold;">' . esc_html( $label ) . ':</td>';
-		echo '<td>' . esc_html( $value ) . '</td>';
-		echo '</tr>';
-	}
-	
-	if ( ! empty( $submission_time ) ) {
-		echo '<tr>';
-		echo '<td style="font-weight: bold;">Submission Time:</td>';
-		echo '<td>' . esc_html( $submission_time ) . '</td>';
-		echo '</tr>';
-	}
-	
-	if ( ! empty( $submission_ip ) ) {
-		echo '<tr>';
-		echo '<td style="font-weight: bold;">IP Address:</td>';
-		echo '<td>' . esc_html( $submission_ip ) . '</td>';
-		echo '</tr>';
-	}
-	
-	if ( ! empty( $user_agent ) ) {
-		echo '<tr>';
-		echo '<td style="font-weight: bold;">User Agent:</td>';
-		echo '<td style="word-break: break-all;">' . esc_html( $user_agent ) . '</td>';
-		echo '</tr>';
-	}
-	
-	echo '</tbody>';
-	echo '</table>';
-}
-
-/**
- * Display the API response meta box
- */
-function rentfetch_entry_api_response_meta_box( $post ) {
-	$api_response = get_post_meta( $post->ID, 'api_response', true );
-	$property_source = get_post_meta( $post->ID, 'property_source', true );
-	
-	echo '<table class="widefat fixed" style="border: none;">';
-	echo '<tbody>';
-	
-	echo '<tr>';
-	echo '<td style="width: 150px; font-weight: bold;">Property Source:</td>';
-	echo '<td>' . esc_html( $property_source ) . '</td>';
-	echo '</tr>';
-	
-	echo '<tr>';
-	echo '<td style="font-weight: bold;">API Response:</td>';
-	echo '<td>';
-	
-	if ( 200 === $api_response && is_int( $api_response ) ) {
-		echo '<span style="color: green; font-weight: bold;">Success (HTTP 200)</span>';
-	} elseif ( is_int( $api_response ) ) {
-		echo '<span style="color: red; font-weight: bold;">Error (HTTP ' . esc_html( $api_response ) . ')</span>';
-	} elseif ( is_string( $api_response ) && strpos( $api_response, ' - ' ) !== false ) {
-		list( $status_code, $message ) = explode( ' - ', $api_response, 2 );
-		echo '<span style="color: red; font-weight: bold;">Error (HTTP ' . esc_html( $status_code ) . ')</span><br>';
-		echo '<strong>Message:</strong> ' . esc_html( $message );
-	} else {
-		echo '<span style="color: red; font-weight: bold;">Error:</span> ' . esc_html( $api_response );
-	}
-	
-	echo '</td>';
-	echo '</tr>';
-	
-	// Display additional error information if available
-	$validation_errors = get_post_meta( $post->ID, 'validation_errors', true );
-	$error_message = get_post_meta( $post->ID, 'error_message', true );
-	
-	if ( ! empty( $validation_errors ) ) {
-		echo '<tr>';
-		echo '<td style="font-weight: bold;">Validation Errors:</td>';
-		echo '<td>';
-		if ( is_array( $validation_errors ) ) {
-			echo '<ul>';
-			foreach ( $validation_errors as $error ) {
-				echo '<li>' . esc_html( $error ) . '</li>';
-			}
-			echo '</ul>';
-		} else {
-			echo esc_html( $validation_errors );
-		}
-		echo '</td>';
-		echo '</tr>';
-	}
-	
-	if ( ! empty( $error_message ) ) {
-		echo '<tr>';
-		echo '<td style="font-weight: bold;">Error Message:</td>';
-		echo '<td>' . esc_html( $error_message ) . '</td>';
-		echo '</tr>';
-	}
-	
-	echo '</tbody>';
-	echo '</table>';
-}
-
-/**
  * Handles the rentfetch form AJAX submission, validation, and API submission.
  */
 function rentfetch_handle_ajax_form_submit() {
@@ -636,13 +454,17 @@ function rentfetch_handle_ajax_form_submit() {
 		$response = rentfetch_send_lead_to_rentmanager( $form_data, $property_source, $property );
 	} else {
 		// Save the failed submission
-		$entry_id = rentfetch_save_form_entry( $form_data, $property_source, 'unsupported_api', array( 'error_message' => 'This property has no corresponding API to send data to.' ) );
+		$entry_id = rentfetch_save_form_entry( $form_data, $property_source, array(
+			'success' => false,
+			'status_code' => 0,
+			'message' => 'This property has no corresponding API to send data to.',
+		), array( 'error_message' => 'This property has no corresponding API to send data to.' ) );
 		
 		wp_send_json_error( array( 'errors' => array( 'This property has no corresponding API to send data to.' ), 'entry_id' => $entry_id ) );	
 	}
 
-	// Check if the API call was successful (only exact 200 integer indicates success)
-	if ( 200 === $response && is_int( $response ) ) {
+	// Check if the API call was successful
+	if ( isset( $response['success'] ) && true === $response['success'] ) {
 		$message = apply_filters( 'rentfetch_form_success_message', $confirmation );
 		
 		// Save the form entry to the database
@@ -653,18 +475,13 @@ function rentfetch_handle_ajax_form_submit() {
 		// Handle error response
 		$error_msg = 'Your message was not received.';
 		
-		if ( is_string( $response ) && strpos( $response, ' - ' ) !== false ) {
-			// Parse the error response format: "STATUS - MESSAGE"
-			list( $status_code, $api_message ) = explode( ' - ', $response, 2 );
-			$error_msg = "API error (HTTP {$status_code})";
-			if ( ! empty( $api_message ) ) {
-				$error_msg .= ": {$api_message}";
+		if ( isset( $response['status_code'] ) && $response['status_code'] > 0 ) {
+			$error_msg = "API error (HTTP {$response['status_code']})";
+			if ( ! empty( $response['message'] ) ) {
+				$error_msg .= ": {$response['message']}";
 			}
-			$error_msg .= '. Your message was not received.';
-		} elseif ( is_int( $response ) && 200 !== $response ) {
-			$error_msg = "API error (HTTP {$response}). Your message was not received.";
-		} elseif ( is_string( $response ) ) {
-			$error_msg = "API error: {$response}. Your message was not received.";
+		} elseif ( isset( $response['message'] ) ) {
+			$error_msg = "API error: {$response['message']}";
 		}
 		
 		// Save the form entry to the database even on error
@@ -684,7 +501,7 @@ add_action( 'wp_ajax_nopriv_rentfetch_ajax_submit_form', 'rentfetch_handle_ajax_
  * @param string $integration  The integration type (e.g., 'entrata').
  * @param string $property_id  The property ID associated with the lead.
  *
- * @return int|string The HTTP response code or error message.
+ * @return array Array with 'success' (bool), 'status_code' (int), and 'message' (string).
  */
 function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id ) {
 	
@@ -701,8 +518,11 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 
 	// Bail if required arguments are missing.
 	if ( ! $api_key || ! $subdomain || ! $property_id ) {
-		wp_send_json_error( array( 'errors' => array( 'Missing required API information to send request.' ) ) );
-		return;
+		return array(
+			'success' => false,
+			'status_code' => 0,
+			'message' => 'Missing required API information to send request.',
+		);
 	}
 	
 	// If the lead_source is not set, set it to the default value.
@@ -815,7 +635,6 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 		
 	}
 	
-	
 	// If  $form_data['schedule'] is set, add it to the body
 	if ( ! empty( $form_data['appointment_date'] ) && ! empty( $form_data['appointment_start_time'] ) && ! empty( $form_data['appointment_end_time'] ) ) {
 		$body_array['method']['params']['prospects']['prospect']['events']['event'] = array(
@@ -867,7 +686,7 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 	$response_body = json_decode( $response_body, true );
 	
 	// Check if the request was successful
-	$http_status = wp_remote_retrieve_response_code( $response );
+	$http_status = (int) $response_body['response']['code'];
 	
 	// Any non-200 HTTP status is an error
 	if ( 200 !== $http_status ) {
@@ -876,15 +695,28 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 		$error_message = '';
 		if ( isset( $response_body['response']['result']['prospects']['prospect'][0]['message'] ) ) {
 			$error_message = $response_body['response']['result']['prospects']['prospect'][0]['message'];
+		} elseif ( isset( $response_body['response']['result']['prospects'][0]['message'] ) ) {
+			$error_message = $response_body['response']['result']['prospects'][0]['message'];
+		} elseif ( isset( $response_body['response']['error']['message'] ) ) {
+			$error_message = $response_body['response']['error']['message'];
+			// Append Entrata error code if available
+			if ( isset( $response_body['response']['error']['code'] ) ) {
+				$error_message .= ' (Error Code: ' . $response_body['response']['error']['code'] . ')';
+			}
 		} elseif ( isset( $response_body['error'] ) ) {
 			$error_message = $response_body['error'];
 		}
 		
-		return $http_status . ( $error_message ? ' - ' . $error_message : '' );
+		return array(
+			'success' => false,
+			'status_code' => $http_status,
+			'message' => $error_message ?: 'HTTP ' . $http_status . ' error',
+		);
 	}
 	
 	// HTTP 200 - check for error indicators in the response body
 	$has_error = false;
+	$error_message = '';
 	if ( isset( $response_body['response']['result']['prospects']['prospect'][0]['message'] ) ) {
 		$message = $response_body['response']['result']['prospects']['prospect'][0]['message'];
 		// Check if the message indicates an error
@@ -893,28 +725,41 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 			 stripos( $message, 'invalid' ) !== false ||
 			 stripos( $message, 'denied' ) !== false ) {
 			$has_error = true;
+			$error_message = $message;
 		}
 	}
 	
 	if ( ! $has_error ) {
-		return 200;
+		return array(
+			'success' => true,
+			'status_code' => 200,
+			'message' => 'Lead submitted successfully',
+		);
 	}
 	
 	// Error found in 200 response
 	error_log( 'Entrata API Error in 200 response - Response: ' . wp_json_encode( $response_body ) );
 	
-	$error_message = isset( $response_body['response']['result']['prospects']['prospect'][0]['message'] ) 
-		? $response_body['response']['result']['prospects']['prospect'][0]['message'] 
-		: 'Unknown error';
-	
-	return '200 - ' . $error_message;
+	return array(
+		'success' => false,
+		'status_code' => 200,
+		'message' => $error_message ?: 'Unknown error in successful response',
+	);
 	
 }
 
 function rentfetch_send_lead_to_yardi( $form_data, $property_source, $property ) {
-	return 'Yardi API not currently implemented for leads';	
+	return array(
+		'success' => false,
+		'status_code' => 0,
+		'message' => 'Yardi API not currently implemented for leads',
+	);
 }
 
 function rentfetch_send_lead_to_rentmanager( $form_data, $property_source, $property ) {
-	return 'RentManager API not currently implemented for leads';	
+	return array(
+		'success' => false,
+		'status_code' => 0,
+		'message' => 'RentManager API not currently implemented for leads',
+	);
 }

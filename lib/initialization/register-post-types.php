@@ -42,12 +42,18 @@ function rfs_register_rentfetchentries_post_type() {
 		'items_list'            => _x( 'Form entries list', 'Screen reader text for the items list', 'rentfetchsync' ),
 	);
 
+	// Check if Rent Fetch plugin is active to determine menu placement
+	$show_in_menu = true; // Default to top-level menu
+	if ( function_exists( 'is_plugin_active' ) && is_plugin_active( 'rentfetch/rentfetch.php' ) ) {
+		$show_in_menu = 'rentfetch-options'; // Make it a submenu of Rent Fetch
+	}
+
 	$args = array(
 		'labels'             => $labels,
 		'public'             => false,
 		'publicly_queryable' => false,
 		'show_ui'            => true,
-		'show_in_menu'       => true,
+		'show_in_menu'       => $show_in_menu,
 		'query_var'          => false,
 		'rewrite'            => false,
 		'capability_type'    => 'post',
@@ -64,6 +70,39 @@ function rfs_register_rentfetchentries_post_type() {
 add_action( 'init', 'rfs_register_rentfetchentries_post_type' );
 
 /**
+ * Reposition the Form Entries submenu to be last in the Rent Fetch menu
+ */
+function rfs_reposition_form_entries_submenu() {
+	global $submenu;
+	
+	// Only proceed if Rent Fetch plugin is active and the submenu exists
+	if ( ! function_exists( 'is_plugin_active' ) || ! is_plugin_active( 'rentfetch/rentfetch.php' ) ) {
+		return;
+	}
+	
+	if ( ! isset( $submenu['rentfetch-options'] ) ) {
+		return;
+	}
+	
+	// Find and move the Form Entries menu item to the end
+	$form_entries_key = null;
+	foreach ( $submenu['rentfetch-options'] as $key => $item ) {
+		if ( isset( $item[2] ) && strpos( $item[2], 'edit.php?post_type=rentfetchentries' ) !== false ) {
+			$form_entries_key = $key;
+			break;
+		}
+	}
+	
+	// If found, move it to the end
+	if ( $form_entries_key !== null ) {
+		$form_entries_item = $submenu['rentfetch-options'][$form_entries_key];
+		unset( $submenu['rentfetch-options'][$form_entries_key] );
+		$submenu['rentfetch-options'][] = $form_entries_item;
+	}
+}
+add_action( 'admin_menu', 'rfs_reposition_form_entries_submenu', 999 );
+
+/**
  * Add custom columns to the rentfetchentries admin list
  *
  * @param array $columns The existing columns
@@ -76,6 +115,7 @@ function rentfetch_entries_custom_columns( $columns ) {
 	
 	// Add our custom columns
 	$columns['entry_date'] = 'Date/Time';
+	$columns['property'] = 'Property';
 	$columns['first_name'] = 'First Name';
 	$columns['last_name'] = 'Last Name';
 	$columns['email'] = 'Email';
@@ -107,6 +147,16 @@ function rentfetch_entries_custom_column_content( $column, $post_id ) {
 			}
 			break;
 			
+		case 'property':
+			$property_id = isset( $form_data['property'] ) ? $form_data['property'] : '';
+			if ( ! empty( $property_id ) ) {
+				$property_name = rentfetch_get_property_name( $property_id );
+				echo esc_html( $property_name );
+			} else {
+				echo '';
+			}
+			break;
+			
 		case 'first_name':
 			echo isset( $form_data['first_name'] ) ? esc_html( $form_data['first_name'] ) : '';
 			break;
@@ -128,15 +178,32 @@ function rentfetch_entries_custom_column_content( $column, $post_id ) {
 			break;
 			
 		case 'api_response':
-			if ( 200 === $api_response && is_int( $api_response ) ) {
-				echo '<span style="color: green;">✓ Success</span>';
-			} elseif ( is_int( $api_response ) ) {
-				echo '<span style="color: red;">✗ Error (' . esc_html( $api_response ) . ')</span>';
-			} elseif ( is_string( $api_response ) && strpos( $api_response, ' - ' ) !== false ) {
-				list( $status_code, $message ) = explode( ' - ', $api_response, 2 );
-				echo '<span style="color: red;">✗ Error (' . esc_html( $status_code ) . ')</span>';
+			if ( is_array( $api_response ) ) {
+				if ( isset( $api_response['success'] ) && true === $api_response['success'] ) {
+					echo '<span style="color: green;">✓ Success';
+					if ( isset( $api_response['status_code'] ) ) {
+						echo ' (' . esc_html( $api_response['status_code'] ) . ')';
+					}
+					echo '</span>';
+				} else {
+					echo '<span style="color: red;">✗ Error';
+					if ( isset( $api_response['status_code'] ) && $api_response['status_code'] > 0 ) {
+						echo ' (' . esc_html( $api_response['status_code'] ) . ')';
+					}
+					echo '</span>';
+				}
 			} else {
-				echo '<span style="color: red;">✗ ' . esc_html( $api_response ) . '</span>';
+				// Fallback for old format
+				if ( 200 === $api_response && is_int( $api_response ) ) {
+					echo '<span style="color: green;">✓ Success</span>';
+				} elseif ( is_int( $api_response ) ) {
+					echo '<span style="color: red;">✗ Error (' . esc_html( $api_response ) . ')</span>';
+				} elseif ( is_string( $api_response ) && strpos( $api_response, ' - ' ) !== false ) {
+					list( $status_code, $message ) = explode( ' - ', $api_response, 2 );
+					echo '<span style="color: red;">✗ Error (' . esc_html( $status_code ) . ')</span>';
+				} else {
+					echo '<span style="color: red;">✗ ' . esc_html( $api_response ) . '</span>';
+				}
 			}
 			break;
 	}
