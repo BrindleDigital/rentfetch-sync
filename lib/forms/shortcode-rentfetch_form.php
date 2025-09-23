@@ -410,11 +410,29 @@ function rentfetch_handle_ajax_form_submit() {
 		wp_send_json_error( array( 'errors' => array( 'This property has no corresponding API to send data to.' ) ) );	
 	}
 
-	if ( 200 === (int) $response ) {
+	// Check if the API call was successful (only exact 200 integer indicates success)
+	if ( 200 === $response && is_int( $response ) ) {
 		$message = apply_filters( 'rentfetch_form_success_message', $confirmation );
 		wp_send_json_success( array( 'message' => $message, 'data' => $form_data ) );
 	} else {
-		wp_send_json_error( array( 'errors' => array( 'API error encountered: ' . $response . '. Your message was not received.' ) ) );
+		// Handle error response
+		$error_msg = 'Your message was not received.';
+		
+		if ( is_string( $response ) && strpos( $response, ' - ' ) !== false ) {
+			// Parse the error response format: "STATUS - MESSAGE"
+			list( $status_code, $api_message ) = explode( ' - ', $response, 2 );
+			$error_msg = "API error (HTTP {$status_code})";
+			if ( ! empty( $api_message ) ) {
+				$error_msg .= ": {$api_message}";
+			}
+			$error_msg .= '. Your message was not received.';
+		} elseif ( is_int( $response ) && 200 !== $response ) {
+			$error_msg = "API error (HTTP {$response}). Your message was not received.";
+		} elseif ( is_string( $response ) ) {
+			$error_msg = "API error: {$response}. Your message was not received.";
+		}
+		
+		wp_send_json_error( array( 'errors' => array( $error_msg ) ) );
 	}
 	
 }
@@ -609,14 +627,49 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 
 	// let's decode the response body
 	$response_body = json_decode( $response_body, true );
-			
-	if ( 200 === (int) $response['response']['code'] ) {
-		return (int) $response['response']['code'];
-	} else {
-		$message = isset( $response_body['response']['result']['prospects']['prospect']['message'] ) ? $response_body['response']['result']['prospects']['prospect']['message'] : null;
-		// If the response is not 200, return the error message.
-		return $response['response']['code'] . ' - ' . $message;
+	
+	// Check if the request was successful
+	$http_status = wp_remote_retrieve_response_code( $response );
+	
+	// Any non-200 HTTP status is an error
+	if ( 200 !== $http_status ) {
+		error_log( 'Entrata API Error - HTTP Status: ' . $http_status . ', Response: ' . wp_json_encode( $response_body ) );
+		
+		$error_message = '';
+		if ( isset( $response_body['response']['result']['prospects']['prospect'][0]['message'] ) ) {
+			$error_message = $response_body['response']['result']['prospects']['prospect'][0]['message'];
+		} elseif ( isset( $response_body['error'] ) ) {
+			$error_message = $response_body['error'];
+		}
+		
+		return $http_status . ( $error_message ? ' - ' . $error_message : '' );
 	}
+	
+	// HTTP 200 - check for error indicators in the response body
+	$has_error = false;
+	if ( isset( $response_body['response']['result']['prospects']['prospect'][0]['message'] ) ) {
+		$message = $response_body['response']['result']['prospects']['prospect'][0]['message'];
+		// Check if the message indicates an error
+		if ( stripos( $message, 'error' ) !== false || 
+			 stripos( $message, 'failed' ) !== false || 
+			 stripos( $message, 'invalid' ) !== false ||
+			 stripos( $message, 'denied' ) !== false ) {
+			$has_error = true;
+		}
+	}
+	
+	if ( ! $has_error ) {
+		return 200;
+	}
+	
+	// Error found in 200 response
+	error_log( 'Entrata API Error in 200 response - Response: ' . wp_json_encode( $response_body ) );
+	
+	$error_message = isset( $response_body['response']['result']['prospects']['prospect'][0]['message'] ) 
+		? $response_body['response']['result']['prospects']['prospect'][0]['message'] 
+		: 'Unknown error';
+	
+	return '200 - ' . $error_message;
 	
 }
 
