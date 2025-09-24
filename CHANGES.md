@@ -1,3 +1,7 @@
+## 0.10.4
+
+-   Added logging when we don't have required Entrata API information to specify which piece of information we're missing.
+
 ## 0.10.2
 
 -   Fixing an error with rentfetchFormAjax coming back undefined.

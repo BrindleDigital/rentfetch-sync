@@ -517,11 +517,25 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 	$property_id = $args['property_id'];
 
 	// Bail if required arguments are missing.
-	if ( ! $api_key || ! $subdomain || ! $property_id ) {
+	$missing = [];
+	
+	if ( ! $api_key ) {
+		$missing[] = 'API key';
+	}
+	
+	if ( ! $subdomain ) {
+		$missing[] = 'subdomain';
+	}
+	
+	if ( ! $property_id ) {
+		$missing[] = 'property ID';
+	}
+	
+	if ( ! empty( $missing ) ) {
 		return array(
 			'success' => false,
 			'status_code' => 0,
-			'message' => 'Missing required API information to send request.',
+			'message' => 'Missing required API information: ' . implode(', ', $missing),
 		);
 	}
 	
