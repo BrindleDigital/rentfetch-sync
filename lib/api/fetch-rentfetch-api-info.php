@@ -122,6 +122,7 @@ function rfs_get_info_from_rentfetch_api() {
 		// When the response code is 200.
 
 		$body               = wp_remote_retrieve_body( $response ); // Retrieve response body.
+		$body = rentfetch_clean_json_string( $body );
 		$response_php_array = json_decode( $body, true );
 
 		// cache the response for 5 minutes.

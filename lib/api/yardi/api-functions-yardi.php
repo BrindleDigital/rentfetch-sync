@@ -25,30 +25,26 @@ function rfs_do_yardi_sync( $args ) {
 	// perform the API calls to get the data.
 	$property_data_v2 = rfs_yardi_v2_get_property_data( $args );
 
-	// validate that we're getting legitimate data from the v2 API. If we are, we'll use that data instead of the v1 data.
-	if ( isset( $property_data_v2['properties'][0] ) && is_array( $property_data_v2['properties'][0] ) ) {
+	// get the data, then update the property post.
+	rfs_yardi_v2_update_property_meta( $args, $property_data_v2 );
 
-		// ! V2 API (preferred)
+	// get the property images.
+	$property_images_v2 = rfs_yardi_v2_get_property_images( $args );
 
-		// get the data, then update the property post.
-		rfs_yardi_v2_update_property_meta( $args, $property_data_v2 );
+	// update the images for this property.
+	rfs_yardi_v2_update_property_images( $args, $property_images_v2 );
 
-		// get the property images.
-		$property_images_v2 = rfs_yardi_v2_get_property_images( $args );
-
-		// update the images for this property.
-		rfs_yardi_v2_update_property_images( $args, $property_images_v2 );
-
-		// add the amenities.
-		rfs_yardi_v2_update_property_amenities( $args, $property_data_v2 );
-		
-		// get the floorplans data for this property.
-		$floorplans_data_v2 = rfs_yardi_v2_get_floorplan_data( $args );
-		
-		// get the availability data (this should be the units), which we'll need both for the floorplan and the unit.
-		$unit_data_v2 = rfs_yardi_v2_get_unit_data( $args );
-						
-		// ~ We'll need the floorplan ID to update that.
+	// add the amenities.
+	rfs_yardi_v2_update_property_amenities( $args, $property_data_v2 );
+	
+	// get the floorplans data for this property.
+	$floorplans_data_v2 = rfs_yardi_v2_get_floorplan_data( $args );
+	
+	// get the availability data (this should be the units), which we'll need both for the floorplan and the unit.
+	$unit_data_v2 = rfs_yardi_v2_get_unit_data( $args );
+					
+	// ~ We'll need the floorplan ID to update that.
+	if ( is_array( $floorplans_data_v2 ) ) {
 		foreach ( $floorplans_data_v2 as $floorplan ) {
 
 			// skip if there's no floorplan id.
@@ -66,43 +62,42 @@ function rfs_do_yardi_sync( $args ) {
 			rfs_yardi_v2_update_floorplan_meta( $args, $floorplan, $unit_data_v2 );
 			
 		}
-				
-		if ( $unit_data_v2 && is_array( $unit_data_v2 ) ) {
+	}
 			
-			// We'll need the unit ID to get the unit information.
-			foreach( $unit_data_v2 as $unit ) {
-				
-				// skip if there's no unit id.
-				if ( ! isset( $unit['apartmentId'] ) ) {
-					continue;
-				}
-
-				$unit_id         = $unit['apartmentId'];
-				$args['unit_id'] = $unit_id;
-				
-				if ( ! isset( $unit['floorplanId'] ) ) {
-					continue;
-				}
-				
-				$args['floorplan_id'] = $unit['floorplanId'];
-
-				// now that we have the unit ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
-				$args = rfs_maybe_create_unit( $args );
-
-				// update the unit meta for this property.
-				rfs_yardi_v2_update_unit_meta( $args, $unit );
-
+	if ( is_array( $unit_data_v2 ) ) {
+		
+		// We'll need the unit ID to get the unit information.
+		foreach( $unit_data_v2 as $unit ) {
+			
+			// skip if there's no unit id.
+			if ( ! isset( $unit['apartmentId'] ) ) {
+				continue;
 			}
 
-			// Remove the units that aren't in the API for this property.
-			rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args );
+			$unit_id         = $unit['apartmentId'];
+			$args['unit_id'] = $unit_id;
+			
+			if ( ! isset( $unit['floorplanId'] ) ) {
+				continue;
+			}
+			
+			$args['floorplan_id'] = $unit['floorplanId'];
+
+			// now that we have the unit ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
+			$args = rfs_maybe_create_unit( $args );
+
+			// update the unit meta for this property.
+			rfs_yardi_v2_update_unit_meta( $args, $unit );
 
 		}
+
+		// Remove the units that aren't in the API for this property.
+		rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args );
+
+	}
 		
 		// remove availability for floorplans that no longer are found in the API (we don't delete these because Yardi sometimes doesn't show floorplans with zero availability).
 		rfs_yardi_v2_remove_availability_orphan_floorplans( $args, $floorplans_data_v2 );
-
-	} 
 	
 	// else {
 

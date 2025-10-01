@@ -147,10 +147,11 @@ function rfs_rentmanager_get_property_data( $args ) {
 		return array(); // Return empty array to prevent errors
 	}
 
+	$response = rentfetch_clean_json_string( $response );
 	$property_data = json_decode( $response, true );
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
 		error_log( 'JSON decode error in rfs_rentmanager_get_property_data: ' . json_last_error_msg() );
-		return array(); // Return empty array
+		return $response; // Return the cleaned JSON string if decode fails
 	}
 
 	return $property_data[0] ?? array(); // Ensure it returns an array
@@ -167,6 +168,23 @@ function rfs_rentmanager_get_property_data( $args ) {
 function rfs_rentmanager_update_property_meta( $args, $property_data ) {
 	// bail if we don't have the WordPress post ID.
 	if ( ! isset( $args['wordpress_property_post_id'] ) || ! $args['wordpress_property_post_id'] ) {
+		return;
+	}
+
+	// If property_data is a string (cleaned JSON from decode failure), save it directly
+	if ( is_string( $property_data ) ) {
+		$api_response = get_post_meta( $args['wordpress_property_post_id'], 'api_response', true );
+		
+		if ( ! is_array( $api_response ) ) {
+			$api_response = array();
+		}
+	
+		$api_response['properties_api'] = array(
+			'updated'      => current_time( 'mysql' ),
+			'api_response' => $property_data,
+		);
+		
+		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
 		return;
 	}
 
@@ -323,10 +341,11 @@ function rfs_rentmanager_get_unit_types_data( $args ) {
 		return array(); // Return empty array to prevent errors
 	}
 
+	$response = rentfetch_clean_json_string( $response );
 	$unit_types_data = json_decode( $response, true );
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
 		error_log( 'JSON decode error in rfs_rentmanager_get_unit_types_data: ' . json_last_error_msg() );
-		return array(); // Return empty array
+		return $response; // Return the cleaned JSON string if decode fails
 	}
 
 	return $unit_types_data ?: array(); // Ensure it returns an array
@@ -341,6 +360,23 @@ function rfs_rentmanager_get_unit_types_data( $args ) {
  * @return  void.
  */
 function rfs_rentmanager_update_floorplan_meta( $args, $floorplan_data ) {
+
+	// If floorplan_data is a string (cleaned JSON from decode failure), save it directly
+	if ( is_string( $floorplan_data ) ) {
+		$api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
+		
+		if ( ! is_array( $api_response ) ) {
+			$api_response = array();
+		}
+	
+		$api_response['floorplans_api'] = array(
+			'updated'      => current_time( 'mysql' ),
+			'api_response' => $floorplan_data,
+		);
+		
+		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
+		return;
+	}
 
 	$property_id  = $args['property_id'];
 	$floorplan_id = $args['floorplan_id'];
@@ -533,16 +569,34 @@ function rfs_rentmanager_get_units_data( $args ) {
 		return array(); // Return empty array to prevent errors
 	}
 
+	$response = rentfetch_clean_json_string( $response );
 	$units_data = json_decode( $response, true );
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
 		error_log( 'JSON decode error in rfs_rentmanager_get_units_data: ' . json_last_error_msg() );
-		return array(); // Return empty array
+		return $response; // Return the cleaned JSON string if decode fails
 	}
 
 	return $units_data ?: array(); // Ensure it returns an array
 }
 
 function rfs_rentmanager_update_unit_meta( $args, $unit ) {
+	
+	// If unit is a string (cleaned JSON from decode failure), save it directly
+	if ( is_string( $unit ) ) {
+		$api_response = get_post_meta( $args['wordpress_unit_post_id'], 'api_response', true );
+		
+		if ( ! is_array( $api_response ) ) {
+			$api_response = array();
+		}
+	
+		$api_response['units_api'] = array(
+			'updated'      => current_time( 'mysql' ),
+			'api_response' => $unit,
+		);
+		
+		$success = update_post_meta( $args['wordpress_unit_post_id'], 'api_response', $api_response );
+		return;
+	}
 	
 	if ( !isset( $unit['Name'] ) ) {
 		return;

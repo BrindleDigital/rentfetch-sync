@@ -81,7 +81,12 @@ function rfs_entrata_get_unit_data( $args ) {
 
 	// Retrieve and decode the response body.
 	$response_body = wp_remote_retrieve_body( $response );
+	$response_body = rentfetch_clean_json_string( $response_body );
 	$unit_data = json_decode( $response_body, true );
+	
+	if ( $unit_data === null && json_last_error() !== JSON_ERROR_NONE ) {
+		return $response_body; // Return the cleaned JSON string if decode fails
+	}
 	
 	return $unit_data;
 }

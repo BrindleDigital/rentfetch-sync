@@ -15,6 +15,23 @@ function rfs_entrata_update_unit_meta( $args, $unit_data, $property_mits_data ) 
 	if ( ! isset( $args['wordpress_unit_post_id'] ) || ! $args['wordpress_unit_post_id'] ) {
 		return;
 	}
+
+	// If unit_data is a string (cleaned JSON from decode failure), save it directly
+	if ( is_string( $unit_data ) ) {
+		$api_response = get_post_meta( $args['wordpress_unit_post_id'], 'api_response', true );
+		
+		if ( ! is_array( $api_response ) ) {
+			$api_response = array();
+		}
+	
+		$api_response['getUnitsAvailabilityAndPricing'] = array(
+			'updated'      => current_time( 'mysql' ),
+			'api_response' => $unit_data,
+		);
+		
+		$success = update_post_meta( $args['wordpress_unit_post_id'], 'api_response', $api_response );
+		return;
+	}
 	
 	$unit_id = $unit_data['@attributes']['PropertyUnitId'];
 	

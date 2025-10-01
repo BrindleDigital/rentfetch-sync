@@ -22,6 +22,23 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_
 		return;
 	}
 
+	// If floorplan_data is a string (cleaned JSON from decode failure), save it directly
+	if ( is_string( $floorplan_data ) ) {
+		$api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
+		
+		if ( ! is_array( $api_response ) ) {
+			$api_response = array();
+		}
+	
+		$api_response['floorplans_api'] = array(
+			'updated'      => current_time( 'mysql' ),
+			'api_response' => $floorplan_data,
+		);
+		
+		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
+		return;
+	}
+
 	// bail if we don't have the data to update this, updating the meta to give the error.
 	if ( ! $floorplan_data['floorplanId'] ) {
 

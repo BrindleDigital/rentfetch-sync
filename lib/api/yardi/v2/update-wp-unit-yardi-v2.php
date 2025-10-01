@@ -24,6 +24,23 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 		return;
 	}
 
+	// If unit_data is a string (cleaned JSON from decode failure), save it directly
+	if ( is_string( $unit_data ) ) {
+		$api_response = get_post_meta( $args['wordpress_unit_post_id'], 'api_response', true );
+		
+		if ( ! is_array( $api_response ) ) {
+			$api_response = array();
+		}
+	
+		$api_response['units_api'] = array(
+			'updated'      => current_time( 'mysql' ),
+			'api_response' => $unit_data,
+		);
+		
+		$success = update_post_meta( $args['wordpress_unit_post_id'], 'api_response', $api_response );
+		return;
+	}
+
 	$apartmentID = $unit_data['apartmentId']; // phpcs:ignore.
 
 	// bail if we don't have the data to update this, updating the meta to give the error.

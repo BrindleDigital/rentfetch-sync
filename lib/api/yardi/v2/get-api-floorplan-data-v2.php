@@ -61,7 +61,12 @@ function rfs_yardi_v2_get_floorplan_data( $args ) {
 	}
 
 	$response_body = wp_remote_retrieve_body( $response );
+	$response_body = rentfetch_clean_json_string( $response_body );
 	$data          = json_decode( $response_body, true );
+
+	if ( $data === null && json_last_error() !== JSON_ERROR_NONE ) {
+		return $response_body; // Return the cleaned JSON string if decode fails
+	}
 
 	if ( isset( $data['floorplans'] ) && is_array( $data['floorplans'] ) ) {
 		return $data['floorplans'];

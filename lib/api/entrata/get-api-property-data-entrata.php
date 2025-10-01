@@ -69,7 +69,12 @@ function rfs_entrata_get_property_data( $args ) {
 
 	// Retrieve and decode the response body.
 	$response_body = wp_remote_retrieve_body( $response );
+	$response_body = rentfetch_clean_json_string( $response_body );
 	$property_data = json_decode( $response_body, true );
+	
+	if ( $property_data === null && json_last_error() !== JSON_ERROR_NONE ) {
+		return $response_body; // Return the cleaned JSON string if decode fails
+	}
 	
 	return $property_data;
 }
@@ -139,7 +144,12 @@ function rfs_entrata_get_property_mits_data( $args ) {
 
 	// Retrieve and decode the response body.
 	$response_body = wp_remote_retrieve_body( $response );
+	$response_body = rentfetch_clean_json_string( $response_body );
 	$property_data = json_decode( $response_body, true );
+	
+	if ( $property_data === null && json_last_error() !== JSON_ERROR_NONE ) {
+		return $response_body; // Return the cleaned JSON string if decode fails
+	}
 	
 	return $property_data;
 }

@@ -23,6 +23,22 @@ function rfs_entrata_update_property_meta( $args, $property_data ) {
 	if ( !isset( $args['wordpress_property_post_id'] ) || !$args['wordpress_property_post_id'] )
 		return;
 
+	// If property_data is a string (cleaned JSON from decode failure), save it directly
+	if ( is_string( $property_data ) ) {
+		$api_response = get_post_meta( $args['wordpress_property_post_id'], 'api_response', true );
+		
+		if ( !is_array( $api_response ) )
+			$api_response = [];
+	
+		$api_response['properties_api'] = [
+			'updated' => current_time('mysql'),
+			'api_response' => $property_data,
+		];
+		
+		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		return;
+	}
+
 	// bail if we don't have the data to update this, updating the meta to give the error
 	if ( !isset( $property_data['response']['result']['PhysicalProperty']['Property'][0] ) ) {
 		
@@ -112,6 +128,22 @@ function rfs_entrata_update_property_mits_meta( $args, $property_data ) {
 	// bail if we don't have the wordpress post ID
 	if ( !isset( $args['wordpress_property_post_id'] ) || !$args['wordpress_property_post_id'] )
 		return;
+
+	// If property_data is a string (cleaned JSON from decode failure), save it directly
+	if ( is_string( $property_data ) ) {
+		$api_response = get_post_meta( $args['wordpress_property_post_id'], 'api_response', true );
+		
+		if ( !is_array( $api_response ) )
+			$api_response = [];
+	
+		$api_response['getMitsPropertyUnits'] = [
+			'updated' => current_time('mysql'),
+			'api_response' => $property_data,
+		];
+		
+		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		return;
+	}
 
 	// bail if we don't have the data to update this, updating the meta to give the error
 	if ( !isset( $property_data['response']['result']['PhysicalProperty']['Property'][0] ) ) {
