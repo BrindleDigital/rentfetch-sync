@@ -35,6 +35,9 @@ function rfs_yardi_v2_update_property_meta( $args, $property_data ) {
 		if ( !is_array( $api_response ) )
 			$api_response = [];
 	
+		// Clean the JSON string to handle smart quotes and other issues
+		$property_data_string = rentfetch_clean_json_string( $property_data_string );
+	
 		$api_response['properties_api'] = [
 			'updated' => current_time('mysql'),
 			'api_response' => $property_data_string,
@@ -136,6 +139,9 @@ function rfs_yardi_v2_update_property_images( $args, $property_images ) {
 	}
 	
 	$property_images_string = json_encode( $property_images );
+	
+	// Clean the JSON string
+	$property_images_string = rentfetch_clean_json_string( $property_images_string );
 	
 	$api_response['property_images_api'] = [
 		'updated' => current_time('mysql'),

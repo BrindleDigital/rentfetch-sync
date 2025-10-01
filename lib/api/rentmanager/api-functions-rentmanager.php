@@ -181,6 +181,9 @@ function rfs_rentmanager_update_property_meta( $args, $property_data ) {
 			$api_response = array();
 		}
 
+		// Clean the JSON string
+		$property_data_string = rentfetch_clean_json_string( $property_data_string );
+
 		$api_response['properties_api'] = array(
 			'updated'      => current_time( 'mysql' ),
 			'api_response' => $property_data_string,
