@@ -19,7 +19,7 @@ function rfs_get_info_from_rentfetch_api() {
 	// get the transient and return it if it exists.
 	$transient = get_transient( 'rentfetch_api_info' );
 
-	if ( $transient ) {
+	if ( $transient && is_array( $transient ) ) {
 		// silence is golden.
 		return $transient;
 	}
