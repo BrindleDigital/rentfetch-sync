@@ -1,3 +1,8 @@
+## 0.11
+
+-   Removal of Yardi v1 API legacy code (this shouldn't be running on any site)
+-   Adding better functionality to clean json that's coming from the various APIs, since Yardi seems insistent on giving us broken JSON (usually quotation marks within JSON values)
+
 ## 0.10.4
 
 -   Added logging when we don't have required Entrata API information to specify which piece of information we're missing.
