@@ -146,6 +146,86 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_
 	}
 }
 
+function rfs_yardi_v2_update_floorplan_units_available_number( $args, $floorplans_data_v2 ) {
+
+	//* NOTE: we're going to update these using floorplans data from the API, and our own unit meta, because Yardi sometimes sends empty responses in the units API.
+
+	$property_id = $args['property_id'];
+	
+	// get all of the floorplan IDs from yardi into an array
+	$floorplan_yardi_ids = array();
+	
+	foreach ( $floorplans_data_v2 as $floorplan ) {
+		if ( isset( $floorplan['floorplanId'] ) ) {
+			$floorplan_yardi_ids[] = $floorplan['floorplanId'];
+		}
+	}
+	
+	// let's do a query for the floorplans for this property that have a floorplan_source of 'yardi' and have 'property_id' value according to $args['property_id']
+	$floorplan_posts = get_posts( array(
+		'post_type'      => 'floorplans',
+		'posts_per_page' => -1,
+		'post_status'    => 'publish',
+		'meta_query'     => array(
+			'relation' => 'AND',
+			array(
+				'key'     => 'property_id',
+				'value'   => $property_id,
+				'compare' => 'LIKE',
+			),
+			array(
+				'key'     => 'floorplan_source',
+				'value'   => 'yardi',
+				'compare' => '=',
+			),
+		),
+	) ); 
+	
+	// now, loop through the posts, and for each of these floorplans posts, we're going to query for units that have the 'unit_source' of 'yardi' along with the property_id and floorplan_id (this ID is from meta) corresponding to this floorplan and property.
+	foreach ( $floorplan_posts as $floorplan_post ) {
+
+		$floorplan_id = $floorplan_post->ID;
+		$floorplan_yardi_id = get_post_meta( $floorplan_id, 'floorplan_id', true );
+
+		$unit_posts = get_posts( array(
+			'post_type'      => 'units',
+			'posts_per_page' => -1,
+			'post_status'    => 'publish',
+			'meta_query'     => array(
+				'relation' => 'AND',
+				array(
+					'key'     => 'property_id',
+					'value'   => $property_id,
+					'compare' => 'LIKE',
+				),
+				array(
+					'key'     => 'floorplan_id',
+					'value'   => $floorplan_yardi_id,
+					'compare' => 'LIKE',
+				),
+				array(
+					'key'     => 'unit_source',
+					'value'   => 'yardi',
+					'compare' => '=',
+				),
+				array(
+					'key'     => 'availability_date',
+					'value'   => '',
+					'compare' => '!=',
+				),
+			),
+		) );
+
+		// we need to update the available_units meta for this floorplan post to match the number of units we found.
+		$available_units = count( $unit_posts );
+		
+		// bail if there aren't any (like on a manual entry site).
+		if ( 0 != $available_units ) {
+			update_post_meta( $floorplan_id, 'available_units', $available_units );
+		}
+	}
+}
+
 /**
  * Update the floorplan availability for this floorplan.
  * 

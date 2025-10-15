@@ -95,9 +95,13 @@ function rfs_do_yardi_sync( $args ) {
 		rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args );
 
 	}
+	
+	// update the number of available units for each floorplan, because the floorplans API sometimes lies to us and doesn't give us the right number.
+	rfs_yardi_v2_update_floorplan_units_available_number( $args, $floorplans_data_v2 );
 		
-		// remove availability for floorplans that no longer are found in the API (we don't delete these because Yardi sometimes doesn't show floorplans with zero availability).
-		rfs_yardi_v2_remove_availability_orphan_floorplans( $args, $floorplans_data_v2 );
+	// remove availability for floorplans that no longer are found in the API (we don't delete these because Yardi sometimes doesn't show floorplans with zero availability).
+	rfs_yardi_v2_remove_availability_orphan_floorplans( $args, $floorplans_data_v2 );
+	
 	
 	// else {
 

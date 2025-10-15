@@ -1,3 +1,7 @@
+## 0.11.1
+
+-   Yardi now does not always give us correct information in their apartmentavailability API. It periodically allows this to be accessed, but returns an empty response if we query more than every 15 minutes (or similar). We already avoid making changes to the units when we get empty data back from Yardi, but we previously relied on that data to fix a second inconsistency in the Yardi data, namely that their floorplans API sometimes doesn't give correct unit availability numbers. We're updating to take the number of units we currently have on the site for that floorplan rather than relying on the API for that information (since yardi is rate-limiting that data source).
+
 ## 0.11
 
 -   Removal of Yardi v1 API legacy code (this shouldn't be running on any site)
