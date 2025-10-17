@@ -76,13 +76,10 @@ function rfs_enqueue_conditional_scripts() {
 	$gf_active = class_exists( 'GFAPI' );
 	$has_forms = rfs_has_gravity_forms();
 
-	error_log( '[rentfetch] Conditional enqueue check - GF Active: ' . ($gf_active ? 'yes' : 'no') . ', Has Forms: ' . ($has_forms ? 'yes' : 'no') );
 
 	if ( $gf_active && $has_forms ) {
 		wp_enqueue_script( 'rentfetch-form-populate' );
-		error_log( '[rentfetch] Enqueued rentfetch-form-populate script' );
 	} else {
-		error_log( '[rentfetch] Did not enqueue rentfetch-form-populate script' );
 	}
 }
 add_action( 'wp_enqueue_scripts', 'rfs_enqueue_conditional_scripts' );
@@ -95,21 +92,18 @@ add_action( 'wp_enqueue_scripts', 'rfs_enqueue_conditional_scripts' );
 function rfs_has_gravity_forms() {
 	global $post;
 
-	error_log( '[rentfetch] Checking for Gravity Forms on page: ' . (isset($post) ? $post->ID : 'no post') );
 
 	// Check if we're on a singular page/post and it contains Gravity Forms shortcode
 	if ( is_singular() && isset( $post->post_content ) ) {
 		if ( has_shortcode( $post->post_content, 'gravityform' ) ||
 			 has_shortcode( $post->post_content, 'gravityforms' ) ||
 			 strpos( $post->post_content, '[gravityform' ) !== false ) {
-			error_log( '[rentfetch] Found Gravity Forms shortcode' );
 			return true;
 		}
 	}
 
 	// Check if Gravity Forms blocks are present (Gutenberg)
 	if ( function_exists( 'has_block' ) && has_block( 'gravityforms/form' ) ) {
-		error_log( '[rentfetch] Found Gravity Forms block' );
 		return true;
 	}
 
@@ -117,18 +111,13 @@ function rfs_has_gravity_forms() {
 	// This covers cases where forms are loaded via widgets, theme templates, or dynamically
 	$forms = GFAPI::get_forms();
 	if ( ! empty( $forms ) ) {
-		error_log( '[rentfetch] Found ' . count($forms) . ' Gravity Forms available' );
 		// Only exclude on pages where forms are very unlikely (search, 404)
 		if ( ! is_search() && ! is_404() ) {
-			error_log( '[rentfetch] Enqueuing on this page type' );
 			return true;
 		} else {
-			error_log( '[rentfetch] Not enqueuing on search/404 page' );
 		}
 	} else {
-		error_log( '[rentfetch] No Gravity Forms found in system' );
 	}
 
-	error_log( '[rentfetch] No Gravity Forms detected, returning false' );
 	return false;
 }
