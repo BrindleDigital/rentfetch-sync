@@ -48,7 +48,7 @@ function rfs_do_yardi_sync( $args ) {
 	
 	// get the availability data (this should be the units), which we'll need both for the floorplan and the unit.
 	$unit_data_v2 = rfs_yardi_v2_get_unit_data( $args );
-					
+						
 	// ~ We'll need the floorplan ID to update that.
 	if ( is_array( $floorplans_data_v2 ) ) {
 		foreach ( $floorplans_data_v2 as $floorplan ) {

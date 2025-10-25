@@ -57,6 +57,13 @@ function rfs_yardi_v2_get_unit_data( $args ) {
 		)
 	);
 
+	$response_code = wp_remote_retrieve_response_code( $response );
+
+	if ( $response_code == 204 ) {
+		rfs_delete_orphan_units_if_property_204_response( $args, array() );
+		return array();
+	}
+
 	if ( is_wp_error( $response ) ) {
 		return; // Handle errors as needed.
 	}

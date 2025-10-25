@@ -177,3 +177,40 @@ function rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args ) {
 		wp_delete_post( $unit_wordpress_id, true );
 	}
 }
+
+function rfs_delete_orphan_units_if_property_204_response( $args, $unit_data_v2 ) {
+	
+	// Bail if we don't have the property ID.
+	if ( ! isset( $args['property_id'] ) || ! $args['property_id'] ) {
+		return;
+	}
+
+	$property_id = $args['property_id'];
+
+	// Get all units for this property with unit_source 'yardi'.
+	$units_to_delete = get_posts(
+		array(
+			'post_type'      => 'units',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'meta_query'     => array(
+				'relation' => 'AND',
+				array(
+					'key'     => 'property_id',
+					'value'   => $property_id,
+					'compare' => '=',
+				),
+				array(
+					'key'     => 'unit_source',
+					'value'   => 'yardi',
+					'compare' => '=',
+				),
+			),
+		)
+	);
+
+	// Delete each of the units.
+	foreach ( $units_to_delete as $unit_wordpress_id ) {
+		wp_delete_post( $unit_wordpress_id, true );
+	}
+}
