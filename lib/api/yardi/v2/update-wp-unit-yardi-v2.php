@@ -32,7 +32,7 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 			$api_response = array();
 		}
 	
-		$api_response['units_api'] = array(
+		$api_response['apartmentavailability_api'] = array(
 			'updated'      => current_time( 'mysql' ),
 			'api_response' => $unit_data,
 		);
@@ -54,7 +54,7 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 			$api_response = array();
 		}
 
-		$api_response['units_api'] = array(
+		$api_response['apartmentavailability_api'] = array(
 			'updated'      => current_time( 'mysql' ),
 			'api_response' => $unit_data_string,
 		);
@@ -79,7 +79,7 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 		$api_response = array();
 	}
 
-	$api_response['units_api'] = array(
+	$api_response['apartmentavailability_api'] = array(
 		'updated'      => current_time( 'mysql' ),
 		'api_response' => wp_json_encode( $unit_data ),
 	);
