@@ -1,3 +1,7 @@
+## 0.11.2
+
+-   Minor updates to avoid showing two different pieces of data for the "last sync" on the floorplan and unit level. We've changed the name of this over time, and some old data shows in a way we'd prefer it not. This is a minor update that doesn't impact syncing in any way.
+
 ## 0.11.1
 
 -   Yardi now does not always give us correct information in their apartmentavailability API. It periodically allows this to be accessed, but returns an empty response if we query more than every 15 minutes (or similar). We already avoid making changes to the units when we get empty data back from Yardi, but we previously relied on that data to fix a second inconsistency in the Yardi data, namely that their floorplans API sometimes doesn't give correct unit availability numbers. We're updating to take the number of units we currently have on the site for that floorplan rather than relying on the API for that information (since yardi is rate-limiting that data source).
