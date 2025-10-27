@@ -146,6 +146,14 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_
 	}
 }
 
+/**
+ * Update the available_units number for all floorplans of a property based on the units data (in the WP database).
+ *
+ * @param   array  $args                The arguments passed to the function.
+ * @param   array  $floorplans_data_v2  The floorplans data from the Yardi API.
+ *
+ * @return  void
+ */
 function rfs_yardi_v2_update_floorplan_units_available_number( $args, $floorplans_data_v2 ) {
 
 	//* NOTE: we're going to update these using floorplans data from the API, and our own unit meta, because Yardi sometimes sends empty responses in the units API.
@@ -227,99 +235,6 @@ function rfs_yardi_v2_update_floorplan_units_available_number( $args, $floorplan
 }
 
 /**
- * Update the floorplan availability for this floorplan.
- * 
- * TODO this doesn't seem to be running at present, not sure if still needed.
- *
- * @param   array  $args               The arguments passed to the function.
- * @param   array  $availability_data  The availability data.
- *
- * @return  array                      The updated availability data.
- */
-function rfs_yardi_v2_update_floorplan_availability( $args, $availability_data ) {
-	
-	//! BAIL FOR NOW
-	
-	// remove any stale apartmentavailability_api entry
-	$api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
-	if ( is_array( $api_response ) && isset( $api_response['apartmentavailability_api'] ) ) {
-		unset( $api_response['apartmentavailability_api'] );
-		update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
-	}
-
-	return;
-	
-	// bail if we don't have the wordpress post ID
-	if ( !isset( $args['wordpress_floorplan_post_id'] ) || !$args['wordpress_floorplan_post_id'] )
-		return;
-					
-	// bail if we don't have the availability data to update this
-	if ( ! $availability_data ) {
-
-		$api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
-
-		if ( ! is_array( $api_response ) ) {
-			$api_response = array();
-		}
-
-		$api_response['apartmentavailability_api'] = array(
-			'updated' => current_time( 'mysql' ),
-			'api_response' => wp_json_encode( $availability_data ),
-		);
-
-		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
-
-		return;
-
-	}
-		
-	$available_dates = array();
-	$soonest_date = null;
-	$today = date('Ymd');
-	
-	foreach( $availability_data as $data ) {
-		
-		if ( isset( $data->AvailableDate ) ) {
-			
-			$date = $data->AvailableDate;
-			$date = date('Ymd', strtotime($date));
-			$available_dates[] = $date;
-		}            
-	}
-		
-	sort( $available_dates );
-		
-	if ( isset( $available_dates[0] ) )
-		$soonest_date = $available_dates[0];   
-		
-	// if the soonest date is before today, just set the available date to today
-	if ( $soonest_date == null ) {
-		$available_date = null;
-	}
-	elseif ( $today > $soonest_date ) {
-		$available_date = $today;
-	} else {
-		$available_date = $soonest_date;
-	}
-	
-	//* Update the meta
-	$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'availability_date', $available_date );
-	
-	$api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
-	
-	if ( !is_array( $api_response ) )
-		$api_response = [];
-	
-	$api_response['apartmentavailability_api'] = array(
-		'updated' => current_time( 'mysql' ),
-		'api_response' => wp_json_encode( $availability_data ),
-	);
-
-	$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
-			
-}
-
-/**
  * Zero the availability and avail date for orphan floorplans that no longer exist in the Yardi API data.
  *
  * @param   array  $args                The arguments passed to the function.
@@ -379,20 +294,16 @@ function rfs_yardi_v2_remove_availability_orphan_floorplans( $args, $floorplans_
 		$success = delete_post_meta( $floorplan_post->ID, 'minimum_deposit' );
 		$success = delete_post_meta( $floorplan_post->ID, 'maximum_deposit' );
 		
-		// update the api_response meta to show that the availability data was removed
+		// don't update the api_response, as this gives the implication that this is still updating, when in fact it's no longer in the API.
 		$api_response = get_post_meta( $floorplan_post->ID, 'api_response', true );
 		
-		if ( !is_array( $api_response ) )
+		if ( !is_array( $api_response ) ) {
 			$api_response = [];
+		}
 		
-		$api_response['apartmentavailability_api'] = array(
-			'updated' => current_time( 'mysql' ),
-			'api_response' => wp_json_encode( array(
-				'message' => 'Removed successfully (no longer in API)',
-				'current_api_floorplan_ids' => $floorplan_ids,
-			) ),
-		);
-
+		// remove the old api response for apartmentavailability_api (this was used in v1	)
+		unset( $api_response['apartmentavailability_api'] );
+		
 		$success = update_post_meta( $floorplan_post->ID, 'api_response', $api_response );
 		
 	}
