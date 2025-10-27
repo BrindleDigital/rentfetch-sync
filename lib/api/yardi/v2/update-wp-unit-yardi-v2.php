@@ -31,6 +31,11 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 		if ( ! is_array( $api_response ) ) {
 			$api_response = array();
 		}
+		
+		// unset the units_api from $api_response to avoid bloating the meta (this is just a rename)
+		if ( isset( $api_response['units_api'] ) ) {
+			unset( $api_response['units_api'] );
+		}
 	
 		$api_response['apartmentavailability_api'] = array(
 			'updated'      => current_time( 'mysql' ),
@@ -52,6 +57,11 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 
 		if ( ! is_array( $api_response ) ) {
 			$api_response = array();
+		}
+		
+		// unset the units_api from $api_response to avoid bloating the meta (this is just a rename)
+		if ( isset( $api_response['units_api'] ) ) {
+			unset( $api_response['units_api'] );
 		}
 
 		$api_response['apartmentavailability_api'] = array(
