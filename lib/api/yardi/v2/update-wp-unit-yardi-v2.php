@@ -214,3 +214,55 @@ function rfs_delete_orphan_units_if_property_204_response( $args, $unit_data_v2 
 		wp_delete_post( $unit_wordpress_id, true );
 	}
 }
+
+function rfs_remove_units_that_were_moved_between_floorplans( $unit_data_v2, $args ) {
+
+	// bail if we don't have the property ID.
+	if ( ! isset( $args['property_id'] ) || ! $args['property_id'] ) {
+		return;
+	}
+	
+	// first, let's get all units in our database that belong to this vendor and have unit_source 'yardi', which are attached to this property.
+	$all_units_in_db_for_property = get_posts(
+		array(
+			'post_type'      => 'units',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'meta_query'     => array( // phpcs:ignore.
+				'relation' => 'AND',
+				array(
+					'key'     => 'property_id',
+					'value'   => $args['property_id'],
+					'compare' => '=',
+				),
+				array(
+					'key'     => 'unit_source',
+					'value'   => 'yardi',
+					'compare' => '=',
+				),
+			),
+		)
+	);
+	
+	// loop through each unit in the database, then check the $units_data_v2 to see if there's a corresponding unit with the same apartmentId, propertyId, and floorplanId.
+	foreach ( $all_units_in_db_for_property as $unit_wordpress_id ) {
+		$unit_id_in_db = (string) get_post_meta( $unit_wordpress_id, 'unit_id', true );
+		$floorplan_id_in_db = (string) get_post_meta( $unit_wordpress_id, 'floorplan_id', true );
+		
+		$found = false;
+		
+		foreach ( $unit_data_v2 as $unit_from_api ) {
+			if ( isset( $unit_from_api['apartmentId'] ) && isset( $unit_from_api['floorplanId'] ) ) {
+				if ( (string) $unit_from_api['apartmentId'] === $unit_id_in_db && (string) $unit_from_api['floorplanId'] === $floorplan_id_in_db ) {
+					$found = true;
+					break;
+				}
+			}
+		}
+		
+		// if not found, delete the unit from the database.
+		if ( ! $found ) {
+			wp_delete_post( $unit_wordpress_id, true );
+		}
+	}
+}

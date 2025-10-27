@@ -104,6 +104,9 @@ function rfs_do_yardi_sync( $args ) {
 
 		// Remove the units that aren't in the API for this property.
 		rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args );
+		
+		// Also remove units that were moved between properties or floorplans (so still in the API, but not attached to the same floorplan, etc.)
+		rfs_remove_units_that_were_moved_between_floorplans( $unit_data_v2, $args );
 
 	}
 	
