@@ -101,12 +101,9 @@ function rfs_do_yardi_sync( $args ) {
 			rfs_yardi_v2_update_unit_meta( $args, $unit );
 
 		}
-
-		// Remove the units that aren't in the API for this property.
-		rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args );
 		
-		// Also remove units that were moved between properties or floorplans (so still in the API, but not attached to the same floorplan, etc.)
-		rfs_remove_units_that_were_moved_between_floorplans( $unit_data_v2, $args );
+		// Remove all units that don't specifically exist in the API response.
+		rfs_yardi_v2_check_each_unit_and_delete_if_not_still_in_api( $unit_data_v2, $args );
 
 	}
 	

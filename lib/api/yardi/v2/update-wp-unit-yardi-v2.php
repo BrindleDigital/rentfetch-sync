@@ -108,76 +108,13 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 }
 
 /**
- * Remove any units from our database that are no longer in the Yardi API.
+ * Delete all units for this property if we get a 204 response from the API.
  *
- * @param   array $unit_data_v2  the units data from the API.
  * @param   array $args          the current $args in the sync process.
+ * @param   array $unit_data_v2  the units data from the API.
  *
  * @return  void.
  */
-function rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args ) {
-
-	// bail if we don't have $args['property_id'].
-	if ( ! isset( $args['property_id'] ) || ! $args['property_id'] ) {
-		return;
-	}
-
-	$property_id = $args['property_id'];
-
-	// get an array of the unit IDs (apartmentId) from the API.
-	$correct_unit_ids_from_api = wp_list_pluck( $unit_data_v2, 'apartmentId' );
-
-	// do a query where we get the WordPress post IDs for our corresponding units in the database.
-	$correct_units_in_db = get_posts(
-		array(
-			'post_type'      => 'units',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'meta_query'     => array( // phpcs:ignore
-				'relation' => 'AND',
-				array(
-					'key'     => 'unit_id',
-					'value'   => $correct_unit_ids_from_api,
-					'compare' => 'IN',
-				),
-				array(
-					'key'     => 'unit_source',
-					'value'   => 'yardi',
-					'compare' => '=',
-				),
-			),
-		)
-	);
-
-	// let's query for all of the units for this property.
-	$incorrect_units_in_db = get_posts(
-		array(
-			'post_type'      => 'units',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'post__not_in'   => $correct_units_in_db,
-			'meta_query'     => array( // phpcs:ignore.
-				'relation' => 'AND',
-				array(
-					'key'     => 'property_id',
-					'value'   => $args['property_id'],
-					'compare' => '=',
-				),
-				array(
-					'key'     => 'unit_source',
-					'value'   => 'yardi',
-					'compare' => '=',
-				),
-			),
-		)
-	);
-
-	// delete each of the units that are no longer in the API.
-	foreach ( $incorrect_units_in_db as $unit_wordpress_id ) {
-		wp_delete_post( $unit_wordpress_id, true );
-	}
-}
-
 function rfs_delete_orphan_units_if_property_204_response( $args, $unit_data_v2 ) {
 	
 	// Bail if we don't have the property ID.
@@ -215,7 +152,15 @@ function rfs_delete_orphan_units_if_property_204_response( $args, $unit_data_v2 
 	}
 }
 
-function rfs_remove_units_that_were_moved_between_floorplans( $unit_data_v2, $args ) {
+/**
+ * Remove any units from our database that are no longer in the Yardi API.
+ *
+ * @param   array $unit_data_v2  the units data from the API.
+ * @param   array $args          the current $args in the sync process.
+ *
+ * @return  void.
+ */
+function rfs_yardi_v2_check_each_unit_and_delete_if_not_still_in_api( $unit_data_v2, $args ) {
 
 	// bail if we don't have the property ID.
 	if ( ! isset( $args['property_id'] ) || ! $args['property_id'] ) {
