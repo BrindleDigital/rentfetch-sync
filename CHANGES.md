@@ -1,3 +1,7 @@
+## 0.11.4
+
+-   Reinstating functionality to delete properties, floorplans and units for Yardi when they don't appear in the box for syncing. This was removed with v1 of the API.
+
 ## 0.11.3
 
 -   Changing how we treat 204 responses from the Yardi v2 apartmentavailability API.
