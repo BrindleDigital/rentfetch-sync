@@ -12,8 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Remove any orphaned properties, floorplans, and units from WordPress (which aren't in the settings)
  */
-add_action( 'rfs_yardi_do_delete_orphans', 'rfs_yardi_delete_orphans', 10, 1 );
-function rfs_yardi_delete_orphans( $yardi_properties_in_settings_box ) {
+add_action( 'rfs_yardi_do_delete_orphans', 'rfs_yardi_delete_orphans_properties_floorplans_units', 10, 1 );
+function rfs_yardi_delete_orphans_properties_floorplans_units( $yardi_properties_in_settings_box ) {
 		
 	if ( !is_array( $yardi_properties_in_settings_box ) )
 		return;
