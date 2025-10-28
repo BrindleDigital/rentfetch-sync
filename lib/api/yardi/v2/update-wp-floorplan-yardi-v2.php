@@ -309,3 +309,101 @@ function rfs_yardi_v2_remove_availability_orphan_floorplans( $args, $floorplans_
 	}
 	
 }
+
+/**
+ * Delete orphan floorplans that no longer exist in the Yardi API data.
+ *
+ * @param array $args The arguments passed to the function.
+ * @param array $floorplans_data_v2 The floorplans data from the Yardi API.
+ */
+function rfs_yardi_v2_delete_orphan_floorplans( $args, $floorplans_data_v2 ) {
+	$property_id = $args['property_id'];
+	
+	if ( empty( $property_id ) ) {
+		return;
+	}
+	
+	$floorplan_ids = array();
+	foreach ( $floorplans_data_v2 as $floorplan ) {
+		if ( isset( $floorplan['floorplanId'] ) ) {
+			$floorplan_ids[] = $floorplan['floorplanId'];
+		}
+	}
+	
+	$floorplan_posts = get_posts( array(
+		'post_type'      => 'floorplans',
+		'posts_per_page' => -1,
+		'post_status'    => 'publish',
+		'meta_query'     => array(
+			'relation' => 'AND',
+			array(
+				'key'     => 'property_id',
+				'value'   => $property_id,
+				'compare' => '=',
+			),
+			array(
+				'key'     => 'floorplan_id',
+				'value'   => $floorplan_ids,
+				'compare' => 'NOT IN',
+			),
+			array(
+				'key'     => 'floorplan_source',
+				'value'   => 'yardi',
+				'compare' => '=',
+			),
+		),
+	) );
+	
+	foreach ( $floorplan_posts as $floorplan_post ) {
+		wp_delete_post( $floorplan_post->ID, true );
+	}
+}
+
+/**
+ * Delete orphan units that are associated with floorplans no longer in the Yardi API data.
+ *
+ * @param array $args The arguments passed to the function.
+ * @param array $floorplans_data_v2 The floorplans data from the Yardi API.
+ */
+function rfs_yardi_v2_delete_orphan_units( $args, $floorplans_data_v2 ) {
+	$property_id = $args['property_id'];
+	
+	if ( empty( $property_id ) ) {
+		return;
+	}
+	
+	$floorplan_ids = array();
+	foreach ( $floorplans_data_v2 as $floorplan ) {
+		if ( isset( $floorplan['floorplanId'] ) ) {
+			$floorplan_ids[] = $floorplan['floorplanId'];
+		}
+	}
+	
+	$unit_posts = get_posts( array(
+		'post_type'      => 'units',
+		'posts_per_page' => -1,
+		'post_status'    => 'publish',
+		'meta_query'     => array(
+			'relation' => 'AND',
+			array(
+				'key'     => 'property_id',
+				'value'   => $property_id,
+				'compare' => '=',
+			),
+			array(
+				'key'     => 'floorplan_id',
+				'value'   => $floorplan_ids,
+				'compare' => 'NOT IN',
+			),
+			array(
+				'key'     => 'unit_source',
+				'value'   => 'yardi',
+				'compare' => '=',
+			),
+		),
+	) );
+	
+	foreach ( $unit_posts as $unit_post ) {
+		wp_delete_post( $unit_post->ID, true );
+	}
+}

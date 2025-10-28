@@ -123,37 +123,34 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 }
 
 /**
- * Remove any units from our database that are no longer in the Yardi API.
+ * Delete all units for this property if we get a 204 response from the API.
  *
- * @param   array $unit_data_v2  the units data from the API.
  * @param   array $args          the current $args in the sync process.
+ * @param   array $unit_data_v2  the units data from the API.
  *
  * @return  void.
  */
-function rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args ) {
-
-	// bail if we don't have $args['property_id'].
+function rfs_delete_orphan_units_if_property_204_response( $args, $unit_data_v2 ) {
+	
+	// Bail if we don't have the property ID.
 	if ( ! isset( $args['property_id'] ) || ! $args['property_id'] ) {
 		return;
 	}
 
 	$property_id = $args['property_id'];
 
-	// get an array of the unit IDs (apartmentId) from the API.
-	$correct_unit_ids_from_api = wp_list_pluck( $unit_data_v2, 'apartmentId' );
-
-	// do a query where we get the WordPress post IDs for our corresponding units in the database.
-	$correct_units_in_db = get_posts(
+	// Get all units for this property with unit_source 'yardi'.
+	$units_to_delete = get_posts(
 		array(
 			'post_type'      => 'units',
 			'posts_per_page' => -1,
 			'fields'         => 'ids',
-			'meta_query'     => array( // phpcs:ignore
+			'meta_query'     => array(
 				'relation' => 'AND',
 				array(
-					'key'     => 'unit_id',
-					'value'   => $correct_unit_ids_from_api,
-					'compare' => 'IN',
+					'key'     => 'property_id',
+					'value'   => $property_id,
+					'compare' => '=',
 				),
 				array(
 					'key'     => 'unit_source',
@@ -164,13 +161,33 @@ function rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args ) {
 		)
 	);
 
-	// let's query for all of the units for this property.
-	$incorrect_units_in_db = get_posts(
+	// Delete each of the units.
+	foreach ( $units_to_delete as $unit_wordpress_id ) {
+		wp_delete_post( $unit_wordpress_id, true );
+	}
+}
+
+/**
+ * Remove any units from our database that are no longer in the Yardi API.
+ *
+ * @param   array $unit_data_v2  the units data from the API.
+ * @param   array $args          the current $args in the sync process.
+ *
+ * @return  void.
+ */
+function rfs_yardi_v2_check_each_unit_and_delete_if_not_still_in_api( $unit_data_v2, $args ) {
+
+	// bail if we don't have the property ID.
+	if ( ! isset( $args['property_id'] ) || ! $args['property_id'] ) {
+		return;
+	}
+	
+	// first, let's get all units in our database that belong to this vendor and have unit_source 'yardi', which are attached to this property.
+	$all_units_in_db_for_property = get_posts(
 		array(
 			'post_type'      => 'units',
 			'posts_per_page' => -1,
 			'fields'         => 'ids',
-			'post__not_in'   => $correct_units_in_db,
 			'meta_query'     => array( // phpcs:ignore.
 				'relation' => 'AND',
 				array(
@@ -186,9 +203,26 @@ function rfs_yardi_v2_remove_orphan_units( $unit_data_v2, $args ) {
 			),
 		)
 	);
-
-	// delete each of the units that are no longer in the API.
-	foreach ( $incorrect_units_in_db as $unit_wordpress_id ) {
-		wp_delete_post( $unit_wordpress_id, true );
+	
+	// loop through each unit in the database, then check the $units_data_v2 to see if there's a corresponding unit with the same apartmentId, propertyId, and floorplanId.
+	foreach ( $all_units_in_db_for_property as $unit_wordpress_id ) {
+		$unit_id_in_db = (string) get_post_meta( $unit_wordpress_id, 'unit_id', true );
+		$floorplan_id_in_db = (string) get_post_meta( $unit_wordpress_id, 'floorplan_id', true );
+		
+		$found = false;
+		
+		foreach ( $unit_data_v2 as $unit_from_api ) {
+			if ( isset( $unit_from_api['apartmentId'] ) && isset( $unit_from_api['floorplanId'] ) ) {
+				if ( (string) $unit_from_api['apartmentId'] === $unit_id_in_db && (string) $unit_from_api['floorplanId'] === $floorplan_id_in_db ) {
+					$found = true;
+					break;
+				}
+			}
+		}
+		
+		// if not found, delete the unit from the database.
+		if ( ! $found ) {
+			wp_delete_post( $unit_wordpress_id, true );
+		}
 	}
 }
