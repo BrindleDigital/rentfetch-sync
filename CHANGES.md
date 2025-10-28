@@ -1,3 +1,9 @@
+## 0.11.3
+
+-   Changing how we treat 204 responses from the Yardi v2 apartmentavailability API.
+-   Removing stale data from our stored API repsponses for Yardi
+-   More rubust checks for which specific units should be retained when units are moved between floorplans.
+
 ## 0.11.2
 
 -   Minor updates to avoid showing two different pieces of data for the "last sync" on the floorplan and unit level. We've changed the name of this over time, and some old data shows in a way we'd prefer it not. This is a minor update that doesn't impact syncing in any way.
