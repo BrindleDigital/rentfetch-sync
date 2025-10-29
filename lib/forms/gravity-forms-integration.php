@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Add visible lead source field to all Gravity Forms
  */
 function rfs_add_lead_source_field( $form ) {
+	
 	// Check if Gravity Forms is active
 	if ( ! class_exists( 'GFAPI' ) ) {
 		return $form;

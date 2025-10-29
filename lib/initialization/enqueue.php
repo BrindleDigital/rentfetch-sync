@@ -76,10 +76,8 @@ function rfs_enqueue_conditional_scripts() {
 	$gf_active = class_exists( 'GFAPI' );
 	$has_forms = rfs_has_gravity_forms();
 
-
 	if ( $gf_active && $has_forms ) {
 		wp_enqueue_script( 'rentfetch-form-populate' );
-	} else {
 	}
 }
 add_action( 'wp_enqueue_scripts', 'rfs_enqueue_conditional_scripts' );
@@ -91,7 +89,11 @@ add_action( 'wp_enqueue_scripts', 'rfs_enqueue_conditional_scripts' );
  */
 function rfs_has_gravity_forms() {
 	global $post;
-
+	
+	// Check if Gravity Forms is active
+	if ( ! class_exists( 'GFAPI' ) ) {
+		return false;
+	}
 
 	// Check if we're on a singular page/post and it contains Gravity Forms shortcode
 	if ( is_singular() && isset( $post->post_content ) ) {
@@ -110,13 +112,14 @@ function rfs_has_gravity_forms() {
 	// Simplified fallback: if Gravity Forms is active and has forms, enqueue on most pages
 	// This covers cases where forms are loaded via widgets, theme templates, or dynamically
 	$forms = GFAPI::get_forms();
+	
 	if ( ! empty( $forms ) ) {
+		
 		// Only exclude on pages where forms are very unlikely (search, 404)
 		if ( ! is_search() && ! is_404() ) {
 			return true;
-		} else {
 		}
-	} else {
+
 	}
 
 	return false;
