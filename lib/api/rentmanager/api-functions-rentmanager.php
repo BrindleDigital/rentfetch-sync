@@ -24,9 +24,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 function rfs_do_rentmanager_sync( $args ) {
 	
 	// remove various data that shouldn't still exist if the property should no longer be synced.
-	rfs_remove_properties_that_shouldnt_be_synced();
-	rfs_remove_floorplans_that_shouldnt_be_synced();
-	rfs_remove_units_that_shouldnt_be_synced();
+	rfs_rentmanager_remove_properties_that_shouldnt_be_synced_property_deleted();
+	rfs_rentmanager_remove_floorplans_that_shouldnt_be_synced_property_deleted();
+	rfs_rentmanager_remove_units_that_shouldnt_be_synced_property_deleted();
 
 	// ~ With just the property ID, we can get property data, property images, and the floorplan data.
 	// create a new post if needed, adding the post ID to the args if we do (don't need any API calls for this).
@@ -48,7 +48,7 @@ function rfs_do_rentmanager_sync( $args ) {
 	$units_data = rfs_rentmanager_get_units_data( $args );
 		
 	if ( is_array( $units_data ) ) {
-
+		
 		// create the individual units, ignoring availability.
 		foreach( $units_data as $unit ) {
 			
@@ -74,15 +74,19 @@ function rfs_do_rentmanager_sync( $args ) {
 			
 			rfs_rentmanager_update_unit_meta( $args, $unit );
 		}
+		
+		rfs_rentmanager_remove_units_no_longer_in_api( $args, $units_data );
 	}
+	
+	
 
 	// create the floorplans (we actually want to do this after the units, because if there are images attached to the unit_type, that should override unit images).
 	foreach ( $unit_types_data as $floorplan ) {
 		
 		// continue if we don't have a $floorplan['Bedrooms'] and we don't have a valid $floorplan['Bathrooms']. We'd like to do this for price as well, but there are actually *none* of these in the API that have a price set.
-		if ( !isset( $floorplan['Bedrooms'] ) && !isset( $floorplan['Bathrooms'] ) ) {
-			continue;
-		}
+		// if ( !isset( $floorplan['Bedrooms'] ) && !isset( $floorplan['Bathrooms'] ) ) {
+		// 	continue;
+		// }
 		
 		// only create the floorplan if we have a valid UnitTypeID.
 		if ( !isset( $floorplan['UnitTypeID'] ) ) {
@@ -369,7 +373,7 @@ function rfs_rentmanager_update_floorplan_meta( $args, $floorplan_data ) {
 			$api_response = array();
 		}
 	
-		$api_response['floorplans_api'] = array(
+		$api_response['unit_types_api'] = array(
 			'updated'      => current_time( 'mysql' ),
 			'api_response' => $floorplan_data,
 		);
@@ -502,6 +506,20 @@ function rfs_rentmanager_update_floorplan_meta( $args, $floorplan_data ) {
 		// silence is golden.
 	}
 
+	// Save the API response for debugging/inspection
+	$api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
+
+	if ( ! is_array( $api_response ) ) {
+		$api_response = array();
+	}
+
+	$floorplan_data_string = wp_json_encode( $floorplan_data );
+
+	$api_response['unit_types_api'] = array(
+		'updated'      => current_time( 'mysql' ),
+		'api_response' => $floorplan_data_string,
+	);
+
 	// * Update the meta
 	$meta = array(
 		'baths'     => floatval( $floorplan_data['Bathrooms'] ?? 0 ),
@@ -516,7 +534,7 @@ function rfs_rentmanager_update_floorplan_meta( $args, $floorplan_data ) {
 		'floorplan_image_url' => $images ?? '',
 		'availability_date' => null,
 		'updated'   => current_time( 'mysql' ),
-		'api_error' => wp_json_encode( $floorplan_data ),
+		'api_response' => $api_response,
 	);
 
 	foreach ( $meta as $key => $value ) {
@@ -657,6 +675,20 @@ function rfs_rentmanager_update_unit_meta( $args, $unit ) {
 		$maximum_rent = 0;
 	}
 	
+	// Save the API response for debugging/inspection
+	$api_response = get_post_meta( $args['wordpress_unit_post_id'], 'api_response', true );
+
+	if ( ! is_array( $api_response ) ) {
+		$api_response = array();
+	}
+
+	$unit_data_string = wp_json_encode( $unit );
+
+	$api_response['units_api'] = array(
+		'updated'      => current_time( 'mysql' ),
+		'api_response' => $unit_data_string,
+	);
+	
 	// * Update the meta
 	$meta = array(
 		'floor'                     => (int) ($unit['FloorID'] ?? 0),
@@ -676,11 +708,76 @@ function rfs_rentmanager_update_unit_meta( $args, $unit ) {
 		'specials'                  => null,
 		'unit_source'               => 'rentmanager',
 		'updated'                   => current_time( 'mysql' ),
-		'api_error'                 => wp_json_encode( $unit ),
-		// 'api_response'              => $api_response,
+		'api_response'              => $api_response,
 	);
 
 	foreach ( $meta as $key => $value ) {
 		$success = update_post_meta( $args['wordpress_unit_post_id'], $key, $value );
+	}
+}
+
+function rfs_rentmanager_remove_units_no_longer_in_api( $args, $units_data ) {
+	
+	// Bail if we don't have the property ID.
+	if ( ! isset( $args['property_id'] ) || ! $args['property_id'] ) {
+		return;
+	}
+	
+	// If units_data is a string (cleaned JSON from decode failure), we can't process it
+	if ( is_string( $units_data ) ) {
+		return;
+	}
+	
+	// If units_data is not an array, bail
+	if ( ! is_array( $units_data ) ) {
+		return;
+	}
+	
+	// Get all units in our database that belong to this property with unit_source 'rentmanager'.
+	$all_units_in_db_for_property = get_posts(
+		array(
+			'post_type'      => 'units',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'meta_query'     => array(
+				'relation' => 'AND',
+				array(
+					'key'     => 'property_id',
+					'value'   => $args['property_id'],
+					'compare' => '=',
+				),
+				array(
+					'key'     => 'unit_source',
+					'value'   => 'rentmanager',
+					'compare' => '=',
+				),
+			),
+		)
+	);
+	
+	// Loop through each unit in the database, then check the $units_data to see if there's a corresponding unit.
+	foreach ( $all_units_in_db_for_property as $unit_wordpress_id ) {
+		$unit_id_in_db = (string) get_post_meta( $unit_wordpress_id, 'unit_id', true );
+		$floorplan_id_in_db = (string) get_post_meta( $unit_wordpress_id, 'floorplan_id', true );
+		
+		$found = false;
+		
+		foreach ( $units_data as $unit_from_api ) {
+			if ( isset( $unit_from_api['UnitTypeID'] ) && isset( $unit_from_api['UnitID'] ) ) {
+				// Construct the expected unit_id and floorplan_id from API data
+				$expected_unit_id = $args['property_id'] . '-' . $unit_from_api['UnitTypeID'] . '-' . $unit_from_api['UnitID'];
+				$expected_floorplan_id = $args['property_id'] . '-' . $unit_from_api['UnitTypeID'];
+				
+				if ( $expected_unit_id === $unit_id_in_db && $expected_floorplan_id === $floorplan_id_in_db ) {
+					$found = true;
+					break;
+				}
+			}
+		}
+		
+		// If not found, delete the unit from the database.
+		if ( ! $found ) {
+			wp_delete_post( $unit_wordpress_id, true );
+		}
 	}
 }

@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @return  void.
  */
-function rfs_remove_properties_that_shouldnt_be_synced() {
+function rfs_rentmanager_remove_properties_that_shouldnt_be_synced_property_deleted() {
 
 	// get the property shortnames that are already in the setting.
 	$property_shortnames = get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' );
@@ -64,7 +64,7 @@ function rfs_remove_properties_that_shouldnt_be_synced() {
  *
  * @return  void.
  */
-function rfs_remove_floorplans_that_shouldnt_be_synced() {
+function rfs_rentmanager_remove_floorplans_that_shouldnt_be_synced_property_deleted() {
 
 	// get the property shortnames that are already in the setting.
 	$property_shortnames = get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' );
@@ -114,7 +114,7 @@ function rfs_remove_floorplans_that_shouldnt_be_synced() {
  *
  * @return  void.
  */
-function rfs_remove_units_that_shouldnt_be_synced() {
+function rfs_rentmanager_remove_units_that_shouldnt_be_synced_property_deleted() {
 
 	// get the property shortnames that are already in the setting.
 	$property_shortnames = get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' );
