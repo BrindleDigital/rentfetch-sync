@@ -77,16 +77,14 @@ function rfs_do_rentmanager_sync( $args ) {
 		
 		rfs_rentmanager_remove_units_no_longer_in_api( $args, $units_data );
 	}
-	
-	
 
 	// create the floorplans (we actually want to do this after the units, because if there are images attached to the unit_type, that should override unit images).
 	foreach ( $unit_types_data as $floorplan ) {
 		
 		// continue if we don't have a $floorplan['Bedrooms'] and we don't have a valid $floorplan['Bathrooms']. We'd like to do this for price as well, but there are actually *none* of these in the API that have a price set.
-		// if ( !isset( $floorplan['Bedrooms'] ) && !isset( $floorplan['Bathrooms'] ) ) {
-		// 	continue;
-		// }
+		if ( !isset( $floorplan['Bedrooms'] ) && !isset( $floorplan['Bathrooms'] ) ) {
+			continue;
+		}
 		
 		// only create the floorplan if we have a valid UnitTypeID.
 		if ( !isset( $floorplan['UnitTypeID'] ) ) {
@@ -103,7 +101,6 @@ function rfs_do_rentmanager_sync( $args ) {
 		rfs_rentmanager_update_floorplan_meta( $args, $floorplan );
 
 	}
-
 }
 
 /**
