@@ -1,3 +1,8 @@
+## 0.11.7
+
+-   Adding sync highlighting to RentManager
+-   Double-checking units to make sure that RM units no longer in the RM API are being removed.
+
 ## 0.11.6
 
 -   Better checks for whether Gravity Forms is active
