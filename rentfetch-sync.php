@@ -3,7 +3,7 @@
 	Plugin Name:   Rent Fetch Sync
 	Plugin URI:    https://github.com/jonschr/rentfetch-sync
 	Description:   An addon for Rent Fetch that syncs properties, floorplans, and units
-	Version:       0.11.8
+	Version:       0.11.9
 	Author:        Brindle Digital
 	Author URI:    https://www.brindledigital.com/
 
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define the version of the plugin.
-define( 'RENTFETCHSYNC_VERSION', '0.11.8' );
+define( 'RENTFETCHSYNC_VERSION', '0.11.9' );
 
 // Plugin directory.
 define( 'RENTFETCHSYNC_DIR', plugin_dir_path( __FILE__ ) );
@@ -69,6 +69,19 @@ function rfs_require_files_recursive( $directory ) {
 
 // require_once all files in /lib and its subdirectories.
 rfs_require_files_recursive( RENTFETCHSYNC_DIR . 'lib' );
+
+// Add admin notice for sync success
+add_action( 'admin_notices', 'rfs_sync_success_notice' );
+
+function rfs_sync_success_notice() {
+	if ( isset( $_GET['sync_success'] ) && $_GET['sync_success'] == '1' ) {
+		?>
+		<div class="notice notice-success is-dismissible">
+			<p><?php esc_html_e( 'Property sync completed successfully!', 'rentfetch-sync' ); ?></p>
+		</div>
+		<?php
+	}
+}
 
 // Load Plugin Update Checker.
 require RENTFETCHSYNC_DIR . 'vendor/plugin-update-checker/plugin-update-checker.php';

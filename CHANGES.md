@@ -1,3 +1,9 @@
+## 0.11.9
+
+-   Adding capabilities for annotating when we're receiving 304 responses from Yardi and handling that correctly (by not updating anything)
+-   Updating the sync to stop asking the user whether to refresh. There's really only one right answer - we'll just do it and then show a notice that it was successful.
+-   Updating the RentManager sync to remove unit_types that have been removed from the API. This is an issue that became more visible when we added all of our backend debugging.
+
 ## 0.11.7
 
 -   Adding sync highlighting to RentManager
