@@ -60,15 +60,10 @@ jQuery(document).ready(function ($) {
 					$link.data('syncing', false);
 					$link.attr('aria-busy', 'false');
 
-					// Optional: Show refresh prompt
+					// Refresh the page to show changes with success message
 					setTimeout(function () {
-						if (
-							confirm(
-								'Sync completed! Would you like to refresh the page to see the changes?'
-							)
-						) {
-							window.location.reload();
-						}
+						window.location.href =
+							window.location.href + '&sync_success=1';
 					}, 1000);
 				} else {
 					// Handle server-side error

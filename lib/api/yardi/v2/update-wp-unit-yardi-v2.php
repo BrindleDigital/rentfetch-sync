@@ -42,6 +42,11 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 			'api_response' => $unit_data,
 		);
 		
+		// Clear any previous 304 response since we have new data
+		if ( isset( $api_response['apartmentavailability_api_304'] ) ) {
+			unset( $api_response['apartmentavailability_api_304'] );
+		}
+		
 		$success = update_post_meta( $args['wordpress_unit_post_id'], 'api_response', $api_response );
 		return;
 	}
@@ -69,6 +74,11 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 			'api_response' => $unit_data_string,
 		);
 
+		// Clear any previous 304 response since we have new data
+		if ( isset( $api_response['apartmentavailability_api_304'] ) ) {
+			unset( $api_response['apartmentavailability_api_304'] );
+		}
+
 		$success = update_post_meta( $args['wordpress_unit_post_id'], 'api_response', $api_response );
 
 		return;
@@ -93,6 +103,11 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 		'updated'      => current_time( 'mysql' ),
 		'api_response' => wp_json_encode( $unit_data ),
 	);
+	
+	// Clear any previous 304 response since we have new data
+	if ( isset( $api_response['apartmentavailability_api_304'] ) ) {
+		unset( $api_response['apartmentavailability_api_304'] );
+	}
 	
 	// unset the units_api from $api_response to avoid bloating the meta (this is just a rename)
 	if ( isset( $api_response['units_api'] ) ) {
@@ -224,5 +239,76 @@ function rfs_yardi_v2_check_each_unit_and_delete_if_not_still_in_api( $unit_data
 		if ( ! $found ) {
 			wp_delete_post( $unit_wordpress_id, true );
 		}
+	}
+}
+
+/**
+ * Handle 304 responses for units by updating their api_response meta.
+ *
+ * @param   array $args  The current $args in the sync process.
+ *
+ * @return  void.
+ */
+function rfs_yardi_v2_handle_304_response_for_units( $args ) {
+	
+	// Bail if we don't have the property ID.
+	if ( ! isset( $args['property_id'] ) || ! $args['property_id'] ) {
+		return;
+	}
+
+	// Get all units for this property with unit_source 'yardi'.
+	$units = get_posts(
+		array(
+			'post_type'      => 'units',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'meta_query'     => array(
+				'relation' => 'AND',
+				array(
+					'key'     => 'property_id',
+					'value'   => $args['property_id'],
+					'compare' => '=',
+				),
+				array(
+					'key'     => 'unit_source',
+					'value'   => 'yardi',
+					'compare' => '=',
+				),
+			),
+		)
+	);
+	
+	// Update each unit's api_response for 304.
+	foreach ( $units as $unit_id ) {
+		$api_response = get_post_meta( $unit_id, 'api_response', true );
+		
+		if ( ! is_array( $api_response ) ) {
+			$api_response = array();
+		}
+		
+		// unset the units_api from $api_response to avoid bloating the meta (this is just a rename)
+		if ( isset( $api_response['units_api'] ) ) {
+			unset( $api_response['units_api'] );
+		}
+	
+		// Initialize the 304 array if it doesn't exist
+		if ( ! isset( $api_response['apartmentavailability_api_304'] ) ) {
+			$api_response['apartmentavailability_api_304'] = array();
+		}
+		
+		// Append the new 304 response
+		$api_response['apartmentavailability_api_304'][] = array(
+			'updated' => current_time( 'mysql' ),
+			'status'  => '304 - no change',
+		);
+		
+		// Ensure apartmentavailability_api_304 comes before apartmentavailability_api in the array
+		if ( isset( $api_response['apartmentavailability_api_304'] ) && isset( $api_response['apartmentavailability_api'] ) ) {
+			$temp_304 = $api_response['apartmentavailability_api_304'];
+			unset( $api_response['apartmentavailability_api_304'] );
+			$api_response = array_merge( array( 'apartmentavailability_api_304' => $temp_304 ), $api_response );
+		}
+		
+		update_post_meta( $unit_id, 'api_response', $api_response );
 	}
 }

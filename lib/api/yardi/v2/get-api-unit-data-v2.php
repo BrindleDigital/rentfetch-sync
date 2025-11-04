@@ -63,6 +63,10 @@ function rfs_yardi_v2_get_unit_data( $args ) {
 		rfs_delete_orphan_units_if_property_204_response( $args, array() );
 		return array();
 	}
+	
+	if ( $response_code == 304 ) {
+		return '304';
+	}
 
 	if ( is_wp_error( $response ) ) {
 		return; // Handle errors as needed.
@@ -79,6 +83,6 @@ function rfs_yardi_v2_get_unit_data( $args ) {
 	if ( isset( $data['apartmentAvailabilities'] ) && is_array( $data['apartmentAvailabilities'] ) ) {
 		return $data['apartmentAvailabilities'];
 	}
-	
+		
 	return;
 }

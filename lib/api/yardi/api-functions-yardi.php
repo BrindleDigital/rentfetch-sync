@@ -75,7 +75,11 @@ function rfs_do_yardi_sync( $args ) {
 		}
 	}
 			
-	if ( is_array( $unit_data_v2 ) ) {
+	if ( $unit_data_v2 === '304' ) {
+		
+		rfs_yardi_v2_handle_304_response_for_units( $args );
+		
+	} elseif ( is_array( $unit_data_v2 ) ) {
 		
 		// We'll need the unit ID to get the unit information.
 		foreach( $unit_data_v2 as $unit ) {
