@@ -23,6 +23,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function rfs_do_rentmanager_sync( $args ) {
 	
+	// Increase memory limit to handle large datasets
+	ini_set('memory_limit', '512M');
+	
+	// error_log('Starting rfs_do_rentmanager_sync for property: ' . ($args['property_id'] ?? 'unknown'));
+	
 	// remove various data that shouldn't still exist if the property should no longer be synced.
 	rfs_rentmanager_remove_properties_that_shouldnt_be_synced_property_deleted();
 	rfs_rentmanager_remove_floorplans_that_shouldnt_be_synced_property_deleted();
@@ -35,17 +40,38 @@ function rfs_do_rentmanager_sync( $args ) {
 	// perform the API calls to get the data.
 	$property_data = rfs_rentmanager_get_property_data( $args );
 	
+	// error_log('Got property_data for ' . ($args['property_id'] ?? 'unknown'));
+	
+	if (!isset($property_data['PropertyID'])) {
+		// error_log('PropertyID not found in property_data for ' . ($args['property_id'] ?? 'unknown'));
+		return;
+	}
+	
 	// update $args with the numerical rentmanager property ID, found in $property_data['PropertyID']. This is to allow for using a different API while their normal one gets fixed.
 	if ( isset( $property_data['PropertyID'] ) ) {
 		$args['rentmanager_property_id'] = $property_data['PropertyID'];
 	}
+	
+	// error_log('Set rentmanager_property_id: ' . ($args['rentmanager_property_id'] ?? 'not set'));
 
 	// get the data, then update the property post.
 	rfs_rentmanager_update_property_meta( $args, $property_data );
 
+	// get the unit types (floorplans) data for this property.
 	$unit_types_data = rfs_rentmanager_get_unit_types_data( $args );
-
+	
+	// error_log('Got unit_types_data for ' . ($args['property_id'] ?? 'unknown') . ': ' . (is_array($unit_types_data) ? count($unit_types_data) : 'not array') . ' items');
+	
+	// remove floorplans with no bed or bath data (where those are both missing).
+	$unit_types_data = rfs_rentmanager_ignore_floorplans_with_no_bed_or_bath( $unit_types_data );
+	
+	// delete any floorplans that no longer appear in the API (looking at our local data, then comparing to the API data).
+	rfs_rentmanager_remove_unit_types_no_longer_in_api( $args, $unit_types_data );
+	
+	// get the units data for the property.
 	$units_data = rfs_rentmanager_get_units_data( $args );
+	
+	// error_log('Got units_data for ' . ($args['property_id'] ?? 'unknown') . ': ' . (is_array($units_data) ? count($units_data) : 'not array') . ' items');
 		
 	if ( is_array( $units_data ) ) {
 		
@@ -72,6 +98,11 @@ function rfs_do_rentmanager_sync( $args ) {
 			
 			$args = rfs_maybe_create_unit( $args );
 			
+			if (!isset($args['wordpress_unit_post_id']) || !is_numeric($args['wordpress_unit_post_id']) || $args['wordpress_unit_post_id'] <= 0) {
+				// error_log('Failed to create/get unit post for unit_id: ' . ($args['unit_id'] ?? 'unknown'));
+				continue;
+			}
+			
 			rfs_rentmanager_update_unit_meta( $args, $unit );
 		}
 		
@@ -97,10 +128,17 @@ function rfs_do_rentmanager_sync( $args ) {
 		// now that we have the floorplan ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
 		$args = rfs_maybe_create_floorplan( $args );
 
+		if (!isset($args['wordpress_floorplan_post_id']) || !is_numeric($args['wordpress_floorplan_post_id']) || $args['wordpress_floorplan_post_id'] <= 0) {
+			// error_log('Failed to create/get floorplan post for floorplan_id: ' . ($args['floorplan_id'] ?? 'unknown'));
+			continue;
+		}
+
 		// add the meta for this floorplan.
 		rfs_rentmanager_update_floorplan_meta( $args, $floorplan );
 
 	}
+	
+	// error_log('Completed rfs_do_rentmanager_sync for property: ' . ($args['property_id'] ?? 'unknown'));
 }
 
 /**
@@ -529,6 +567,7 @@ function rfs_rentmanager_update_floorplan_meta( $args, $floorplan_data ) {
 		'minimum_rent' => $floorplan_minimum_rent ?? 0,
 		'minimum_sqft' => $floorplan_minimum_square_footage ?? 0,
 		'floorplan_image_url' => $images ?? '',
+		'floorplan_source' => 'rentmanager',
 		'availability_date' => null,
 		'updated'   => current_time( 'mysql' ),
 		'api_response' => $api_response,
@@ -536,6 +575,67 @@ function rfs_rentmanager_update_floorplan_meta( $args, $floorplan_data ) {
 
 	foreach ( $meta as $key => $value ) {
 		$success = update_post_meta( $args['wordpress_floorplan_post_id'], $key, $value );
+	}
+}
+
+function rfs_rentmanager_ignore_floorplans_with_no_bed_or_bath( $unit_types_data ) {
+	
+	$filtered_unit_types = array();
+	
+	if ( is_array( $unit_types_data ) ) {
+		foreach ( $unit_types_data as $unit_type ) {
+			$has_bed = isset( $unit_type['Bedrooms'] ) && is_numeric( $unit_type['Bedrooms'] ) && $unit_type['Bedrooms'] > 0;
+			$has_bath = isset( $unit_type['Bathrooms'] ) && is_numeric( $unit_type['Bathrooms'] ) && $unit_type['Bathrooms'] > 0;
+			
+			if ( $has_bed || $has_bath ) {
+				$filtered_unit_types[] = $unit_type;
+			}
+		}
+	}
+	
+	return $filtered_unit_types;
+}
+
+function rfs_rentmanager_remove_unit_types_no_longer_in_api( $args, $unit_types_data ) {
+	
+	$existing_floorplan_query_args = array(
+		'post_type'      => 'floorplans',
+		'posts_per_page' => -1, // Retrieve all matching floorplans.
+		'orderby'        => 'title',
+		'order'          => 'ASC',
+		'fields'         => 'ids', // Only retrieve post IDs.
+		'meta_query'     => array(
+			'relation' => 'AND',
+			array(
+				'key'   => 'property_id',
+				'value' => $args['property_id'],
+			),
+			array(
+				'key'   => 'floorplan_source',
+				'value' => 'rentmanager',
+			),
+		),
+	);
+
+	$existing_floorplan_ids = get_posts( $existing_floorplan_query_args );
+	
+	$unit_type_ids_in_api = array();
+	
+	if ( is_array( $unit_types_data ) ) {
+		foreach ( $unit_types_data as $unit_type ) {
+			if ( isset( $unit_type['UnitTypeID'] ) ) {
+				$unit_type_ids_in_api[] = $args['property_id'] . '-' . $unit_type['UnitTypeID'];
+			}
+		}
+	}
+	
+	if ( ! empty( $existing_floorplan_ids ) ) {
+		foreach ( $existing_floorplan_ids as $floorplan_post_id ) {
+			$floorplan_id = get_post_meta( $floorplan_post_id, 'floorplan_id', true );
+			if ( ! in_array( $floorplan_id, $unit_type_ids_in_api, true ) ) {
+				wp_delete_post( $floorplan_post_id, true );
+			}
+		}
 	}
 }
 
