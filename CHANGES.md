@@ -1,3 +1,8 @@
+## 0.11.10
+
+-   Entrata: improving handling of units when no units at all are enabled for a property
+-   Entrata; improving our handling (removal) of floorplans that no longer appear in the API
+
 ## 0.11.9
 
 -   Adding capabilities for annotating when we're receiving 304 responses from Yardi and handling that correctly (by not updating anything)
