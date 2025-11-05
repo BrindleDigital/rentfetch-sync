@@ -171,3 +171,52 @@ function rfs_entrata_update_floorplan_meta( $args, $floorplan_data, $units ) {
 		$success = update_post_meta( $args['wordpress_floorplan_post_id'], $key, $value );
 	}
 }
+
+
+function rfs_entrata_remove_floorplans_no_longer_in_api( $args, $floorplans ) {
+	
+	// Get the property ID from args
+	if ( ! isset( $args['property_id'] ) ) {
+		return;
+	}
+	
+	$property_id = $args['property_id'];
+	
+	// Collect floorplan IDs from the API response
+	$api_floorplan_ids = array();
+	if ( is_array( $floorplans ) ) {
+		foreach ( $floorplans as $floorplan ) {
+			if ( isset( $floorplan['Identification']['IDValue'] ) ) {
+				$api_floorplan_ids[] = $floorplan['Identification']['IDValue'];
+			}
+		}
+	}
+	
+	// Query WordPress for floorplans belonging to this property and from Entrata
+	$query_args = array(
+		'post_type'      => 'floorplans',
+		'posts_per_page' => -1,
+		'meta_query'     => array(
+			array(
+				'key'   => 'property_id',
+				'value' => $property_id,
+			),
+			array(
+				'key'   => 'floorplan_source',
+				'value' => 'entrata',
+			),
+		),
+	);
+	
+	$floorplan_posts = get_posts( $query_args );
+	
+	// Loop through each WordPress floorplan
+	foreach ( $floorplan_posts as $post ) {
+		$floorplan_id = get_post_meta( $post->ID, 'floorplan_id', true );
+		
+		// If this floorplan ID is not in the API response, delete it
+		if ( ! in_array( $floorplan_id, $api_floorplan_ids ) ) {
+			wp_delete_post( $post->ID, true ); // Force delete
+		}
+	}
+}
