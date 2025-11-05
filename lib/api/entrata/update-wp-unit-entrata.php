@@ -160,6 +160,38 @@ function rfs_entrata_update_unit_meta( $args, $unit_data, $property_mits_data ) 
 	}
 }
 
+function rfs_entrata_remove_all_units_from_property_if_none_available( $args, $units_from_api ) {
+	
+	// If we have units from the API, don't remove anything
+	if ( ! empty( $units_from_api ) && is_array( $units_from_api ) ) {
+		return;
+	}
+	
+	// Get all units for this property with entrata source
+	$units_to_delete = get_posts(
+		array(
+			'post_type'      => 'units',
+			'posts_per_page' => -1,
+			'meta_query'     => array(
+				'relation' => 'AND',
+				array(
+					'key'   => 'property_id',
+					'value' => $args['property_id'],
+				),
+				array(
+					'key'   => 'unit_source',
+					'value' => 'entrata',
+				),
+			),
+		)
+	);
+	
+	// Delete all units for this property
+	foreach ( $units_to_delete as $unit ) {
+		wp_delete_post( $unit->ID, true );
+	}
+}
+
 function rfs_entrata_remove_units_no_longer_available( $args, $units_from_api ) {
 	
 	// bail if we don't have units from the API.=

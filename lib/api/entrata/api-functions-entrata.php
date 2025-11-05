@@ -69,6 +69,7 @@ function rfs_do_entrata_sync( $args ) {
 		rfs_entrata_update_unit_meta( $args, $unit, $property_mits_data );
 	}
 	
+	rfs_entrata_remove_all_units_from_property_if_none_available( $args, $units );
 	rfs_entrata_remove_units_no_longer_available( $args, $units );
 	
 	// reset the floorplan_id and unit_id
