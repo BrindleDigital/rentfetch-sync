@@ -91,7 +91,7 @@ function rfs_yardi_v2_update_property_meta( $args, $property_data ) {
 		'updated' => current_time('mysql'),
 		'api_response' => $property_data_string,
 	];
-		
+	
 	//* Update the meta
 	$meta = [
 		'property_id' => esc_html( $property_id ),
@@ -108,6 +108,37 @@ function rfs_yardi_v2_update_property_meta( $args, $property_data ) {
 		'updated' => current_time('mysql'),
 		'api_response' => $api_response,
 	];
+	
+	// Process the office hours.
+	if ( isset( $property_data['officeHours'] ) && is_array( $property_data['officeHours'] ) ) {
+		$office_hours = [];
+		$days_map = [
+			1 => 'monday',
+			2 => 'tuesday',
+			3 => 'wednesday',
+			4 => 'thursday',
+			5 => 'friday',
+			6 => 'saturday',
+			7 => 'sunday',
+		];
+		
+		foreach ( $property_data['officeHours'] as $hour ) {
+			if ( isset( $hour['iday'] ) && isset( $days_map[ $hour['iday'] ] ) ) {
+				$day = $days_map[ $hour['iday'] ];
+				$start_time = date( 'H:i', strtotime( $hour['startTime'] ) );
+				$end_time = date( 'H:i', strtotime( $hour['endTime'] ) );
+				$office_hours[ $day ] = [
+					'start' => $start_time,
+					'end' => $end_time,
+				];
+			}
+		}
+		
+		// Add to meta if we have hours
+		if ( !empty( $office_hours ) ) {
+			$meta['office_hours'] = $office_hours;
+		}
+	}
 	
 	foreach ( $meta as $key => $value ) { 
 		$success = update_post_meta( $args['wordpress_property_post_id'], $key, $value );
