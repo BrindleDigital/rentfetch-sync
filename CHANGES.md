@@ -1,3 +1,7 @@
+## 0.11.11
+
+-   Yardi: Adding office hours on the property level to the sync.
+
 ## 0.11.10
 
 -   Entrata: improving handling of units when no units at all are enabled for a property
