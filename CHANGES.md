@@ -1,3 +1,7 @@
+## 0.12
+
+-   Adding capabilities to use Yardi's createlead and updatelead endpoints for our native forms
+
 ## 0.11.11
 
 -   Yardi: Adding office hours on the property level to the sync.
