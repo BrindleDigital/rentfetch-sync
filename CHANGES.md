@@ -1,3 +1,7 @@
+## 0.12.1
+
+-   Using our own proxy instead of the RentManager API.
+
 ## 0.12
 
 -   Adding capabilities to use Yardi's createlead and updatelead endpoints for our native forms
