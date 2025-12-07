@@ -32,21 +32,27 @@ function rfs_get_rentmanager_properties_from_setting() {
 	}
 
 	$rentmanager_company_code = $credentials['rentmanager']['companycode'];
-	$url                      = sprintf( 'https://%s.api.rentmanager.com/Properties?fields=Name,PropertyID,ShortName', $rentmanager_company_code );
-
 	$partner_token = $credentials['rentmanager']['partner_token'];
+
+	// Use the proxy endpoint instead of direct API call
+	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/properties-all';
+
+	$body = wp_json_encode(array(
+		'company_code' => $rentmanager_company_code,
+		'partner_token' => $partner_token
+	));
 
 	// Prepare the headers.
 	$args = array(
 		'headers' => array(
-			'X-RM12API-PartnerToken' => $partner_token,
-			'Content-Type'           => 'application/json',
+			'Content-Type' => 'application/json',
 		),
+		'body' => $body,
 		'timeout' => 10,
 	);
 
 	// Make the request.
-	$response = wp_remote_get( $url, $args );
+	$response = wp_remote_post( $url, $args );
 
 	// Check for errors.
 	if ( is_wp_error( $response ) ) {

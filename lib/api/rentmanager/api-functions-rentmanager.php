@@ -149,48 +149,43 @@ function rfs_do_rentmanager_sync( $args ) {
  * @return  array the property information.
  */
 function rfs_rentmanager_get_property_data( $args ) {
-	$curl = curl_init();
-
 	$rentmanager_company_code = $args['credentials']['rentmanager']['companycode'];
-	$url                      = sprintf( 'https://%s.api.rentmanager.com/Properties?embeds=Images,Images.File,Images.ImageType,Addresses,Addresses.AddressType,PhoneNumbers&filters=ShortName,eq,%s', $rentmanager_company_code, $args['property_id'] );
+	$partner_token = $args['credentials']['rentmanager']['partner_token'];
 
-	$partner_token        = $args['credentials']['rentmanager']['partner_token'];
-	$partner_token_header = sprintf( 'X-RM12API-PartnerToken: %s', $partner_token );
+	// Use the proxy endpoint instead of direct API call
+	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/properties';
 
-	curl_setopt_array(
-		$curl,
-		array(
-			CURLOPT_URL            => $url,
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_ENCODING       => '',
-			CURLOPT_MAXREDIRS      => 10,
-			CURLOPT_TIMEOUT        => 30, // Set a reasonable timeout (30 seconds)
-			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-			CURLOPT_CUSTOMREQUEST  => 'GET',
-			CURLOPT_HTTPHEADER     => array(
-				$partner_token_header,
-				'Content-Type: application/json',
-			),
-			CURLOPT_SSL_VERIFYPEER => true, // Enable SSL verification
-			CURLOPT_SSL_VERIFYHOST => 2,
-		)
-	);
+	$body = wp_json_encode(array(
+		'company_code' => $rentmanager_company_code,
+		'partner_token' => $partner_token,
+		'property_id' => $args['property_id']
+	));
 
-	$response = curl_exec( $curl );
-	$error    = curl_error( $curl );
-	curl_close( $curl );
+	$response = wp_remote_post( $url, array(
+		'headers' => array(
+			'Content-Type' => 'application/json',
+		),
+		'body' => $body,
+		'timeout' => 30,
+	) );
 
-	if ( $error ) {
-		error_log( 'cURL error in rfs_rentmanager_get_property_data: ' . $error );
-		return array(); // Return empty array to prevent errors
+	if ( is_wp_error( $response ) ) {
+		error_log( 'WP Remote error in rfs_rentmanager_get_property_data: ' . $response->get_error_message() );
+		return array();
 	}
 
-	$response = rentfetch_clean_json_string( $response );
-	$property_data = json_decode( $response, true );
+	$http_code = wp_remote_retrieve_response_code( $response );
+	if ( $http_code !== 200 ) {
+		error_log( 'HTTP error in rfs_rentmanager_get_property_data: ' . $http_code );
+		return array();
+	}
+
+	$response_body = wp_remote_retrieve_body( $response );
+	$response_body = rentfetch_clean_json_string( $response_body );
+	$property_data = json_decode( $response_body, true );
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
 		error_log( 'JSON decode error in rfs_rentmanager_get_property_data: ' . json_last_error_msg() );
-		return $response; // Return the cleaned JSON string if decode fails
+		return $response_body; // Return the cleaned JSON string if decode fails
 	}
 
 	return $property_data[0] ?? array(); // Ensure it returns an array
@@ -343,48 +338,43 @@ function rfs_rentmanager_update_property_meta( $args, $property_data ) {
  * @return  array the unit types data.
  */
 function rfs_rentmanager_get_unit_types_data( $args ) {
-	$curl = curl_init();
-
 	$rentmanager_company_code = $args['credentials']['rentmanager']['companycode'];
-	$url                      = sprintf( 'https://%s.api.rentmanager.com/Properties/%s/UnitTypes?embeds=Images,Images.File,Images.ImageType', $rentmanager_company_code, $args['rentmanager_property_id'] );
+	$partner_token = $args['credentials']['rentmanager']['partner_token'];
 
-	$partner_token        = $args['credentials']['rentmanager']['partner_token'];
-	$partner_token_header = sprintf( 'X-RM12API-PartnerToken: %s', $partner_token );
+	// Use the proxy endpoint instead of direct API call
+	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/unit-types';
 
-	curl_setopt_array(
-		$curl,
-		array(
-			CURLOPT_URL            => $url,
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_ENCODING       => '',
-			CURLOPT_MAXREDIRS      => 10,
-			CURLOPT_TIMEOUT        => 30, // Set a reasonable timeout (30 seconds)
-			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-			CURLOPT_CUSTOMREQUEST  => 'GET',
-			CURLOPT_HTTPHEADER     => array(
-				$partner_token_header,
-				'Content-Type: application/json',
-			),
-			CURLOPT_SSL_VERIFYPEER => true, // Enable SSL verification
-			CURLOPT_SSL_VERIFYHOST => 2,
-		)
-	);
+	$body = wp_json_encode(array(
+		'company_code' => $rentmanager_company_code,
+		'partner_token' => $partner_token,
+		'property_id' => $args['rentmanager_property_id']
+	));
 
-	$response = curl_exec( $curl );
-	$error    = curl_error( $curl );
-	curl_close( $curl );
+	$response = wp_remote_post( $url, array(
+		'headers' => array(
+			'Content-Type' => 'application/json',
+		),
+		'body' => $body,
+		'timeout' => 30,
+	) );
 
-	if ( $error ) {
-		error_log( 'cURL error in rfs_rentmanager_get_unit_types_data: ' . $error );
-		return array(); // Return empty array to prevent errors
+	if ( is_wp_error( $response ) ) {
+		error_log( 'WP Remote error in rfs_rentmanager_get_unit_types_data: ' . $response->get_error_message() );
+		return array();
 	}
 
-	$response = rentfetch_clean_json_string( $response );
-	$unit_types_data = json_decode( $response, true );
+	$http_code = wp_remote_retrieve_response_code( $response );
+	if ( $http_code !== 200 ) {
+		error_log( 'HTTP error in rfs_rentmanager_get_unit_types_data: ' . $http_code );
+		return array();
+	}
+
+	$response_body = wp_remote_retrieve_body( $response );
+	$response_body = rentfetch_clean_json_string( $response_body );
+	$unit_types_data = json_decode( $response_body, true );
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
 		error_log( 'JSON decode error in rfs_rentmanager_get_unit_types_data: ' . json_last_error_msg() );
-		return $response; // Return the cleaned JSON string if decode fails
+		return $response_body; // Return the cleaned JSON string if decode fails
 	}
 
 	return $unit_types_data ?: array(); // Ensure it returns an array
@@ -647,48 +637,43 @@ function rfs_rentmanager_remove_unit_types_no_longer_in_api( $args, $unit_types_
  * @return  array  the unit data.
  */
 function rfs_rentmanager_get_units_data( $args ) {
-	$curl = curl_init();
-
 	$rentmanager_company_code = $args['credentials']['rentmanager']['companycode'];
-	$url                      = sprintf( 'https://%s.api.rentmanager.com/Units?embeds=CurrentOccupancyStatus,CurrentOccupancyStatus.UnitStatus,IsVacant,MarketingValues,MarketingValues.Images,MarketRent,UnitAmenities,UnitStatuses,UnitStatuses.UnitStatusType&filters=Property.ShortName,eq,%s', $rentmanager_company_code, $args['property_id'] );
+	$partner_token = $args['credentials']['rentmanager']['partner_token'];
 
-	$partner_token        = $args['credentials']['rentmanager']['partner_token'];
-	$partner_token_header = sprintf( 'X-RM12API-PartnerToken: %s', $partner_token );
+	// Use the proxy endpoint instead of direct API call
+	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/units';
 
-	curl_setopt_array(
-		$curl,
-		array(
-			CURLOPT_URL            => $url,
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_ENCODING       => '',
-			CURLOPT_MAXREDIRS      => 10,
-			CURLOPT_TIMEOUT        => 30, // Set a reasonable timeout (30 seconds)
-			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-			CURLOPT_CUSTOMREQUEST  => 'GET',
-			CURLOPT_HTTPHEADER     => array(
-				$partner_token_header,
-				'Content-Type: application/json',
-			),
-			CURLOPT_SSL_VERIFYPEER => true, // Enable SSL verification
-			CURLOPT_SSL_VERIFYHOST => 2,
-		)
-	);
+	$body = wp_json_encode(array(
+		'company_code' => $rentmanager_company_code,
+		'partner_token' => $partner_token,
+		'property_id' => $args['property_id']
+	));
 
-	$response = curl_exec( $curl );
-	$error    = curl_error( $curl );
-	curl_close( $curl );
+	$response = wp_remote_post( $url, array(
+		'headers' => array(
+			'Content-Type' => 'application/json',
+		),
+		'body' => $body,
+		'timeout' => 30,
+	) );
 
-	if ( $error ) {
-		error_log( 'cURL error in rfs_rentmanager_get_units_data: ' . $error );
-		return array(); // Return empty array to prevent errors
+	if ( is_wp_error( $response ) ) {
+		error_log( 'WP Remote error in rfs_rentmanager_get_units_data: ' . $response->get_error_message() );
+		return array();
 	}
 
-	$response = rentfetch_clean_json_string( $response );
-	$units_data = json_decode( $response, true );
+	$http_code = wp_remote_retrieve_response_code( $response );
+	if ( $http_code !== 200 ) {
+		error_log( 'HTTP error in rfs_rentmanager_get_units_data: ' . $http_code );
+		return array();
+	}
+
+	$response_body = wp_remote_retrieve_body( $response );
+	$response_body = rentfetch_clean_json_string( $response_body );
+	$units_data = json_decode( $response_body, true );
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
 		error_log( 'JSON decode error in rfs_rentmanager_get_units_data: ' . json_last_error_msg() );
-		return $response; // Return the cleaned JSON string if decode fails
+		return $response_body; // Return the cleaned JSON string if decode fails
 	}
 
 	return $units_data ?: array(); // Ensure it returns an array
