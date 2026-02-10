@@ -50,6 +50,16 @@ function rfs_convert_voyager_codes() {
 	
 	// merge the previous property codes with the new ones
 	$property_codes = array_merge( $property_codes, $previous_property_codes_array );
+
+	// sanitize and remove empties
+	$property_codes = array_filter(
+		array_map(
+			function( $code ) {
+				return sanitize_text_field( $code );
+			},
+			$property_codes
+		)
+	);
 	
 	// remove duplicates
 	$property_codes = array_unique( $property_codes );

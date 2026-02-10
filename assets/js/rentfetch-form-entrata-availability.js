@@ -13,6 +13,19 @@ jQuery(document).ready(function ($) {
 	const rentfetchEntrataTourAvailabilityAjax =
 		window.rentfetchEntrataTourAvailabilityAjax;
 
+	function escapeHtml(value) {
+		return String(value)
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
+	}
+
+	function isValidYmdDate(value) {
+		return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
+	}
+
 	function toggleSubmitButton() {
 		if ($availabilityTimesContainer.find('li.selected').length) {
 			$submitButton.show();
@@ -220,8 +233,14 @@ jQuery(document).ready(function ($) {
 		console.log(availableTours);
 
 		availableTours.forEach((tour) => {
+			const tourDate =
+				tour && isValidYmdDate(tour.tourDate) ? String(tour.tourDate) : '';
+			if (!tourDate) {
+				return;
+			}
+
 			// Parse the date string manually to avoid timezone issues
-			const dateParts = tour.tourDate.split('-');
+			const dateParts = tourDate.split('-');
 			const year = parseInt(dateParts[0]);
 			const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
 			const day = parseInt(dateParts[2]);
@@ -234,7 +253,9 @@ jQuery(document).ready(function ($) {
 			const [weekday, monthDay] = formattedDate.split(', ');
 			const [monthName, dayNum] = monthDay.split(' ');
 
-			dateHtml += `<div class="availability-date" data-date="${tour.tourDate}">
+			dateHtml += `<div class="availability-date" data-date="${escapeHtml(
+				tourDate
+			)}">
 				<span class="rentfetch-weekday">${weekday}</span>
 				<span class="rentfetch-date">
 					<span class="rentfetch-month">${monthName}</span> 
@@ -284,11 +305,15 @@ jQuery(document).ready(function ($) {
 				);
 
 				$availabilityTimesContainer.empty();
-				if (selectedTour && selectedTour.tourTime.length > 0) {
+				if (
+					selectedTour &&
+					Array.isArray(selectedTour.tourTime) &&
+					selectedTour.tourTime.length > 0
+				) {
 					let currentTimeHtml =
 						'<label class="rentfetch-form-label">Select a time <span class="rentfetch-form-required-label">(Required)</span></label><ul>';
 					selectedTour.tourTime.forEach((time) => {
-						const timeWithoutTimezone = time.replace(
+						const timeWithoutTimezone = String(time).replace(
 							/ [A-Z]{3,4}/g,
 							''
 						);
@@ -314,7 +339,9 @@ jQuery(document).ready(function ($) {
 								}
 							}
 						);
-						currentTimeHtml += `<li>${formattedTime}</li>`;
+						currentTimeHtml += `<li>${escapeHtml(
+							formattedTime
+						)}</li>`;
 					});
 					currentTimeHtml += '</ul>';
 					$availabilityTimesContainer.html(currentTimeHtml);

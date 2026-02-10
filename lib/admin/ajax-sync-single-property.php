@@ -124,8 +124,8 @@ function rfs_sync_metabox( $post ) {
 		return;
 	}
 	
-	printf( '<p class="post-attributes-label-wrapper menu-order-label-wrapper">%s</p>', $text );
-	printf( '<a href="#" data-property-id="%s" data-integration="%s" class="sync-property button button-large" >Sync this %s</a>', esc_attr( $property_id ), esc_attr( $integration ), $label );
+	printf( '<p class="post-attributes-label-wrapper menu-order-label-wrapper">%s</p>', esc_html( $text ) );
+	printf( '<a href="#" data-property-id="%s" data-integration="%s" class="sync-property button button-large" >Sync this %s</a>', esc_attr( $property_id ), esc_attr( $integration ), esc_html( $label ) );
 
 	// Visible status/debug area for the sync UX
 	echo '<div class="rfs-sync-status" style="margin-top:8px;font-size:12px;color:#666">';

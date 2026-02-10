@@ -26,8 +26,8 @@ function rentfetch_save_form_entry( $form_data, $property_source, $api_response,
 			'property_source' => $property_source,
 			'api_response'    => $api_response,
 			'submission_time' => current_time( 'mysql' ),
-			'submission_ip'   => $_SERVER['REMOTE_ADDR'] ?? '',
-			'user_agent'      => $_SERVER['HTTP_USER_AGENT'] ?? '',
+			'submission_ip'   => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+			'user_agent'      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
 		),
 	);
 	

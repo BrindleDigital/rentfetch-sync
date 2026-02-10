@@ -173,8 +173,6 @@ function rfs_entrata_update_property_mits_meta( $args, $property_data ) {
 	$data = $property_data['response']['result']['PhysicalProperty']['Property'][0];
 	$property_id = $args['property_id'];
 	
-	$id_value = (int) $data['Identification']['IDValue'];
-	
 	// bail if we don't have the property ID
 	if ( !isset( $data['Identification']['IDValue'] ) || !$data['Identification']['IDValue'] )
 		return;
@@ -191,8 +189,17 @@ function rfs_entrata_update_property_mits_meta( $args, $property_data ) {
 		'api_response' => $property_data_string,
 	];
 	
-	// TODO add the photos from $data['File']
-	$images = $data['File'];
+	$sanitize_mixed = static function( $value ) use ( &$sanitize_mixed ) {
+		if ( is_array( $value ) ) {
+			return array_map( $sanitize_mixed, $value );
+		}
+
+		if ( is_scalar( $value ) || null === $value ) {
+			return sanitize_text_field( (string) $value );
+		}
+
+		return '';
+	};
 		
 	//* Update the meta
 	$meta = [
@@ -204,10 +211,10 @@ function rfs_entrata_update_property_mits_meta( $args, $property_data ) {
 		// 'email' => esc_html( $data['Address']['Email'] ),
 		// 'url' => esc_url( $data['webSite'] ),
 		// 'description' => esc_attr( $data['LongDescription'] ),
-		'phone' => isset( $data['PropertyID']['Phone'][0]['PhoneNumber'] ) ? esc_html( $data['PropertyID']['Phone'][0]['PhoneNumber'] ) : '',
-		'latitude' => isset( $data['ILS_Identification']['Latitude'] ) ? esc_html( $data['ILS_Identification']['Latitude'] ) : '',
-		'longitude' => isset( $data['ILS_Identification']['Longitude'] ) ? esc_html( $data['ILS_Identification']['Longitude'] ) : '',
-		'synced_property_images' => isset( $data['File'] ) ? $data['File'] : [],
+		'phone' => isset( $data['PropertyID']['Phone'][0]['PhoneNumber'] ) ? sanitize_text_field( $data['PropertyID']['Phone'][0]['PhoneNumber'] ) : '',
+		'latitude' => isset( $data['ILS_Identification']['Latitude'] ) ? sanitize_text_field( $data['ILS_Identification']['Latitude'] ) : '',
+		'longitude' => isset( $data['ILS_Identification']['Longitude'] ) ? sanitize_text_field( $data['ILS_Identification']['Longitude'] ) : '',
+		'synced_property_images' => isset( $data['File'] ) ? $sanitize_mixed( $data['File'] ) : [],
 		// 'updated' => current_time('mysql'),
 		'api_response' => $api_response,
 	];
@@ -217,4 +224,3 @@ function rfs_entrata_update_property_mits_meta( $args, $property_data ) {
 	}
 	
 }
-

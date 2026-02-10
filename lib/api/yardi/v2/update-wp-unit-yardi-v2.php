@@ -114,20 +114,32 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 		unset( $api_response['units_api'] );
 	}
 
+	$sanitize_mixed = static function( $value ) use ( &$sanitize_mixed ) {
+		if ( is_array( $value ) ) {
+			return array_map( $sanitize_mixed, $value );
+		}
+
+		if ( is_scalar( $value ) || null === $value ) {
+			return sanitize_text_field( (string) $value );
+		}
+
+		return '';
+	};
+
 	$meta = array(
-		'unit_id'           => $unit_data['apartmentId'],
-		'floorplan_id'      => $unit_data['floorplanId'],
-		'property_id'       => $args['property_id'],
-		'apply_online_url'  => $unit_data['applyOnlineURL'],
-		'availability_date' => $unit_data['availableDate'],
-		'baths'             => $unit_data['baths'],
-		'beds'              => $unit_data['beds'],
-		'deposit'           => $unit_data['deposit'],
-		'minimum_rent'      => $unit_data['minimumRent'],
-		'maximum_rent'      => $unit_data['maximumRent'],
-		'sqrft'             => $unit_data['sqft'],
-		'amenities'         => $unit_data['amenities'],
-		'specials'          => $unit_data['specials'],
+		'unit_id'           => sanitize_text_field( $unit_data['apartmentId'] ?? '' ),
+		'floorplan_id'      => sanitize_text_field( $unit_data['floorplanId'] ?? '' ),
+		'property_id'       => sanitize_text_field( $args['property_id'] ?? '' ),
+		'apply_online_url'  => esc_url_raw( $unit_data['applyOnlineURL'] ?? '' ),
+		'availability_date' => sanitize_text_field( $unit_data['availableDate'] ?? '' ),
+		'baths'             => floatval( $unit_data['baths'] ?? 0 ),
+		'beds'              => floatval( $unit_data['beds'] ?? 0 ),
+		'deposit'           => floatval( $unit_data['deposit'] ?? 0 ),
+		'minimum_rent'      => floatval( $unit_data['minimumRent'] ?? 0 ),
+		'maximum_rent'      => floatval( $unit_data['maximumRent'] ?? 0 ),
+		'sqrft'             => floatval( $unit_data['sqft'] ?? 0 ),
+		'amenities'         => isset( $unit_data['amenities'] ) ? $sanitize_mixed( $unit_data['amenities'] ) : '',
+		'specials'          => isset( $unit_data['specials'] ) ? $sanitize_mixed( $unit_data['specials'] ) : '',
 		'unit_source'       => 'yardi',
 		'api_response'      => $api_response,
 	);

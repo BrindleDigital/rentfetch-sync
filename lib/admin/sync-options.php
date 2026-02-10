@@ -198,16 +198,21 @@ function rentfetch_settings_sync() {
 						$option_value = get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' );
 
 						if ( is_string( $option_value ) ) {
-							printf( '<p class="description">%s</p>', $option_value );
+							printf( '<p class="description">%s</p>', esc_html( $option_value ) );
 						} elseif ( isset( $option_value[0] ) && is_string( $option_value[0] ) ) {
-							printf( '<p class="description">%s</p>', $option_value[0] );
+							printf( '<p class="description">%s</p>', esc_html( $option_value[0] ) );
 						} elseif ( isset( $option_value[0] ) && is_array( $option_value ) ) {
 
 							$properties = array_map( function( $property ) {
-								$property_id = isset($property['PropertyID']) ? $property['PropertyID'] : '';
-								$property_shortname = isset($property['Name']) ? $property['Name'] : '';
-								$property_name = isset($property['ShortName']) ? $property['ShortName'] : '';
-								return sprintf( '<li>%s: <strong>%s</strong> - %s</li>', $property_id, $property_shortname, $property_name );
+								$property_id = isset( $property['PropertyID'] ) ? absint( $property['PropertyID'] ) : '';
+								$property_shortname = isset( $property['Name'] ) ? sanitize_text_field( $property['Name'] ) : '';
+								$property_name = isset( $property['ShortName'] ) ? sanitize_text_field( $property['ShortName'] ) : '';
+								return sprintf(
+									'<li>%s: <strong>%s</strong> - %s</li>',
+									esc_html( (string) $property_id ),
+									esc_html( $property_shortname ),
+									esc_html( $property_name )
+								);
 							}, $option_value );
 
 							printf( '<ul class="rentmanager-properties">%s</ul>', implode( '', $properties ) );

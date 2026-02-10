@@ -1,4 +1,32 @@
 jQuery(document).ready(function ($) {
+	function appendNotice($container, type, message, insertBefore) {
+		var $notice = $('<div>', {
+			class: 'rentfetch-form-message-area ' + type,
+		}).append($('<p>').text(String(message || '')));
+
+		if (insertBefore) {
+			$container.before($notice);
+		} else {
+			$container.prepend($notice);
+		}
+	}
+
+	function appendErrorList($container, errors) {
+		var $notice = $('<div>', { class: 'rentfetch-form-message-area error' });
+		var $list = $('<ul>');
+		var safeErrors =
+			Array.isArray(errors) && errors.length > 0
+				? errors
+				: ['An unknown error occurred.'];
+
+		safeErrors.forEach(function (error) {
+			$list.append($('<li>').text(String(error || '')));
+		});
+
+		$notice.append($list);
+		$container.prepend($notice);
+	}
+
 	$('#rentfetch-form').on('submit', function (e) {
 		e.preventDefault(); // Prevent standard form submission
 
@@ -40,11 +68,15 @@ jQuery(document).ready(function ($) {
 					}
 
 					// Display success message
-					// Assuming success response will have response.data.message
-					form.before(
-						'<div class="rentfetch-form-message-area success"><p>' +
-							response.data.message +
-							'</p></div>'
+					appendNotice(
+						form,
+						'success',
+						response &&
+							response.data &&
+							typeof response.data.message === 'string'
+							? response.data.message
+							: 'Your message was sent successfully.',
+						true
 					);
 					// Remove the form element
 					form.remove();
@@ -60,38 +92,32 @@ jQuery(document).ready(function ($) {
 					if (
 						new URLSearchParams(window.location.search).has('debug')
 					) {
-						var noticeHtml =
-							'<div class="rentfetch-form-message-area notice"><p>See console log for response details.</p></div>';
-						form.prepend(noticeHtml);
+						appendNotice(
+							form,
+							'notice',
+							'See console log for response details.',
+							false
+						);
 						console.log(response);
 					} else {
-						// Display error messages
-						var errorHtml =
-							'<div class="rentfetch-form-message-area error"><ul>';
-						// Ensure response.data.errors exists and is an array
-						if (
-							response.data &&
-							Array.isArray(response.data.errors)
-						) {
-							$.each(
-								response.data.errors,
-								function (index, error) {
-									errorHtml += '<li>' + error + '</li>';
-								}
-							);
-						} else {
-							// errorHtml += '<li>An unknown error occurred.</li>';
-							errorHtml += response;
-						}
-						errorHtml += '</ul></div>';
-						form.prepend(errorHtml);
+						appendErrorList(
+							form,
+							response &&
+								response.data &&
+								Array.isArray(response.data.errors)
+								? response.data.errors
+								: null
+						);
 					}
 				}
 			},
 			error: function (xhr, status, error) {
 				// Handle AJAX request errors
-				form.prepend(
-					'<div class="rentfetch-form-message-area error"><p>An unexpected error occurred. Please try again.</p></div>'
+				appendNotice(
+					form,
+					'error',
+					'An unexpected error occurred. Please try again.',
+					false
 				);
 				console.error(xhr.responseText);
 			},

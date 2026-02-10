@@ -73,21 +73,26 @@ function rfs_get_rentmanager_properties_from_setting() {
 		return;
 	}
 	
-	// Escape the array.
-	$filters = array(
-		'Name'       => 'sanitize_text_field',
-		'ShortName'  => 'sanitize_text_field',
-		'PropertyID' => 'absint',
-	);
+	// Ensure we only store a sanitized list of expected fields.
+	$sanitized_data = array();
+	if ( is_array( $data ) ) {
+		// Support both API shapes: list of properties or a single property object.
+		if ( isset( $data['Name'] ) || isset( $data['ShortName'] ) || isset( $data['PropertyID'] ) ) {
+			$data = array( $data );
+		}
 
-	// Sanitize the entire array.
-	$sanitized_data = array_map(
-		function ( $value, $key ) use ( $filters ) {
-			return isset( $filters[ $key ] ) ? call_user_func( $filters[ $key ], $value ) : $value;
-		},
-		$data,
-		array_keys( $data )
-	);
+		foreach ( $data as $property ) {
+			if ( ! is_array( $property ) ) {
+				continue;
+			}
+
+			$sanitized_data[] = array(
+				'Name'       => isset( $property['Name'] ) ? sanitize_text_field( $property['Name'] ) : '',
+				'ShortName'  => isset( $property['ShortName'] ) ? sanitize_text_field( $property['ShortName'] ) : '',
+				'PropertyID' => isset( $property['PropertyID'] ) ? absint( $property['PropertyID'] ) : 0,
+			);
+		}
+	}
 
 	// Save the sanitized data.
 	update_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames', $sanitized_data );

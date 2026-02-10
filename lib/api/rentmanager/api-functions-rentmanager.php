@@ -305,10 +305,22 @@ function rfs_rentmanager_update_property_meta( $args, $property_data ) {
 			$phone = $phone_number['PhoneNumber'];
 		}
 	}
+
+	$sanitize_mixed = static function( $value ) use ( &$sanitize_mixed ) {
+		if ( is_array( $value ) ) {
+			return array_map( $sanitize_mixed, $value );
+		}
+
+		if ( is_scalar( $value ) || null === $value ) {
+			return sanitize_text_field( (string) $value );
+		}
+
+		return '';
+	};
 	
 	// handle the images.	
 	if ( isset( $property_data['Images'] ) && is_array( $property_data['Images'] ) ) {
-		$images = $property_data['Images'];
+		$images = $sanitize_mixed( $property_data['Images'] );
 		$success = update_post_meta( $args['wordpress_property_post_id'], 'synced_property_images', $images );
 	}
 

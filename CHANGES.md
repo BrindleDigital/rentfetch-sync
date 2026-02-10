@@ -1,3 +1,13 @@
+## 0.12.2
+
+-   Security hardening: escaped Rent Manager settings output in wp-admin to prevent unsafe rendering of option values.
+-   Security hardening: sanitized Rent Manager properties data before storing it, including support for both list and single-object API response shapes.
+-   Security hardening: removed unsafe HTML concatenation in frontend form submission handling and switched to safe text-node rendering for success/error messages.
+-   Security hardening: escaped and validated Entrata availability data before rendering date/time UI in the browser.
+-   Security hardening: sanitized request metadata (`REMOTE_ADDR`, `HTTP_USER_AGENT`) before storing form entry meta.
+-   Security hardening: added write-time sanitization for externally sourced unit/property/image meta in Yardi/Entrata/Rent Manager sync flows.
+-   Minor hardening: escaped sync metabox label text output in wp-admin.
+
 ## 0.12.1
 
 -   Using our own proxy instead of the RentManager API.
