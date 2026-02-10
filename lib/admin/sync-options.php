@@ -4,30 +4,20 @@
  * Remove the notice about premium functionality
  */
 function rentfetch_remove_premium_functionality_notice() {
-	remove_action( 'rentfetch_do_settings_general', 'rentfetch_settings_sync_functionality_notice', 25 );
+	remove_action( 'rentfetch_do_settings_general_data_sync', 'rentfetch_settings_sync_functionality_notice', 25 );
 }
 add_action( 'wp_loaded', 'rentfetch_remove_premium_functionality_notice' );
  
 /**
  * Add the sync options section
  */
-add_action( 'rentfetch_do_settings_general', 'rentfetch_settings_sync', 25 );
+add_action( 'rentfetch_do_settings_general_data_sync', 'rentfetch_settings_sync', 25 );
 function rentfetch_settings_sync() {
-	echo '<section id="rent-fetch-sync-page" class="options-container">';
-	
-		echo '<div class="rent-fetch-options-nav-wrap">';
-			echo '<div class="rent-fetch-options-sticky-wrap">';
-				// add a wordpress save button here
-				submit_button();
-			echo '</div>';
-		echo '</div>';
-		
-		echo '<div class="container">';
-		?>
-		<div class="header">
-			<h2 class="title">Rent Fetch General Settings</h2>
-			<p class="description">Let’s get started. Select from the options below to configure Rent Fetch and any integrations.</p>
-		</div>
+	?>
+	<div class="header">
+		<h2 class="title">Data Sync</h2>
+		<p class="description">Configure data sync behavior and integration credentials.</p>
+	</div>
 
 		<div class="row">
 			<div class="section">
@@ -261,9 +251,5 @@ function rentfetch_settings_sync() {
 				</div>
 			</div>
 		</div> -->
-		<?php
-		do_action( 'rentfetch_do_settings_general_shared' );
-
-		echo '</div>';
-	echo '</section>';
+	<?php
 }
