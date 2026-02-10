@@ -8,6 +8,10 @@
 - Security hardening: added write-time sanitization for externally sourced unit/property/image meta in Yardi/Entrata/Rent Manager sync flows.
 - Minor hardening: escaped sync metabox label text output in wp-admin.
 
+## 0.12.2
+
+- Removing unnecessary console logging.
+
 ## 0.12.1
 
 - Using our own proxy instead of the RentManager API.
