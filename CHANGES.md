@@ -1,3 +1,7 @@
+## 0.12.4
+
+- Updating hooks to match the new RF pattern for subpages in the General settings.
+
 ## 0.12.3
 
 - Security hardening: escaped Rent Manager settings output in wp-admin to prevent unsafe rendering of option values.
