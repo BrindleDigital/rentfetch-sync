@@ -22,6 +22,14 @@ function rfs_enqueue_backend_scripts() {
 		RENTFETCHSYNC_VERSION,
 		true
 	);
+	
+	wp_register_script(
+		'rentfetch-rfs-api-key-validation',
+		RENTFETCHSYNC_PATH . 'assets/js/rentfetch-rfs-api-key-validation.js',
+		array( 'jquery' ),
+		RENTFETCHSYNC_VERSION,
+		true
+	);
 }
 add_action( 'admin_enqueue_scripts', 'rfs_enqueue_backend_scripts' );
 
