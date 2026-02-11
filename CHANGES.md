@@ -1,3 +1,10 @@
+## 0.12.5
+
+- Added Rent Fetch Sync API key setting with asynchronous validation
+- API key field includes a separate "Validate Key" button for testing without saving
+- Automatic validation on page load when an API key is present
+- Handles multiple validation states: valid, not found, and already in use
+
 ## 0.12.4
 
 - Updating hooks to match the new RF pattern for subpages in the General settings.
