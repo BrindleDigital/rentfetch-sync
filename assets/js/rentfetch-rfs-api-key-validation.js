@@ -36,7 +36,7 @@ jQuery(document).ready(function ($) {
 		$.post(rfs_ajax_object.ajax_url, {
 			action: 'rfs_validate_api_key',
 			api_key: apiKey,
-			_ajax_nonce: rfs_ajax_object.nonce,
+			_ajax_nonce: rfs_ajax_object.nonce, // Must match parameter name in PHP: check_ajax_referer('rfs_ajax_nonce', '_ajax_nonce')
 		})
 			.done(function (response) {
 				if (response.success) {

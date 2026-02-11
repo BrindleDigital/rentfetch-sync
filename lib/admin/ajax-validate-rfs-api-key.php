@@ -54,7 +54,9 @@ function rfs_validate_api_key_with_api( $api_key ) {
 	
 	// Extract just the domain name (host) from the URL
 	$parsed_url = wp_parse_url( $site_url );
-	$site_url = isset( $parsed_url['host'] ) ? $parsed_url['host'] : $site_url;
+	if ( is_array( $parsed_url ) && isset( $parsed_url['host'] ) ) {
+		$site_url = $parsed_url['host'];
+	}
 
 	// Prepare the request body
 	$body = array(
