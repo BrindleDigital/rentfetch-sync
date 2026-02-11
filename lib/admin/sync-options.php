@@ -13,6 +13,20 @@ add_action( 'wp_loaded', 'rentfetch_remove_premium_functionality_notice' );
  */
 add_action( 'rentfetch_do_settings_general_data_sync', 'rentfetch_settings_sync', 25 );
 function rentfetch_settings_sync() {
+	
+	// Enqueue the API key validation script
+	wp_enqueue_script( 'rentfetch-rfs-api-key-validation' );
+	
+	// Localize script to pass AJAX URL and nonce
+	wp_localize_script(
+		'rentfetch-rfs-api-key-validation',
+		'rfs_ajax_object',
+		array(
+			'ajax_url' => admin_url( 'admin-ajax.php' ),
+			'nonce'    => wp_create_nonce( 'rfs_ajax_nonce' ),
+		)
+	);
+	
 	?>
 	<div class="header">
 		<h2 class="title">Data Sync</h2>
@@ -46,6 +60,21 @@ function rentfetch_settings_sync() {
 				</ul>
 			</div>
 		</div>
+
+		<div class="row">
+			<div class="section">
+				<label class="label-large" for="rentfetch_options_rfs_api_key">Rent Fetch Sync API Key</label>
+				<p class="description">Enter your Rent Fetch Sync API key to enable synchronization features.</p>
+				<div class="white-box">
+					<div style="margin-bottom: 10px;">
+						<input type="password" name="rentfetch_options_rfs_api_key" id="rentfetch_options_rfs_api_key" value="<?php echo esc_attr( get_option( 'rentfetch_options_rfs_api_key' ) ); ?>" style="width: 100%; max-width: 400px;">
+						<button type="button" id="rfs_validate_api_key" class="button" style="margin-left: 10px;">Validate Key</button>
+					</div>
+					<div id="rfs_api_key_status"></div>
+				</div>
+			</div>
+		</div>
+		
 		<style>
 			.integration-settings { display: none; }
 			label:has(input[name="rentfetch_options_enabled_integrations[]"]:checked) ~ .integration-settings { display: block; }
