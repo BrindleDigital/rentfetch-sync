@@ -66,7 +66,7 @@ function rentfetch_settings_sync() {
 				<label class="label-large" for="rentfetch_options_rfs_api_key">Rent Fetch Sync API Key</label>
 				<p class="description">Enter your Rent Fetch Sync API key to enable synchronization features.</p>
 				<div class="white-box">
-					<input type="text" name="rentfetch_options_rfs_api_key" id="rentfetch_options_rfs_api_key" value="<?php echo esc_attr( get_option( 'rentfetch_options_rfs_api_key' ) ); ?>" style="width: 100%; max-width: 400px;">
+					<input type="password" name="rentfetch_options_rfs_api_key" id="rentfetch_options_rfs_api_key" value="<?php echo esc_attr( get_option( 'rentfetch_options_rfs_api_key' ) ); ?>" style="width: 100%; max-width: 400px;">
 					<button type="button" id="rfs_validate_api_key" class="button" style="margin-left: 10px;">Validate Key</button>
 					<div id="rfs_api_key_status" style="margin-top: 10px;"></div>
 				</div>

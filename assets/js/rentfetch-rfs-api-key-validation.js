@@ -33,18 +33,10 @@ jQuery(document).ready(function ($) {
 			$validateButton.prop('disabled', true).text('Validating...');
 		}
 
-		var ajaxUrl =
-			typeof rfs_ajax_object !== 'undefined'
-				? rfs_ajax_object.ajax_url
-				: '/wp-admin/admin-ajax.php';
-
-		$.post(ajaxUrl, {
+		$.post(rfs_ajax_object.ajax_url, {
 			action: 'rfs_validate_api_key',
 			api_key: apiKey,
-			_ajax_nonce:
-				typeof rfs_ajax_object !== 'undefined'
-					? rfs_ajax_object.nonce
-					: '',
+			_ajax_nonce: rfs_ajax_object.nonce,
 		})
 			.done(function (response) {
 				if (response.success) {
