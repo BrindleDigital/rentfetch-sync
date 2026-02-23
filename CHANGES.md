@@ -1,3 +1,7 @@
+## 0.12.5
+
+- Entrata forms: fixed `createdDate` and event `date` timestamps to use current Mountain Time (`America/Denver`) instead of a fixed UTC offset, preventing future-dated timestamp errors.
+
 ## 0.12.4
 
 - Updating hooks to match the new RF pattern for subpages in the General settings.

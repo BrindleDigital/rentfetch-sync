@@ -58,6 +58,10 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 	if ( empty( $form_data['lead_source'] ) ) {
 		$form_data['lead_source'] = '105949'; // Default lead source ID
 	}
+
+	// Entrata validates these fields against current Mountain Time.
+	$mountain_now                 = new DateTime( 'now', new DateTimeZone( 'America/Denver' ) );
+	$entrata_current_mountain_time = $mountain_now->format( 'm/d/Y\TH:i:s' );
 	
 	//! GETLEADS API to check if there's already a lead with this email address.
 	
@@ -130,7 +134,7 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 						'leadSource' => array(
 							'originatingLeadSourceId' => $form_data['lead_source'],
 						),
-						'createdDate' => gmdate( 'm/d/Y\TH:i:s', strtotime( '-6 hours' ) ), // this API requires mountain time
+						'createdDate' => $entrata_current_mountain_time,
 						'customers' => array(
 							'customer' => array(
 								'name' => array(
@@ -171,7 +175,7 @@ function rentfetch_send_lead_to_entrata( $form_data, $integration, $property_id 
 				'type'            => 'Appointment',
 				'eventTypeId'     => '17', // this is the nomenclature for sendLeads.
 				'subtypeId'       => '454',
-				'date'            => gmdate( 'm/d/Y\TH:i:s', strtotime( '-6 hours' ) ), // this API requires mountain time
+				'date'            => $entrata_current_mountain_time,
 				'appointmentDate' => $form_data['appointment_date'],
 				'timeFrom'        => $form_data['appointment_start_time'],
 				'timeTo'          => $form_data['appointment_end_time'],
