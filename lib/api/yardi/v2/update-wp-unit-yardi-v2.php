@@ -48,13 +48,13 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 		}
 		
 		$success = update_post_meta( $args['wordpress_unit_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_unit_post_id'], 'apartmentavailability_api' );
 		return;
 	}
 
-	$apartmentID = $unit_data['apartmentId']; // phpcs:ignore.
-
-	// bail if we don't have the data to update this, updating the meta to give the error.
-	if ( ! $unit_data['apartmentId'] ) {
+	// This malformed vendor payload path is difficult to replay in testing, so
+	// guard the key before reading deeper and record a clean sync failure.
+	if ( empty( $unit_data['apartmentId'] ) ) {
 
 		$unit_data_string = wp_json_encode( $unit_data );
 
@@ -80,6 +80,7 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 		}
 
 		$success = update_post_meta( $args['wordpress_unit_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_unit_post_id'], 'apartmentavailability_api' );
 
 		return;
 	}
@@ -141,12 +142,15 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 		'amenities'         => isset( $unit_data['amenities'] ) ? $sanitize_mixed( $unit_data['amenities'] ) : '',
 		'specials'          => isset( $unit_data['specials'] ) ? $sanitize_mixed( $unit_data['specials'] ) : '',
 		'unit_source'       => 'yardi',
+		'updated'           => current_time( 'mysql' ),
 		'api_response'      => $api_response,
 	);
 
 	foreach ( $meta as $key => $value ) {
 		$success = update_post_meta( $args['wordpress_unit_post_id'], $key, $value );
 	}
+
+	rfs_mark_sync_succeeded( $args['wordpress_unit_post_id'], 'apartmentavailability_api' );
 }
 
 /**
@@ -321,6 +325,8 @@ function rfs_yardi_v2_handle_304_response_for_units( $args ) {
 			$api_response = array_merge( array( 'apartmentavailability_api_304' => $temp_304 ), $api_response );
 		}
 		
+		// A 304 still represents a successful sync check, so refresh the top-level timestamp.
+		rfs_mark_sync_succeeded( $unit_id, 'apartmentavailability_api' );
 		update_post_meta( $unit_id, 'api_response', $api_response );
 	}
 }

@@ -36,6 +36,7 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_
 		);
 		
 		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_floorplan_post_id'], 'floorplans_api' );
 		return;
 	}
 
@@ -56,6 +57,7 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_
 		);
 		
 		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_floorplan_post_id'], 'floorplans_api' );
 
 		return;
 	}
@@ -144,6 +146,8 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_
 	foreach ( $meta as $key => $value ) {
 		$success = update_post_meta( $args['wordpress_floorplan_post_id'], $key, $value );
 	}
+
+	rfs_mark_sync_succeeded( $args['wordpress_floorplan_post_id'], 'floorplans_api' );
 }
 
 /**

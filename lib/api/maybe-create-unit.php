@@ -51,7 +51,7 @@ function rfs_maybe_create_unit( $args ) {
 				'compare' => '=',
 			],
 			[
-				'key' => 'floorplan_source',
+				'key' => 'unit_source',
 				'value' => $integration,
 				'compare' => '=',
 			],
@@ -76,7 +76,7 @@ function rfs_maybe_create_unit( $args ) {
 			'unit_id' => $unit_id,
 			'floorplan_id' => $floorplan_id,
 			'property_id' => $property_id,
-			'floorplan_source' => $integration,
+			'unit_source' => $integration,
 		)
 	);
 	

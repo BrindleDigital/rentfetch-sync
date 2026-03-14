@@ -36,6 +36,7 @@ function rfs_yardi_v2_update_property_meta( $args, $property_data ) {
 		];
 		
 		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'properties_api' );
 		return;
 	}
 	
@@ -60,6 +61,7 @@ function rfs_yardi_v2_update_property_meta( $args, $property_data ) {
 		];
 		
 		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'properties_api' );
 		
 		return;
 	}
@@ -143,6 +145,8 @@ function rfs_yardi_v2_update_property_meta( $args, $property_data ) {
 	foreach ( $meta as $key => $value ) { 
 		$success = update_post_meta( $args['wordpress_property_post_id'], $key, $value );
 	}
+
+	rfs_mark_sync_succeeded( $args['wordpress_property_post_id'], 'properties_api' );
 	
 }
 
@@ -172,6 +176,8 @@ function rfs_yardi_v2_update_property_images( $args, $property_images ) {
 			'api_response' => wp_json_encode( $property_images ),
 		];
 		
+		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'property_images_api' );
 		return;
 	}
 
@@ -196,5 +202,6 @@ function rfs_yardi_v2_update_property_images( $args, $property_images ) {
 	];
 	
 	$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+	rfs_mark_sync_succeeded( $args['wordpress_property_post_id'], 'property_images_api' );
 		
 }

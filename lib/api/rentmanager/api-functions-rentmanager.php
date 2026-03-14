@@ -219,6 +219,7 @@ function rfs_rentmanager_update_property_meta( $args, $property_data ) {
 		);
 		
 		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'properties_api' );
 		return;
 	}
 
@@ -242,6 +243,7 @@ function rfs_rentmanager_update_property_meta( $args, $property_data ) {
 		);
 
 		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'properties_api' );
 
 		return;
 	}
@@ -340,6 +342,8 @@ function rfs_rentmanager_update_property_meta( $args, $property_data ) {
 	foreach ( $meta as $key => $value ) {
 		$success = update_post_meta( $args['wordpress_property_post_id'], $key, $value );
 	}
+
+	rfs_mark_sync_succeeded( $args['wordpress_property_post_id'], 'properties_api' );
 }
 
 /**
@@ -416,6 +420,27 @@ function rfs_rentmanager_update_floorplan_meta( $args, $floorplan_data ) {
 		);
 		
 		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_floorplan_post_id'], 'unit_types_api' );
+		return;
+	}
+
+	// Bail if we don't have the minimum floorplan data needed to treat this as a success.
+	if ( ! isset( $floorplan_data['Name'] ) || '' === trim( (string) $floorplan_data['Name'] ) ) {
+		$floorplan_data_string = wp_json_encode( $floorplan_data );
+
+		$api_response = get_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', true );
+
+		if ( ! is_array( $api_response ) ) {
+			$api_response = array();
+		}
+
+		$api_response['unit_types_api'] = array(
+			'updated'      => current_time( 'mysql' ),
+			'api_response' => rentfetch_clean_json_string( $floorplan_data_string ),
+		);
+
+		$success = update_post_meta( $args['wordpress_floorplan_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_floorplan_post_id'], 'unit_types_api' );
 		return;
 	}
 
@@ -578,6 +603,8 @@ function rfs_rentmanager_update_floorplan_meta( $args, $floorplan_data ) {
 	foreach ( $meta as $key => $value ) {
 		$success = update_post_meta( $args['wordpress_floorplan_post_id'], $key, $value );
 	}
+
+	rfs_mark_sync_succeeded( $args['wordpress_floorplan_post_id'], 'unit_types_api' );
 }
 
 function rfs_rentmanager_ignore_floorplans_with_no_bed_or_bath( $unit_types_data ) {
@@ -707,10 +734,12 @@ function rfs_rentmanager_update_unit_meta( $args, $unit ) {
 		);
 		
 		$success = update_post_meta( $args['wordpress_unit_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_unit_post_id'], 'units_api' );
 		return;
 	}
 	
 	if ( !isset( $unit['Name'] ) ) {
+		rfs_mark_sync_failed( $args['wordpress_unit_post_id'], 'units_api' );
 		return;
 	}
 	
@@ -808,6 +837,8 @@ function rfs_rentmanager_update_unit_meta( $args, $unit ) {
 	foreach ( $meta as $key => $value ) {
 		$success = update_post_meta( $args['wordpress_unit_post_id'], $key, $value );
 	}
+
+	rfs_mark_sync_succeeded( $args['wordpress_unit_post_id'], 'units_api' );
 }
 
 function rfs_rentmanager_remove_units_no_longer_in_api( $args, $units_data ) {

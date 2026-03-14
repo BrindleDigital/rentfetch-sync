@@ -36,6 +36,7 @@ function rfs_entrata_update_property_meta( $args, $property_data ) {
 		];
 		
 		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'properties_api' );
 		return;
 	}
 
@@ -60,6 +61,7 @@ function rfs_entrata_update_property_meta( $args, $property_data ) {
 		];
 		
 		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'properties_api' );
 		
 		return;
 	}
@@ -112,6 +114,8 @@ function rfs_entrata_update_property_meta( $args, $property_data ) {
 	foreach ( $meta as $key => $value ) { 
 		$success = update_post_meta( $args['wordpress_property_post_id'], $key, $value );
 	}
+
+	rfs_mark_sync_succeeded( $args['wordpress_property_post_id'], 'properties_api' );
 	
 }
 
@@ -142,6 +146,7 @@ function rfs_entrata_update_property_mits_meta( $args, $property_data ) {
 		];
 		
 		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'getMitsPropertyUnits' );
 		return;
 	}
 
@@ -166,6 +171,7 @@ function rfs_entrata_update_property_mits_meta( $args, $property_data ) {
 		];
 		
 		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'getMitsPropertyUnits' );
 		
 		return;
 	}
@@ -215,12 +221,14 @@ function rfs_entrata_update_property_mits_meta( $args, $property_data ) {
 		'latitude' => isset( $data['ILS_Identification']['Latitude'] ) ? sanitize_text_field( $data['ILS_Identification']['Latitude'] ) : '',
 		'longitude' => isset( $data['ILS_Identification']['Longitude'] ) ? sanitize_text_field( $data['ILS_Identification']['Longitude'] ) : '',
 		'synced_property_images' => isset( $data['File'] ) ? $sanitize_mixed( $data['File'] ) : [],
-		// 'updated' => current_time('mysql'),
+		'updated' => current_time('mysql'),
 		'api_response' => $api_response,
 	];
 	
 	foreach ( $meta as $key => $value ) { 
 		$success = update_post_meta( $args['wordpress_property_post_id'], $key, $value );
 	}
+
+	rfs_mark_sync_succeeded( $args['wordpress_property_post_id'], 'getMitsPropertyUnits' );
 	
 }

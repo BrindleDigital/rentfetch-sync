@@ -1,3 +1,9 @@
+## 0.13.0
+
+- Added normalized endpoint-aware sync status metadata for properties, floorplans, and units so status colors no longer depend on parsing raw API responses.
+- Added source-aware sync registry cleanup, including cleanup for records switched to manual management and legacy unit `floorplan_source` normalization to `unit_source`.
+- Hardened Entrata and Yardi unit failure handling to avoid malformed-payload notices and to fail cleanly when required sync data is missing.
+
 ## 0.12.5
 
 - Entrata forms: fixed `createdDate` and event `date` timestamps to use current Mountain Time (`America/Denver`) instead of a fixed UTC offset, preventing future-dated timestamp errors.
