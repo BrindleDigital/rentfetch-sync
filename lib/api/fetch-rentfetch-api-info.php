@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Get the information from the Rentfetch API.
  *
- * @return  array the response.
+ * @return  array|string the response.
  */
 function rfs_get_info_from_rentfetch_api() {
 
@@ -68,13 +68,12 @@ function rfs_get_info_from_rentfetch_api() {
 		'number_of_properties' => rfs_get_number_of_properties( null ),
 	);
 	
-	$site_url = get_site_url();
-	
-	// Clean up the site URL to just the domain name.
-	$site_url = preg_replace('#^(https?://)?(www\.)?([^/]+).*$#', '$3', $site_url);
+	$site_origin = untrailingslashit( get_site_url() );
+	$site_url    = preg_replace('#^(https?://)?(www\.)?([^/]+).*$#', '$3', $site_origin);
 
 	$args = array(
 		'site_url'              => $site_url,
+		'site_origin'           => $site_origin,
 		'site_name'             => get_bloginfo( 'name' ),
 		'current_date_time'     => current_time( 'mysql' ),
 		'rentfetch_version'     => defined( 'RENTFETCH_VERSION' ) ? RENTFETCH_VERSION : 'unknown',
@@ -125,11 +124,43 @@ function rfs_get_info_from_rentfetch_api() {
 		$body = rentfetch_clean_json_string( $body );
 		$response_php_array = json_decode( $body, true );
 
+		rfs_store_monitoring_bootstrap_data( $response_php_array );
+
 		// cache the response for 5 minutes.
 		set_transient( 'rentfetch_api_info', $response_php_array, 20 * MINUTE_IN_SECONDS );
 
 		return $response_php_array;
 	}
+}
+
+/**
+ * Persist monitoring bootstrap data returned by the Rent Fetch API.
+ *
+ * @param mixed $response_php_array The decoded API response.
+ * @return void
+ */
+function rfs_store_monitoring_bootstrap_data( $response_php_array ) {
+	if ( ! is_array( $response_php_array ) || ! isset( $response_php_array['monitoring'] ) || ! is_array( $response_php_array['monitoring'] ) ) {
+		return;
+	}
+
+	$monitoring = $response_php_array['monitoring'];
+	$key_id     = isset( $monitoring['key_id'] ) ? sanitize_text_field( (string) $monitoring['key_id'] ) : '';
+	$public_key = isset( $monitoring['public_key'] ) ? trim( (string) $monitoring['public_key'] ) : '';
+
+	if ( '' === $key_id || '' === $public_key ) {
+		return;
+	}
+
+	$public_keys = get_option( 'rentfetch_monitoring_public_keys', array() );
+	if ( ! is_array( $public_keys ) ) {
+		$public_keys = array();
+	}
+
+	$public_keys[ $key_id ] = $public_key;
+
+	update_option( 'rentfetch_monitoring_public_keys', $public_keys, false );
+	update_option( 'rentfetch_monitoring_active_key_id', $key_id, false );
 }
 
 /**
