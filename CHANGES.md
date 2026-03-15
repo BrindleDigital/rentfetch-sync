@@ -1,3 +1,9 @@
+## 0.14.0
+
+- Added monitoring bootstrap support to the existing API bootstrap flow so Sync can pass `site_origin` and cache monitoring verification data without changing the sync credential route.
+- Updated API bootstrap persistence so monitoring-related site registration data is stored alongside the existing credential/bootstrap response for downstream polling.
+- Added a bootstrap dependency guard so Rent Fetch Sync now stays in safe mode with an admin notice instead of fatalling if Rent Fetch is not active.
+
 ## 0.13.0
 
 - Added normalized endpoint-aware sync status metadata for properties, floorplans, and units so status colors no longer depend on parsing raw API responses.

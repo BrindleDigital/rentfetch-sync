@@ -3,7 +3,7 @@
 	Plugin Name:   Rent Fetch Sync
 	Plugin URI:    https://github.com/jonschr/rentfetch-sync
 	Description:   An addon for Rent Fetch that syncs properties, floorplans, and units
-	Version:       0.13.0
+	Version:       0.14.0
 	Author:        Brindle Digital
 	Author URI:    https://www.brindledigital.com/
 
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define the version of the plugin.
-define( 'RENTFETCHSYNC_VERSION', '0.13.0' );
+define( 'RENTFETCHSYNC_VERSION', '0.14.0' );
 
 // Plugin directory.
 define( 'RENTFETCHSYNC_DIR', plugin_dir_path( __FILE__ ) );
@@ -67,8 +67,45 @@ function rfs_require_files_recursive( $directory ) {
 	}
 }
 
-// require_once all files in /lib and its subdirectories.
-rfs_require_files_recursive( RENTFETCHSYNC_DIR . 'lib' );
+/**
+ * Check whether the base Rent Fetch plugin is loaded.
+ *
+ * @return bool
+ */
+function rfs_has_rentfetch_dependency() {
+	return defined( 'RENTFETCH_VERSION' );
+}
+
+/**
+ * Show an admin notice when Rent Fetch Sync is active without Rent Fetch.
+ *
+ * @return void
+ */
+function rfs_missing_rentfetch_notice() {
+	if ( ! current_user_can( 'activate_plugins' ) ) {
+		return;
+	}
+	?>
+	<div class="notice notice-error">
+		<p><?php esc_html_e( 'Rent Fetch Sync requires the Rent Fetch plugin to be active. Rent Fetch Sync has been loaded in safe mode and its sync features are disabled until Rent Fetch is available.', 'rentfetch-sync' ); ?></p>
+	</div>
+	<?php
+}
+
+/**
+ * Load Rent Fetch Sync only after plugin dependencies are available.
+ *
+ * @return void
+ */
+function rfs_boot_plugin() {
+	if ( ! rfs_has_rentfetch_dependency() ) {
+		add_action( 'admin_notices', 'rfs_missing_rentfetch_notice' );
+		return;
+	}
+
+	rfs_require_files_recursive( RENTFETCHSYNC_DIR . 'lib' );
+}
+add_action( 'plugins_loaded', 'rfs_boot_plugin', 20 );
 
 // Add admin notice for sync success
 add_action( 'admin_notices', 'rfs_sync_success_notice' );
