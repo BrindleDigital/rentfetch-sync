@@ -205,3 +205,106 @@ function rfs_yardi_v2_update_property_images( $args, $property_images ) {
 	rfs_mark_sync_succeeded( $args['wordpress_property_post_id'], 'property_images_api' );
 		
 }
+
+/**
+ * Update the property lease fees.
+ *
+ * @param array             $args         Includes everything needed to update the property.
+ * @param array|string|null $lease_fees   The decoded lease-fee payload, a cleaned JSON
+ *                                        string on decode failure, or null on request failure.
+ *
+ * @return void
+ */
+function rfs_yardi_v2_update_property_lease_fees( $args, $lease_fees ) {
+
+	// bail if we don't have the wordpress post ID.
+	if ( ! isset( $args['wordpress_property_post_id'] ) || ! $args['wordpress_property_post_id'] ) {
+		return;
+	}
+
+	$api_response = get_post_meta( $args['wordpress_property_post_id'], 'api_response', true );
+
+	if ( ! is_array( $api_response ) ) {
+		$api_response = [];
+	}
+
+	if ( is_string( $lease_fees ) || null === $lease_fees ) {
+		$api_response['lease_fees_api'] = [
+			'updated' => current_time( 'mysql' ),
+			'api_response' => is_string( $lease_fees ) ? $lease_fees : wp_json_encode( $lease_fees ),
+		];
+
+		update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'lease_fees_api' );
+		return;
+	}
+
+	if ( ! isset( $lease_fees['errorCode'] ) ) {
+		$lease_fees_string = rentfetch_clean_json_string( wp_json_encode( $lease_fees ) );
+
+		$api_response['lease_fees_api'] = [
+			'updated' => current_time( 'mysql' ),
+			'api_response' => $lease_fees_string,
+		];
+
+		update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'lease_fees_api' );
+		return;
+	}
+
+	$sanitize_mixed = static function( $value ) use ( &$sanitize_mixed ) {
+		if ( is_array( $value ) ) {
+			$sanitized = [];
+
+			foreach ( $value as $key => $item ) {
+				$sanitized[ $key ] = $sanitize_mixed( $item );
+			}
+
+			return $sanitized;
+		}
+
+		if ( is_bool( $value ) || is_int( $value ) || is_float( $value ) || null === $value ) {
+			return $value;
+		}
+
+		if ( is_scalar( $value ) ) {
+			return sanitize_text_field( (string) $value );
+		}
+
+		return '';
+	};
+
+	$sanitized_lease_fees = $sanitize_mixed(
+		[
+			'errorCode' => isset( $lease_fees['errorCode'] ) ? (int) $lease_fees['errorCode'] : 0,
+			'errorMessage' => isset( $lease_fees['errorMessage'] ) ? $lease_fees['errorMessage'] : '',
+			'propertyName' => isset( $lease_fees['propertyName'] ) ? $lease_fees['propertyName'] : '',
+			'propertyCode' => isset( $lease_fees['propertyCode'] ) ? $lease_fees['propertyCode'] : '',
+			'propertyId' => isset( $lease_fees['propertyId'] ) ? (int) $lease_fees['propertyId'] : 0,
+			'voyagerPropertyCode' => isset( $lease_fees['voyagerPropertyCode'] ) ? $lease_fees['voyagerPropertyCode'] : '',
+			'voyagerPropertyId' => isset( $lease_fees['voyagerPropertyId'] ) ? (int) $lease_fees['voyagerPropertyId'] : 0,
+			'propertyFees' => isset( $lease_fees['propertyFees'] ) && is_array( $lease_fees['propertyFees'] ) ? $lease_fees['propertyFees'] : [],
+			'propertyCustomFees' => isset( $lease_fees['propertyCustomFees'] ) && is_array( $lease_fees['propertyCustomFees'] ) ? $lease_fees['propertyCustomFees'] : [],
+			'rentableItemTypeFees' => isset( $lease_fees['rentableItemTypeFees'] ) && is_array( $lease_fees['rentableItemTypeFees'] ) ? $lease_fees['rentableItemTypeFees'] : [],
+			'unitTypes' => isset( $lease_fees['unitTypes'] ) && is_array( $lease_fees['unitTypes'] ) ? $lease_fees['unitTypes'] : [],
+		]
+	);
+
+	$lease_fees_string = wp_json_encode( $sanitized_lease_fees );
+	$lease_fees_string = rentfetch_clean_json_string( $lease_fees_string );
+
+	$api_response['lease_fees_api'] = [
+		'updated' => current_time( 'mysql' ),
+		'api_response' => $lease_fees_string,
+	];
+
+	update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+
+	if ( 200 !== (int) $sanitized_lease_fees['errorCode'] ) {
+		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'lease_fees_api' );
+		return;
+	}
+
+	update_post_meta( $args['wordpress_property_post_id'], 'synced_property_lease_fees', $sanitized_lease_fees );
+	rfs_mark_sync_succeeded( $args['wordpress_property_post_id'], 'lease_fees_api' );
+}

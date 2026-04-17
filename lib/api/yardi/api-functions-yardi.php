@@ -34,6 +34,12 @@ function rfs_do_yardi_sync( $args ) {
 	// update the images for this property.
 	rfs_yardi_v2_update_property_images( $args, $property_images_v2 );
 
+	// get the property lease fees.
+	$property_lease_fees_v2 = rfs_yardi_v2_get_property_lease_fees( $args, $property_data_v2 );
+
+	// update the lease fees for this property.
+	rfs_yardi_v2_update_property_lease_fees( $args, $property_lease_fees_v2 );
+
 	// add the amenities.
 	rfs_yardi_v2_update_property_amenities( $args, $property_data_v2 );
 	

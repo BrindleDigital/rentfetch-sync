@@ -138,6 +138,75 @@ function rfs_yardi_v2_get_property_images( $args ) {
 	
 }
 
+/**
+ * Get the property lease fees from the Yardi API (v2)
+ *
+ * @param   array      $args           The arguments for the function.
+ * @param   array|null $property_data  Optional property payload so we can include the
+ *                                     numeric RentCafe property id when available.
+ *
+ * @return  array|string|null          The decoded lease-fee response, a cleaned JSON
+ *                                     string when decode fails, or null on request failure.
+ */
+function rfs_yardi_v2_get_property_lease_fees( $args, $property_data = null ) {
+
+	$yardi_api_key = $args['credentials']['yardi']['apikey'];
+	$property_id   = $args['property_id'];
+	$access_token  = rfs_get_yardi_bearer_token();
+	$company_code  = $args['credentials']['yardi']['company_code'];
+	$vendor        = $args['credentials']['yardi']['vendor'];
+
+	// Bail if we don't have the credentials needed to make the request.
+	if ( ! $yardi_api_key || ! $property_id || ! $company_code || ! $access_token ) {
+		return;
+	}
+
+	$headers = array(
+		'vendor'        => $vendor,
+		'Authorization' => 'Bearer ' . $access_token,
+		'Content-Type'  => 'application/json',
+	);
+
+	$body_array = array(
+		'apiToken'     => $yardi_api_key,
+		'companyCode'  => $company_code,
+		'propertyCode' => $property_id,
+	);
+
+	if (
+		is_array( $property_data ) &&
+		isset( $property_data['properties'][0]['propertyId'] ) &&
+		'' !== (string) $property_data['properties'][0]['propertyId']
+	) {
+		$body_array['propertyId'] = (int) $property_data['properties'][0]['propertyId'];
+	}
+
+	$body_json = wp_json_encode( $body_array );
+
+	$response = wp_remote_post(
+		'https://basic.rentcafeapi.com/leasefeedetails/getleasefees',
+		array(
+			'headers' => $headers,
+			'body'    => $body_json,
+			'timeout' => 10,
+		)
+	);
+
+	if ( is_wp_error( $response ) ) {
+		return;
+	}
+
+	$response_body = wp_remote_retrieve_body( $response );
+	$response_body = rentfetch_clean_json_string( $response_body );
+	$data          = json_decode( $response_body, true );
+
+	if ( null === $data && JSON_ERROR_NONE !== json_last_error() ) {
+		return $response_body;
+	}
+
+	return $data;
+}
+
 function rfs_yardi_v2_update_property_amenities( $args, $property_data ) {
 		
 	// bail if we don't have Amenities in the data	

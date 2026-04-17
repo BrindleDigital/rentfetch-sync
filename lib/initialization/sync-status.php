@@ -167,7 +167,7 @@ function rfs_get_expected_sync_endpoints( $post_type, $source ) {
 
 	$registry = array(
 		'properties' => array(
-			'yardi'       => array( 'properties_api', 'property_images_api' ),
+			'yardi'       => array( 'properties_api', 'property_images_api', 'lease_fees_api' ),
 			'entrata'     => array( 'properties_api', 'getMitsPropertyUnits' ),
 			'rentmanager' => array( 'properties_api' ),
 		),
