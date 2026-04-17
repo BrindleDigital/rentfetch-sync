@@ -1,3 +1,9 @@
+## 0.14.1
+
+- Added Yardi lease-fee syncing for properties so Rent Fetch can use current lease-fee data provided by the API.
+- Improved sync reliability by clearing outdated lease-fee data when Yardi returns an invalid or failed response.
+- Updated fee-source handling so empty synced fee payloads do not override existing manual fee settings.
+
 ## 0.14.0
 
 - Added monitoring bootstrap support to the existing API bootstrap flow so Sync can pass `site_origin` and cache monitoring verification data without changing the sync credential route.
