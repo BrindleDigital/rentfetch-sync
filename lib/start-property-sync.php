@@ -30,11 +30,73 @@ function rfs_sync_single_property( $property_id, $integration ) {
 	$args = [
 		'integration' => $integration,
 		'property_id' => $property_id,
-		'credentials' => rfs_get_credentials(),
 		'floorplan_id' => null,
 	];
 
 	do_action( 'rfs_do_sync', $args );
+}
+
+/**
+ * Get the Action Scheduler argument schema version for recurring sync jobs.
+ *
+ * @return string
+ */
+function rfs_get_sync_action_args_version() {
+	return '2';
+}
+
+/**
+ * Remove older scheduled sync actions whose argument shape included credentials.
+ *
+ * @return void
+ */
+function rfs_maybe_migrate_sync_action_args() {
+	$current_version = (string) get_option( 'rfs_sync_action_args_version', '1' );
+	$target_version  = rfs_get_sync_action_args_version();
+
+	if ( $current_version === $target_version ) {
+		return;
+	}
+
+	as_unschedule_all_actions( 'rfs_do_sync' );
+	as_unschedule_all_actions( 'rfs_yardi_do_delete_orphans' );
+	update_option( 'rfs_sync_action_args_version', $target_version, false );
+}
+
+/**
+ * Get a staggered first-run timestamp for sync actions.
+ *
+ * @param int $index Zero-based action index.
+ * @return int
+ */
+function rfs_get_staggered_sync_start_time( $index ) {
+	$default_spacing = 60;
+	$spacing         = (int) apply_filters( 'rentfetch_sync_schedule_stagger_seconds', $default_spacing, (int) $index );
+	$spacing         = max( 0, $spacing );
+
+	return time() + ( max( 0, (int) $index ) * $spacing );
+}
+
+/**
+ * Schedule a recurring property sync if one is not already pending.
+ *
+ * @param array $args Sync action args.
+ * @param int   $sync_time Recurrence interval in seconds.
+ * @param int   $index Stagger index.
+ * @return void
+ */
+function rfs_schedule_property_sync_action( $args, $sync_time, $index ) {
+	if ( false !== as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
+		return;
+	}
+
+	as_schedule_recurring_action(
+		rfs_get_staggered_sync_start_time( $index ),
+		(int) $sync_time,
+		'rfs_do_sync',
+		array( $args ),
+		'rentfetch'
+	);
 }
 
 
@@ -145,51 +207,55 @@ function rfs_perform_syncs() {
 		
 		return;
 	}
-	
+
+	rfs_maybe_migrate_sync_action_args();
+		
 	// Get the enabled integrations
 	$enabled_integrations = get_option( 'rentfetch_options_enabled_integrations' );	
-	
+	if ( ! is_array( $enabled_integrations ) ) {
+		$enabled_integrations = array();
+	}
+		
 	// Get the sync timeline, setting it to hourly as a default
 	$sync_time = (int) apply_filters( 'rentfetch_sync_timeline', '86400' );
-		
+	$sync_index = 0;
+			
 	//* Yardi
-	
+		
 	if ( in_array( 'yardi', $enabled_integrations ) ) {
 		
 		// get the properties for yardi, then turn it into an array
 		$yardi_properties = get_option( 'rentfetch_options_yardi_integration_creds_yardi_property_code' );
 		$yardi_properties = str_replace( ' ', '', $yardi_properties );
-		$yardi_properties = explode( ',', $yardi_properties );
-
+		$yardi_properties = array_filter( explode( ',', $yardi_properties ) );
+	
 		// remove orphaned properties, floorplans, and units (this only deletes properties that are no longer in the settings and their associated floorplans and units)
 		if ( false === as_has_scheduled_action( 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' ) ) {
-			as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' );
+			as_schedule_recurring_action( rfs_get_staggered_sync_start_time( $sync_index ), (int) $sync_time, 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' );
 		}	
-		
+		++$sync_index;
+			
 		// cycle through the properties and schedule a sync for each one			
 		foreach( $yardi_properties as $yardi_property ) {
 			$args = [
 				'integration' => 'yardi',
 				'property_id' => $yardi_property,
-				'credentials' => rfs_get_credentials(),
 			];
-			
-			if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
-				// need to pass the $args inside an array
-				as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_do_sync', array( $args ), 'rentfetch' );
-			}	
+				
+			rfs_schedule_property_sync_action( $args, $sync_time, $sync_index );
+			++$sync_index;
 		}
-		
+			
 	}
-	
-	//* Entrata
-	
-	if ( in_array( 'entrata', $enabled_integrations ) ) {
 		
+	//* Entrata
+		
+	if ( in_array( 'entrata', $enabled_integrations ) ) {
+			
 		// get the properties for yardi, then turn it into an array
 		$entrata_properties = get_option( 'rentfetch_options_entrata_integration_creds_entrata_property_ids' );
 		$entrata_properties = str_replace( ' ', '', $entrata_properties );
-		$entrata_properties = explode( ',', $entrata_properties );
+		$entrata_properties = array_filter( explode( ',', $entrata_properties ) );
 
 		// TODO orphan detection
 		// // remove orphaned properties, floorplans, and units (this only deletes properties that are no longer in the settings and their associated floorplans and units)
@@ -202,19 +268,16 @@ function rfs_perform_syncs() {
 			$args = [
 				'integration' => 'entrata',
 				'property_id' => $entrata_property,
-				'credentials' => rfs_get_credentials(),
 			];
-			
-			if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
-				// need to pass the $args inside an array
-				as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_do_sync', array( $args ), 'rentfetch' );
-			}	
+				
+			rfs_schedule_property_sync_action( $args, $sync_time, $sync_index );
+			++$sync_index;
 		}
-		
+			
 	}
-	
+		
 	//* Rent Manager
-	
+		
 	if ( in_array( 'rentmanager', $enabled_integrations ) ) {
 		
 		// get the properties for rent manager, then turn it into an array
@@ -229,17 +292,13 @@ function rfs_perform_syncs() {
 				$args = [
 					'integration' => 'rentmanager',
 					'property_id' => $rentmanager_property['ShortName'],
-					'credentials' => rfs_get_credentials(),
 				];
-				
-				if ( false === as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
-					// need to pass the $args inside an array
-					as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_do_sync', array( $args ), 'rentfetch' );
-				}
+					
+				rfs_schedule_property_sync_action( $args, $sync_time, $sync_index );
+				++$sync_index;
 			}
 		}
 	}
-	
 	
 }
 add_action( 'wp_loaded', 'rfs_perform_syncs' );
@@ -260,6 +319,8 @@ function rfs_trigger_specific_api_sync( $args ) {
 	// bail if there's no property id
 	if ( !isset($args['property_id']) || !$args['property_id'] )
 		return;
+
+	$args['credentials'] = rfs_get_credentials();
 
 	switch ( $args['integration'] ) {
 		case 'yardi':

@@ -15,15 +15,87 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return  array|string the response.
  */
 function rfs_get_info_from_rentfetch_api() {
+	static $request_cache = null;
+
+	if ( null !== $request_cache ) {
+		return $request_cache;
+	}
 
 	// get the transient and return it if it exists.
 	$transient = get_transient( 'rentfetch_api_info' );
 
-	if ( $transient && is_array( $transient ) ) {
-		// silence is golden.
-		return $transient;
+	if ( $transient ) {
+		$request_cache = $transient;
+		return $request_cache;
 	}
-	
+
+	$lock_acquired = rfs_acquire_rentfetch_api_info_lock();
+	if ( ! $lock_acquired ) {
+		$transient = rfs_wait_for_rentfetch_api_info_refresh();
+		if ( $transient ) {
+			$request_cache = $transient;
+			return $request_cache;
+		}
+
+		$last_success = get_option( 'rentfetch_api_info_last_success', false );
+		if ( is_array( $last_success ) ) {
+			$request_cache = $last_success;
+			return $request_cache;
+		}
+
+		return 'Something went wrong: Rent Fetch API info refresh already in progress.';
+	}
+
+	try {
+		$request_cache = rfs_refresh_info_from_rentfetch_api();
+		return $request_cache;
+	} finally {
+		delete_option( 'rentfetch_api_info_refresh_lock' );
+	}
+}
+
+/**
+ * Acquire the lock used to prevent Rent Fetch API info cache stampedes.
+ *
+ * @return bool
+ */
+function rfs_acquire_rentfetch_api_info_lock() {
+	$lock_key = 'rentfetch_api_info_refresh_lock';
+	$now      = time();
+	$lock_age = $now - (int) get_option( $lock_key, 0 );
+
+	if ( $lock_age > 120 ) {
+		delete_option( $lock_key );
+	}
+
+	return add_option( $lock_key, $now, '', 'no' );
+}
+
+/**
+ * Wait briefly for another process to refresh the API info transient.
+ *
+ * @return mixed
+ */
+function rfs_wait_for_rentfetch_api_info_refresh() {
+	for ( $attempt = 0; $attempt < 5; ++$attempt ) {
+		usleep( 200000 );
+		$transient = get_transient( 'rentfetch_api_info' );
+
+		if ( $transient ) {
+			return $transient;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Refresh the information from the Rentfetch API.
+ *
+ * @return array|string
+ */
+function rfs_refresh_info_from_rentfetch_api() {
+		
 	// Let's build the array piece by piece.
 	$apis_used = array();
 	
@@ -94,6 +166,7 @@ function rfs_get_info_from_rentfetch_api() {
 		array(
 			'method'  => 'POST',
 			'body'    => $args,
+			'timeout' => 15,
 			'headers' => array(
 				'Content-Type' => 'application/json',
 			),
@@ -126,8 +199,9 @@ function rfs_get_info_from_rentfetch_api() {
 
 		rfs_store_monitoring_bootstrap_data( $response_php_array );
 
-		// cache the response for 5 minutes.
+		// cache the response for 20 minutes and keep the last success as a fallback during refresh contention.
 		set_transient( 'rentfetch_api_info', $response_php_array, 20 * MINUTE_IN_SECONDS );
+		update_option( 'rentfetch_api_info_last_success', $response_php_array, false );
 
 		return $response_php_array;
 	}

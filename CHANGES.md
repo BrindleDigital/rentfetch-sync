@@ -1,3 +1,10 @@
+## 0.14.2
+
+- Staggered scheduled property sync actions to avoid large cold-start bursts when many actions become due at once.
+- Reduced scheduled sync action arguments so credentials are resolved at execution time instead of being stored in every action.
+- Added single-flight caching for Rent Fetch API bootstrap info to prevent duplicate simultaneous API requests.
+- Configured Action Scheduler cleanup to retain completed, canceled, and failed actions for one week.
+
 ## 0.14.1
 
 - Added Yardi lease-fee syncing for properties so Rent Fetch can use current lease-fee data provided by the API.
