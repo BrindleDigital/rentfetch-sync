@@ -1,3 +1,17 @@
+## 0.15.1
+
+- Hid and disabled full-sync start controls while an accelerated sync is already running.
+- Tuned synced-data deletion progress so modal status updates happen in smaller, more frequent increments.
+- Cleared completed and cancelled sync/delete status messages more quickly and prevented stale finished statuses from reappearing after page reloads.
+
+## 0.15.0
+
+- Added accelerated full-sync controls that run configured sync targets immediately with a five-worker concurrency limit.
+- Added cancellation handling for accelerated sync runs and shared controls for the RentFetch admin bar and Sync settings screen.
+- Updated full-sync actions to enable Data Sync automatically before starting so a paused site can be synced in one click.
+- Reworked synced-data deletion into a confirmation modal backed by an accelerated queue, progress polling, automatic Data Sync pausing, and safer batched deletion.
+- Improved sync status rollups so failed endpoints and partial endpoint responses can be distinguished more clearly in admin status displays.
+
 ## 0.14.2
 
 - Staggered scheduled property sync actions to avoid large cold-start bursts when many actions become due at once.

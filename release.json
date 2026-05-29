@@ -3,13 +3,13 @@
 	"slug": "rentfetch-sync",
 	"author": "<a href='https://brindledigital.com'>Brindle Digital</a>",
 	"author_profile": "https://brindledigital.com",
-	"version": "0.14.2",
+	"version": "0.15.1",
 	"requires": "6.5",
 	"tested": "6.6",
 	"requires_php": "7.4",
 	"sections": {
 		"description": "This is my plugin description.",
-		"changelog": "<h4>0.14.2</h4><ul><li>Staggered scheduled property sync actions to avoid large cold-start bursts.</li><li>Reduced scheduled sync action arguments so credentials are resolved at execution time.</li><li>Added single-flight caching for Rent Fetch API bootstrap info to prevent duplicate simultaneous API requests.</li><li>Configured Action Scheduler cleanup to retain completed, canceled, and failed actions for one week.</li></ul>",
+		"changelog": "<h4>0.15.1</h4><ul><li>Hid and disabled full-sync start controls while an accelerated sync is already running.</li><li>Tuned synced-data deletion progress so modal status updates happen in smaller, more frequent increments.</li><li>Cleared completed and cancelled sync/delete status messages more quickly and prevented stale finished statuses from reappearing after page reloads.</li></ul>",
 		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
 	}
 }

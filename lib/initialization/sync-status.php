@@ -195,6 +195,26 @@ function rfs_get_expected_sync_endpoints( $post_type, $source ) {
 }
 
 /**
+ * Determine whether an endpoint should roll up as partial when it has no data.
+ *
+ * These endpoints are useful enrichment data, but a response with no usable
+ * records should not make the whole synced record look like a hard failure.
+ *
+ * @param string $endpoint Endpoint key.
+ * @return bool
+ */
+function rfs_is_partial_sync_endpoint( $endpoint ) {
+	return in_array(
+		(string) $endpoint,
+		array(
+			'property_images_api',
+			'lease_fees_api',
+		),
+		true
+	);
+}
+
+/**
  * Clear the derived sync rollup meta for a record.
  *
  * @param int $object_id The post ID.
@@ -217,12 +237,13 @@ function rfs_clear_sync_rollup( $object_id ) {
 function rfs_build_sync_rollup( $sync_status ) {
 	$has_success      = false;
 	$has_failed       = false;
+	$has_partial      = false;
 	$last_attempt_at  = '';
 	$last_attempt_ts  = 0;
 	$last_success_at  = '';
 	$last_success_ts  = 0;
 
-	foreach ( $sync_status as $endpoint_state ) {
+	foreach ( $sync_status as $endpoint => $endpoint_state ) {
 		if ( ! is_array( $endpoint_state ) ) {
 			continue;
 		}
@@ -232,7 +253,13 @@ function rfs_build_sync_rollup( $sync_status ) {
 		if ( 'success' === $state ) {
 			$has_success = true;
 		} elseif ( 'failed' === $state ) {
-			$has_failed = true;
+			if ( rfs_is_partial_sync_endpoint( $endpoint ) ) {
+				$has_partial = true;
+			} else {
+				$has_failed = true;
+			}
+		} elseif ( 'partial' === $state ) {
+			$has_partial = true;
 		}
 
 		if ( isset( $endpoint_state['last_attempt_at'] ) ) {
@@ -254,10 +281,10 @@ function rfs_build_sync_rollup( $sync_status ) {
 		}
 	}
 
-	if ( $has_success && $has_failed ) {
-		$state = 'partial';
-	} elseif ( $has_failed ) {
+	if ( $has_failed ) {
 		$state = 'failed';
+	} elseif ( $has_partial ) {
+		$state = 'partial';
 	} elseif ( $has_success ) {
 		$state = 'success';
 	} else {
@@ -350,7 +377,7 @@ function rfs_prune_sync_status_to_registry( $object_id ) {
  *
  * @param int         $object_id The post ID.
  * @param string      $endpoint  The endpoint key.
- * @param string      $state     The state (`success` or `failed`).
+ * @param string      $state     The state (`success`, `partial`, or `failed`).
  * @param string|int  $timestamp Optional timestamp override.
  * @return void
  */
@@ -380,6 +407,8 @@ function rfs_set_endpoint_sync_state( $object_id, $endpoint, $state, $timestamp 
 		$current_state['last_success_at'] = $timestamp;
 	} elseif ( 'failed' === $state ) {
 		$current_state['last_failure_at'] = $timestamp;
+	} elseif ( 'partial' === $state ) {
+		$current_state['last_partial_at'] = $timestamp;
 	}
 
 	$sync_status[ $endpoint ] = $current_state;
@@ -397,6 +426,21 @@ function rfs_set_endpoint_sync_state( $object_id, $endpoint, $state, $timestamp 
  */
 function rfs_mark_sync_failed( $object_id, $endpoint, $timestamp = null ) {
 	rfs_set_endpoint_sync_state( $object_id, $endpoint, 'failed', $timestamp );
+}
+
+/**
+ * Mark an endpoint sync as partially successful.
+ *
+ * Use this for optional endpoint calls that completed but returned no usable
+ * data, rather than for transport errors or malformed responses.
+ *
+ * @param int        $object_id The post ID.
+ * @param string     $endpoint  The endpoint key.
+ * @param string|int $timestamp Optional timestamp override.
+ * @return void
+ */
+function rfs_mark_sync_partial( $object_id, $endpoint, $timestamp = null ) {
+	rfs_set_endpoint_sync_state( $object_id, $endpoint, 'partial', $timestamp );
 }
 
 /**

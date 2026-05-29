@@ -36,14 +36,15 @@ function rentfetch_settings_sync() {
 							Update data on this site with data from the API. This option should never modify manually-added properties/floor plans, nor should it overwrite any custom data you've added to otherwise synced properties/floor plans.
 						</label>
 					</li>
-					<li>
-						<label>
-							<input type="radio" name="rentfetch_options_data_sync" id="rentfetch_options_data_sync" value="delete" <?php checked( get_option( 'rentfetch_options_data_sync' ), 'delete' ); ?>>
-							<span style="color: #eb6836; display: block;"><strong>Delete all data that's been pulled from a third-party API.</strong><br />
-							<strong style="color: white; background-color: #eb6836; padding: 3px 5px; border-radius: 3px; margin-top: 2px; display: block;">This will take place immediately upon saving. There is no undo.</strong></span>
-						</label>
-					</li>
 				</ul>
+				<?php
+				if ( function_exists( 'rfs_render_accelerated_sync_settings_controls' ) ) {
+					rfs_render_accelerated_sync_settings_controls();
+				}
+				if ( function_exists( 'rfs_render_delete_synced_data_settings_controls' ) ) {
+					rfs_render_delete_synced_data_settings_controls();
+				}
+				?>
 			</div>
 		</div>
 		<style>

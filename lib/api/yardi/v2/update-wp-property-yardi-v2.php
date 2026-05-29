@@ -177,7 +177,7 @@ function rfs_yardi_v2_update_property_images( $args, $property_images ) {
 		];
 		
 		$success = update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
-		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'property_images_api' );
+		rfs_mark_sync_partial( $args['wordpress_property_post_id'], 'property_images_api' );
 		return;
 	}
 
@@ -250,7 +250,7 @@ function rfs_yardi_v2_update_property_lease_fees( $args, $lease_fees ) {
 
 		update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
 		delete_post_meta( $args['wordpress_property_post_id'], 'synced_property_lease_fees' );
-		rfs_mark_sync_failed( $args['wordpress_property_post_id'], 'lease_fees_api' );
+		rfs_mark_sync_partial( $args['wordpress_property_post_id'], 'lease_fees_api' );
 		return;
 	}
 
