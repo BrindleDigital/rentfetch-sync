@@ -179,13 +179,44 @@ function rfs_delete_synced_data_has_scheduled_work() {
 }
 
 /**
+ * Schedule a delayed fallback delete step if browser-driven polling stops.
+ *
+ * @param string $run_id Run ID.
+ * @return void
+ */
+function rfs_schedule_delete_synced_data_fallback( $run_id ) {
+	if ( ! function_exists( 'as_schedule_single_action' ) || ! function_exists( 'as_has_scheduled_action' ) ) {
+		return;
+	}
+
+	$args = array( $run_id );
+	if ( as_has_scheduled_action( 'rfs_delete_synced_data_step', $args, 'rentfetch-delete-synced-data' ) ) {
+		return;
+	}
+
+	as_schedule_single_action( time() + 60, 'rfs_delete_synced_data_step', $args, 'rentfetch-delete-synced-data' );
+}
+
+/**
+ * Clear delayed fallback delete work for a run.
+ *
+ * @param string $run_id Run ID.
+ * @return void
+ */
+function rfs_clear_delete_synced_data_fallback( $run_id ) {
+	if ( function_exists( 'as_unschedule_all_actions' ) ) {
+		as_unschedule_all_actions( 'rfs_delete_synced_data_step', array( $run_id ), 'rentfetch-delete-synced-data' );
+	}
+}
+
+/**
  * Start queued deletion of synced data.
  *
  * @param string $confirmation Confirmation text.
  * @return array|WP_Error
  */
 function rfs_start_delete_synced_data( $confirmation ) {
-	if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+	if ( ! function_exists( 'as_schedule_single_action' ) ) {
 		return new WP_Error( 'action_scheduler_unavailable', 'Action Scheduler is not available.' );
 	}
 
@@ -239,7 +270,8 @@ function rfs_start_delete_synced_data( $confirmation ) {
 
 	rfs_update_delete_synced_data_state( $state );
 
-	rfs_process_delete_synced_data_step( $state['run_id'], 0.2, 1 );
+	rfs_process_delete_synced_data_step( $state['run_id'], 1.0, 3 );
+	rfs_schedule_delete_synced_data_fallback( $state['run_id'] );
 	$state = rfs_get_delete_synced_data_state();
 
 	return $state;
@@ -251,9 +283,10 @@ function rfs_start_delete_synced_data( $confirmation ) {
  * @param string $run_id Run ID.
  * @param float|null $time_budget_override Optional time budget in seconds.
  * @param int|null   $max_batches Optional maximum batch count.
+ * @param bool       $schedule_next Whether to schedule fallback continuation work.
  * @return void
  */
-function rfs_process_delete_synced_data_step( $run_id, $time_budget_override = null, $max_batches = null ) {
+function rfs_process_delete_synced_data_step( $run_id, $time_budget_override = null, $max_batches = null, $schedule_next = true ) {
 	$state = rfs_get_delete_synced_data_state();
 
 	if (
@@ -270,9 +303,9 @@ function rfs_process_delete_synced_data_step( $run_id, $time_budget_override = n
 		? max( 0.25, min( 20, (float) apply_filters( 'rfs_delete_synced_data_time_budget', 1.25, $state ) ) )
 		: max( 0.1, min( 20, (float) $time_budget_override ) );
 	$types      = rfs_get_synced_data_delete_types();
-	$batch_size = max( 1, min( 100, (int) apply_filters( 'rfs_delete_synced_data_batch_size', 10, $state ) ) );
+	$batch_size = max( 1, min( 100, (int) apply_filters( 'rfs_delete_synced_data_batch_size', 25, $state ) ) );
 	$max_batches = null === $max_batches
-		? max( 1, min( 10, (int) apply_filters( 'rfs_delete_synced_data_batches_per_step', 1, $state ) ) )
+		? max( 1, min( 10, (int) apply_filters( 'rfs_delete_synced_data_batches_per_step', 3, $state ) ) )
 		: max( 1, min( 10, (int) $max_batches ) );
 	$total_processed = 0;
 	$batches_processed = 0;
@@ -328,11 +361,14 @@ function rfs_process_delete_synced_data_step( $run_id, $time_budget_override = n
 		$state['current_type'] = '';
 		$state['completed_at'] = time();
 		rfs_update_delete_synced_data_state( $state );
+		rfs_clear_delete_synced_data_fallback( $run_id );
 		return;
 	}
 
 	rfs_update_delete_synced_data_state( $state );
-	as_enqueue_async_action( 'rfs_delete_synced_data_step', array( $run_id ), 'rentfetch-delete-synced-data', false );
+	if ( $schedule_next ) {
+		rfs_schedule_delete_synced_data_fallback( $run_id );
+	}
 }
 add_action( 'rfs_delete_synced_data_step', 'rfs_process_delete_synced_data_step', 10, 1 );
 
@@ -445,6 +481,11 @@ function rfs_get_delete_synced_data_status_ajax_handler() {
 	}
 
 	$include_finished = isset( $_POST['include_finished'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['include_finished'] ) );
+	$state            = rfs_get_delete_synced_data_state();
+
+	if ( ! empty( $state['run_id'] ) && ! empty( $state['status'] ) && 'running' === $state['status'] ) {
+		rfs_process_delete_synced_data_step( $state['run_id'], 0.75, 2, false );
+	}
 
 	wp_send_json_success( rfs_get_delete_synced_data_status_payload( $include_finished ) );
 }
@@ -583,6 +624,7 @@ function rfs_delete_synced_data_admin_script() {
 		var confirmButton = document.querySelector('.rfs-delete-synced-data-confirm');
 		var includeFinishedStatus = false;
 		var pollTimer = null;
+		var pollInFlight = false;
 
 		if (!document.querySelector('.rfs-delete-synced-data-status') && !modal) {
 			return;
@@ -661,13 +703,21 @@ function rfs_delete_synced_data_admin_script() {
 		}
 
 		function pollStatus() {
+			if (pollInFlight) {
+				return;
+			}
+
+			pollInFlight = true;
 			post('rfs_get_delete_synced_data_status')
 				.then(function(response) {
 					if (response && response.success) {
 						setStatus(response.data);
 					}
 				})
-				.catch(function() {});
+				.catch(function() {})
+				.finally(function() {
+					pollInFlight = false;
+				});
 		}
 
 		function startPolling() {

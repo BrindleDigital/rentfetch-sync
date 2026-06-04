@@ -203,6 +203,7 @@ function rfs_get_accelerated_sync_manifest() {
 			$items[] = array(
 				'hook'        => 'rfs_yardi_do_delete_orphans',
 				'args'        => array( $yardi_properties ),
+				'type'        => 'cleanup',
 				'integration' => 'yardi',
 				'property_id' => '',
 				'label'       => 'Yardi orphan cleanup',
@@ -218,6 +219,7 @@ function rfs_get_accelerated_sync_manifest() {
 						'property_id' => $yardi_property,
 					),
 				),
+				'type'        => 'property',
 				'integration' => 'yardi',
 				'property_id' => $yardi_property,
 				'label'       => sprintf( 'Yardi property %s', $yardi_property ),
@@ -239,6 +241,7 @@ function rfs_get_accelerated_sync_manifest() {
 						'property_id' => $entrata_property,
 					),
 				),
+				'type'        => 'property',
 				'integration' => 'entrata',
 				'property_id' => $entrata_property,
 				'label'       => sprintf( 'Entrata property %s', $entrata_property ),
@@ -267,6 +270,7 @@ function rfs_get_accelerated_sync_manifest() {
 						'property_id' => $property_shortname,
 					),
 				),
+				'type'        => 'property',
 				'integration' => 'rentmanager',
 				'property_id' => $property_shortname,
 				'label'       => sprintf( 'Rent Manager property %s', $property_shortname ),
@@ -356,28 +360,69 @@ function rfs_start_accelerated_sync() {
 		return new WP_Error( 'empty_manifest', 'No synced properties are configured.' );
 	}
 
-	$now    = time();
-	$run_id = wp_generate_uuid4();
+	$property_total = count(
+		array_filter(
+			$items,
+			function( $item ) {
+				return isset( $item['type'] ) && 'property' === $item['type'];
+			}
+		)
+	);
+	$now            = time();
+	$run_id         = wp_generate_uuid4();
 	rfs_clear_accelerated_sync_cancel_request( $run_id );
 	$state  = array(
-		'run_id'         => $run_id,
-		'status'         => 'running',
-		'items'          => array_values( $items ),
-		'total'          => count( $items ),
-		'current_index'  => 0,
-		'queued'         => 0,
-		'completed'      => 0,
-		'failed'         => 0,
-		'errors'         => array(),
-		'current_label'  => '',
-		'active_items'   => array(),
-		'started_at'     => $now,
-		'updated_at'     => $now,
-		'completed_at'   => 0,
+		'run_id'             => $run_id,
+		'status'             => 'running',
+		'items'              => array_values( $items ),
+		'total'              => count( $items ),
+		'property_total'     => $property_total,
+		'current_index'      => 0,
+		'queued'             => 0,
+		'completed'          => 0,
+		'property_completed' => 0,
+		'failed'             => 0,
+		'property_failed'    => 0,
+		'errors'             => array(),
+		'current_label'      => '',
+		'active_items'       => array(),
+		'started_at'         => $now,
+		'updated_at'         => $now,
+		'completed_at'       => 0,
 	);
 
 	rfs_update_accelerated_sync_state( $state );
-	$state = rfs_queue_accelerated_sync_workers( $state );
+
+	if ( apply_filters( 'rfs_accelerated_sync_process_first_item_immediately', true, $state ) && ! empty( $state['items'][0] ) ) {
+		$immediate_until = 0;
+		foreach ( $state['items'] as $item_index => $item ) {
+			if ( isset( $item['type'] ) && 'property' === $item['type'] ) {
+				$immediate_until = (int) $item_index;
+				break;
+			}
+		}
+
+		$state['queued']        = $immediate_until + 1;
+		$state['current_index'] = $state['queued'];
+		$state['updated_at']    = time();
+		rfs_update_accelerated_sync_state( $state );
+
+		for ( $item_index = 0; $item_index <= $immediate_until; ++$item_index ) {
+			rfs_process_accelerated_sync_step( $run_id, $item_index, false );
+
+			$state = rfs_get_accelerated_sync_state();
+			if ( empty( $state['status'] ) || 'running' !== $state['status'] ) {
+				break;
+			}
+		}
+
+		$state = rfs_get_accelerated_sync_state();
+		if ( ! empty( $state['status'] ) && 'running' === $state['status'] ) {
+			$state = rfs_queue_accelerated_sync_workers( $state );
+		}
+	} else {
+		$state = rfs_queue_accelerated_sync_workers( $state );
+	}
 
 	return $state;
 }
@@ -404,9 +449,10 @@ function rfs_cancel_accelerated_sync() {
  *
  * @param string $run_id Run ID.
  * @param int    $item_index Item index.
+ * @param bool   $queue_next Whether to queue more work after this item.
  * @return void
  */
-function rfs_process_accelerated_sync_step( $run_id, $item_index = null ) {
+function rfs_process_accelerated_sync_step( $run_id, $item_index = null, $queue_next = true ) {
 	$state = rfs_get_accelerated_sync_state();
 
 	if (
@@ -527,8 +573,14 @@ function rfs_process_accelerated_sync_step( $run_id, $item_index = null ) {
 
 	if ( $success ) {
 		++$state['completed'];
+		if ( isset( $item['type'] ) && 'property' === $item['type'] ) {
+			$state['property_completed'] = isset( $state['property_completed'] ) ? (int) $state['property_completed'] + 1 : 1;
+		}
 	} else {
 		++$state['failed'];
+		if ( isset( $item['type'] ) && 'property' === $item['type'] ) {
+			$state['property_failed'] = isset( $state['property_failed'] ) ? (int) $state['property_failed'] + 1 : 1;
+		}
 		$state['errors'][] = array(
 			'label'   => $label,
 			'message' => $error,
@@ -549,7 +601,12 @@ function rfs_process_accelerated_sync_step( $run_id, $item_index = null ) {
 		return;
 	}
 
-	$state = rfs_queue_accelerated_sync_workers( $state );
+	if ( $queue_next ) {
+		$state = rfs_queue_accelerated_sync_workers( $state );
+	} else {
+		rfs_update_accelerated_sync_state( $state );
+	}
+
 	rfs_release_accelerated_sync_lock( $lock );
 }
 add_action( 'rfs_accelerated_sync_step', 'rfs_process_accelerated_sync_step', 10, 2 );
@@ -569,6 +626,51 @@ function rfs_get_accelerated_sync_status_payload( $include_finished = false ) {
 	$failed    = isset( $state['failed'] ) ? (int) $state['failed'] : 0;
 	$active    = isset( $state['active_items'] ) && is_array( $state['active_items'] ) ? array_values( $state['active_items'] ) : array();
 	$current   = 'running' === $status && ! empty( $active ) ? implode( ', ', array_slice( $active, 0, 3 ) ) : '';
+	$items              = isset( $state['items'] ) && is_array( $state['items'] ) ? $state['items'] : array();
+	$property_total     = isset( $state['property_total'] ) ? (int) $state['property_total'] : 0;
+	$property_completed = isset( $state['property_completed'] ) ? (int) $state['property_completed'] : 0;
+	$property_failed    = isset( $state['property_failed'] ) ? (int) $state['property_failed'] : 0;
+	$property_active    = 0;
+	$active_type_counts = array();
+	$active_type_labels = array();
+	$type_labels        = array(
+		'property'  => 'property',
+		'floorplan' => 'floor plan',
+		'unit'      => 'unit',
+	);
+
+	if ( ! $property_total && ! empty( $items ) ) {
+		foreach ( $items as $item ) {
+			if ( isset( $item['type'] ) && 'property' === $item['type'] ) {
+				++$property_total;
+			}
+		}
+	}
+
+	if ( isset( $state['active_items'] ) && is_array( $state['active_items'] ) ) {
+		foreach ( array_keys( $state['active_items'] ) as $item_index ) {
+			if ( isset( $items[ $item_index ]['type'] ) && 'property' === $items[ $item_index ]['type'] ) {
+				++$property_active;
+			}
+
+			$item_type = isset( $items[ $item_index ]['type'] ) ? (string) $items[ $item_index ]['type'] : '';
+			if ( '' !== $item_type ) {
+				if ( ! isset( $active_type_counts[ $item_type ] ) ) {
+					$active_type_counts[ $item_type ] = 0;
+				}
+
+				++$active_type_counts[ $item_type ];
+
+				if ( ! isset( $active_type_labels[ $item_type ] ) ) {
+					$active_type_labels[ $item_type ] = array();
+				}
+
+				if ( isset( $state['active_items'][ $item_index ] ) && '' !== (string) $state['active_items'][ $item_index ] ) {
+					$active_type_labels[ $item_type ][] = (string) $state['active_items'][ $item_index ];
+				}
+			}
+		}
+	}
 
 	if (
 		in_array( $status, array( 'complete', 'cancelled' ), true )
@@ -578,10 +680,45 @@ function rfs_get_accelerated_sync_status_payload( $include_finished = false ) {
 	}
 
 	if ( 'running' === $status ) {
-		$active_count = max( 1, count( $active ) );
-		$message      = sprintf( 'Syncing %1$d of %2$d', min( $completed + $failed + $active_count, $total ), $total );
+		$active_type = '';
+		foreach ( array( 'property', 'floorplan', 'unit' ) as $type ) {
+			if ( ! empty( $active_type_counts[ $type ] ) ) {
+				$active_type = $type;
+				break;
+			}
+		}
+
+		if ( '' !== $active_type ) {
+			$type_label   = isset( $type_labels[ $active_type ] ) ? $type_labels[ $active_type ] : str_replace( '_', ' ', $active_type );
+			$item_label   = ! empty( $active_type_labels[ $active_type ] ) ? $active_type_labels[ $active_type ][0] : '';
+			$active_count = max( 1, (int) $active_type_counts[ $active_type ] );
+			$type_total   = 'property' === $active_type && $property_total > 0 ? $property_total : $total;
+			$type_done    = 'property' === $active_type ? $property_completed + $property_failed : $completed + $failed;
+			$position     = sprintf( '%1$s %2$d of %3$d', $type_label, min( $type_done + $active_count, $type_total ), $type_total );
+			$message      = '' !== $item_label
+				? sprintf( 'Syncing %1$s, %2$s', $item_label, $position )
+				: sprintf( 'Syncing %s', $position );
+		} elseif ( $property_total > 0 ) {
+			$active_count = max( 1, $property_active );
+			$message      = sprintf(
+				'%1$s property %2$d of %3$d',
+				$property_active > 0 ? 'Syncing' : 'Waiting to sync',
+				min( $property_completed + $property_failed + $active_count, $property_total ),
+				$property_total
+			);
+		} else {
+			$active_count = max( 1, count( $active ) );
+			$message      = sprintf(
+				'%1$s %2$d of %3$d',
+				count( $active ) > 0 ? 'Syncing' : 'Waiting to sync',
+				min( $completed + $failed + $active_count, $total ),
+				$total
+			);
+		}
 	} elseif ( 'complete' === $status ) {
-		$message = sprintf( 'Sync complete. %1$d synced%2$s.', $completed, $failed ? sprintf( ', %d failed', $failed ) : '' );
+		$synced_count = $property_total > 0 ? $property_completed : $completed;
+		$failed_count = $property_total > 0 ? max( $property_failed, $failed ) : $failed;
+		$message      = sprintf( 'Sync complete. %1$d synced%2$s.', $synced_count, $failed_count ? sprintf( ', %d failed', $failed_count ) : '' );
 	} elseif ( 'cancelled' === $status ) {
 		$message = 'Accelerated sync cancelled.';
 	} else {
@@ -634,12 +771,17 @@ function rfs_render_accelerated_sync_admin_bar_panel() {
 	$title = function_exists( 'rentfetch_get_admin_bar_section_title' )
 		? rentfetch_get_admin_bar_section_title( 'Sync' )
 		: '<span class="rentfetch-admin-bar-section-title">SYNC</span>';
+	$status_title = rfs_get_accelerated_sync_status_title();
+	$status_is_empty = '' === $status_title;
+	if ( '' === $status_title ) {
+		$status_title = '<span class="rfs-accelerated-sync-status is-empty"><span class="rfs-accelerated-sync-message"></span><span class="rfs-accelerated-sync-current"></span></span>';
+	}
 	?>
 	<div id="wp-admin-bar-rentfetch-sync-section" class="rentfetch-admin-bar-section rentfetch-admin-bar-sync-section">
 		<?php echo wp_kses_post( $title ); ?>
 	</div>
-	<div id="wp-admin-bar-rentfetch-sync-status" class="rentfetch-admin-bar-sync-status">
-		<?php echo wp_kses_post( rfs_get_accelerated_sync_status_title() ); ?>
+	<div id="wp-admin-bar-rentfetch-sync-status" class="<?php echo esc_attr( $status_is_empty ? 'rentfetch-admin-bar-sync-status is-empty' : 'rentfetch-admin-bar-sync-status' ); ?>">
+		<?php echo wp_kses_post( $status_title ); ?>
 	</div>
 	<div class="<?php echo esc_attr( rfs_get_accelerated_sync_status_payload()['running'] ? 'rfs-accelerated-sync-admin-actions is-running' : 'rfs-accelerated-sync-admin-actions' ); ?>">
 		<button type="button" id="wp-admin-bar-rentfetch-sync-run-full" class="rfs-accelerated-sync-admin-button rfs-accelerated-sync-start">Run full sync now</button>
@@ -831,6 +973,10 @@ function rfs_accelerated_sync_admin_styles() {
 			color: #a7aaad;
 		}
 
+		#wpadminbar #wp-admin-bar-rentfetch-sync-status.is-empty {
+			display: none;
+		}
+
 		#wpadminbar #wp-admin-bar-rentfetch-admin-bar .rfs-accelerated-sync-status,
 		#wpadminbar #wp-admin-bar-rentfetch-admin-bar .rfs-accelerated-sync-message,
 		#wpadminbar #wp-admin-bar-rentfetch-admin-bar .rfs-accelerated-sync-current {
@@ -956,6 +1102,10 @@ function rfs_accelerated_sync_admin_script() {
 				clearTimer = null;
 			}
 
+			document.querySelectorAll('.rentfetch-admin-bar-sync-status').forEach(function(status) {
+				status.classList.toggle('is-empty', payload.status === 'idle' && !payload.current);
+			});
+
 			document.querySelectorAll('.rfs-accelerated-sync-status').forEach(function(status) {
 				var message = status.querySelector('.rfs-accelerated-sync-message');
 				var current = status.querySelector('.rfs-accelerated-sync-current');
@@ -1046,8 +1196,18 @@ function rfs_accelerated_sync_admin_script() {
 			if (start) {
 				includeFinishedStatus = true;
 				setStartDisabled(true);
+				setStatus({
+					status: 'running',
+					message: 'Starting full sync...',
+					current: 'Waiting for the sync queue to start'
+				});
 			} else if (cancel) {
 				includeFinishedStatus = true;
+				setStatus({
+					status: 'running',
+					message: 'Cancelling sync...',
+					current: ''
+				});
 			}
 
 			post(start ? 'rfs_start_accelerated_sync' : 'rfs_cancel_accelerated_sync')
