@@ -99,6 +99,52 @@ function rfs_schedule_property_sync_action( $args, $sync_time, $index ) {
 	);
 }
 
+/**
+ * Validate credentials that are resolved at runtime for a sync action.
+ *
+ * @param string $integration Integration slug.
+ * @param array  $credentials Runtime credentials.
+ * @return string Empty string when valid, otherwise an error message.
+ */
+function rfs_get_runtime_sync_credentials_error( $integration, $credentials ) {
+	if ( ! is_array( $credentials ) ) {
+		return 'Runtime sync credentials were not available.';
+	}
+
+	switch ( $integration ) {
+		case 'yardi':
+			if (
+				empty( $credentials['yardi']['apikey'] )
+				|| empty( $credentials['yardi']['company_code'] )
+				|| empty( $credentials['yardi']['vendor'] )
+				|| ! rfs_get_yardi_bearer_token()
+			) {
+				return 'Yardi runtime credentials or bearer token were not available.';
+			}
+			break;
+
+		case 'entrata':
+			if (
+				empty( $credentials['entrata']['subdomain'] )
+				|| ! rfs_get_entrata_api_key()
+			) {
+				return 'Entrata runtime credentials or API key were not available.';
+			}
+			break;
+
+		case 'rentmanager':
+			if (
+				empty( $credentials['rentmanager']['companycode'] )
+				|| empty( $credentials['rentmanager']['partner_token'] )
+			) {
+				return 'Rent Manager runtime credentials or partner token were not available.';
+			}
+			break;
+	}
+
+	return '';
+}
+
 
 /**
  * Store sync progress for polling from the admin UI.
@@ -321,6 +367,11 @@ function rfs_trigger_specific_api_sync( $args ) {
 		return;
 
 	$args['credentials'] = rfs_get_credentials();
+	$credentials_error   = rfs_get_runtime_sync_credentials_error( $args['integration'], $args['credentials'] );
+
+	if ( '' !== $credentials_error ) {
+		throw new RuntimeException( $credentials_error );
+	}
 
 	switch ( $args['integration'] ) {
 		case 'yardi':

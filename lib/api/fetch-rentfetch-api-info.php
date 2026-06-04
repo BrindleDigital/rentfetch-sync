@@ -12,10 +12,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Get the information from the Rentfetch API.
  *
+ * @param bool $reset_request_cache Whether to clear the in-request cache.
  * @return  array|string the response.
  */
-function rfs_get_info_from_rentfetch_api() {
+function rfs_get_info_from_rentfetch_api( $reset_request_cache = false ) {
 	static $request_cache = null;
+
+	if ( $reset_request_cache ) {
+		$request_cache = null;
+		return null;
+	}
 
 	if ( null !== $request_cache ) {
 		return $request_cache;
@@ -61,6 +67,18 @@ function rfs_get_info_from_rentfetch_api() {
 	} finally {
 		delete_option( 'rentfetch_api_info_refresh_lock' );
 	}
+}
+
+/**
+ * Clear cached Rent Fetch API bootstrap state.
+ *
+ * @return void
+ */
+function rfs_clear_rentfetch_api_info_cache() {
+	rfs_get_info_from_rentfetch_api( true );
+	delete_transient( 'rentfetch_api_info' );
+	delete_transient( 'rentfetch_api_info_error' );
+	delete_option( 'rentfetch_api_info_refresh_lock' );
 }
 
 /**

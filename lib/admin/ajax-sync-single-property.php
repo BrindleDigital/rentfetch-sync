@@ -161,7 +161,18 @@ function rfs_sync_single_property_ajax_handler() {
 		);
 
 		// Run synchronously (do not schedule). The sync function handles its own progress updates.
-		rfs_sync_single_property( $property_id, $integration );
+		try {
+			rfs_sync_single_property( $property_id, $integration );
+		} catch ( Throwable $exception ) {
+			wp_send_json_error(
+				array(
+					'integration' => $integration,
+					'property_id' => $property_id,
+					'message'     => $exception->getMessage(),
+				),
+				500
+			);
+		}
 
 		// After completion attempt to return the progress payload so the client can pick up final state immediately
 		$key = 'rfs_sync_progress_' . md5( $integration . '_' . $property_id );

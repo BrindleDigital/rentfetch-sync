@@ -340,6 +340,15 @@ function rfs_queue_accelerated_sync_workers( $state ) {
  */
 function rfs_start_accelerated_sync() {
 	update_option( 'rentfetch_options_data_sync', 'updatesync' );
+	delete_transient( 'rentfetchsync_properties_limit' );
+
+	if ( function_exists( 'rfs_clear_rentfetch_api_info_cache' ) ) {
+		rfs_clear_rentfetch_api_info_cache();
+	} else {
+		delete_transient( 'rentfetch_api_info' );
+		delete_transient( 'rentfetch_api_info_error' );
+		delete_option( 'rentfetch_api_info_refresh_lock' );
+	}
 
 	$can_start = rfs_can_start_accelerated_sync();
 	if ( is_wp_error( $can_start ) ) {

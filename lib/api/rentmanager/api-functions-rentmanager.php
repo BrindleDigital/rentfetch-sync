@@ -58,18 +58,24 @@ function rfs_do_rentmanager_sync( $args ) {
 	rfs_rentmanager_update_property_meta( $args, $property_data );
 
 	// get the unit types (floorplans) data for this property.
-	$unit_types_data = rfs_rentmanager_get_unit_types_data( $args );
-	
+	$unit_types_response = rfs_rentmanager_get_unit_types_data( $args );
+	$unit_types_data     = isset( $unit_types_response['unit_types'] ) && is_array( $unit_types_response['unit_types'] )
+		? $unit_types_response['unit_types']
+		: array();
+
 	// error_log('Got unit_types_data for ' . ($args['property_id'] ?? 'unknown') . ': ' . (is_array($unit_types_data) ? count($unit_types_data) : 'not array') . ' items');
-	
+
 	// remove floorplans with no bed or bath data (where those are both missing).
 	$unit_types_data = rfs_rentmanager_ignore_floorplans_with_no_bed_or_bath( $unit_types_data );
-	
+
 	// delete any floorplans that no longer appear in the API (looking at our local data, then comparing to the API data).
-	rfs_rentmanager_remove_unit_types_no_longer_in_api( $args, $unit_types_data );
-	
+	rfs_rentmanager_remove_unit_types_no_longer_in_api( $args, $unit_types_data, ! empty( $unit_types_response['delete_safe'] ) );
+
 	// get the units data for the property.
-	$units_data = rfs_rentmanager_get_units_data( $args );
+	$units_response = rfs_rentmanager_get_units_data( $args );
+	$units_data     = isset( $units_response['units'] ) && is_array( $units_response['units'] )
+		? $units_response['units']
+		: array();
 	
 	// error_log('Got units_data for ' . ($args['property_id'] ?? 'unknown') . ': ' . (is_array($units_data) ? count($units_data) : 'not array') . ' items');
 		
@@ -106,7 +112,7 @@ function rfs_do_rentmanager_sync( $args ) {
 			rfs_rentmanager_update_unit_meta( $args, $unit );
 		}
 		
-		rfs_rentmanager_remove_units_no_longer_in_api( $args, $units_data );
+		rfs_rentmanager_remove_units_no_longer_in_api( $args, $units_data, ! empty( $units_response['delete_safe'] ) );
 	}
 
 	// create the floorplans (we actually want to do this after the units, because if there are images attached to the unit_type, that should override unit images).
@@ -354,8 +360,17 @@ function rfs_rentmanager_update_property_meta( $args, $property_data ) {
  * @return  array the unit types data.
  */
 function rfs_rentmanager_get_unit_types_data( $args ) {
-	$rentmanager_company_code = $args['credentials']['rentmanager']['companycode'];
-	$partner_token = $args['credentials']['rentmanager']['partner_token'];
+	$rentmanager_company_code = isset( $args['credentials']['rentmanager']['companycode'] ) ? $args['credentials']['rentmanager']['companycode'] : '';
+	$partner_token = isset( $args['credentials']['rentmanager']['partner_token'] ) ? $args['credentials']['rentmanager']['partner_token'] : '';
+
+	if ( ! $rentmanager_company_code || ! $partner_token || empty( $args['rentmanager_property_id'] ) ) {
+		return array(
+			'success'     => false,
+			'delete_safe' => false,
+			'unit_types'  => null,
+			'reason'      => 'missing_credentials',
+		);
+	}
 
 	// Use the proxy endpoint instead of direct API call
 	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/unit-types';
@@ -376,24 +391,93 @@ function rfs_rentmanager_get_unit_types_data( $args ) {
 
 	if ( is_wp_error( $response ) ) {
 		error_log( 'WP Remote error in rfs_rentmanager_get_unit_types_data: ' . $response->get_error_message() );
-		return array();
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'unit_types'   => null,
+			'reason'       => 'request_error',
+			'raw_response' => $response->get_error_message(),
+		);
 	}
 
 	$http_code = wp_remote_retrieve_response_code( $response );
 	if ( $http_code !== 200 ) {
 		error_log( 'HTTP error in rfs_rentmanager_get_unit_types_data: ' . $http_code );
-		return array();
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'unit_types'   => null,
+			'reason'       => 'unexpected_response_code',
+			'raw_response' => wp_remote_retrieve_body( $response ),
+			'status_code'  => (int) $http_code,
+		);
 	}
 
 	$response_body = wp_remote_retrieve_body( $response );
 	$response_body = rentfetch_clean_json_string( $response_body );
+
+	if ( '' === trim( (string) $response_body ) ) {
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'unit_types'   => null,
+			'reason'       => 'blank_response',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $http_code,
+		);
+	}
+
 	$unit_types_data = json_decode( $response_body, true );
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
 		error_log( 'JSON decode error in rfs_rentmanager_get_unit_types_data: ' . json_last_error_msg() );
-		return $response_body; // Return the cleaned JSON string if decode fails
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'unit_types'   => null,
+			'reason'       => 'invalid_json',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $http_code,
+		);
 	}
 
-	return $unit_types_data ?: array(); // Ensure it returns an array
+	if ( ! is_array( $unit_types_data ) ) {
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'unit_types'   => null,
+			'reason'       => 'invalid_payload',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $http_code,
+		);
+	}
+
+	$unit_types = isset( $unit_types_data['UnitTypeID'] ) ? array( $unit_types_data ) : array_values( $unit_types_data ?: array() );
+	$unit_type_ids = array();
+	foreach ( $unit_types as $unit_type ) {
+		if ( is_array( $unit_type ) && isset( $unit_type['UnitTypeID'] ) ) {
+			$unit_type_ids[] = (string) $unit_type['UnitTypeID'];
+		}
+	}
+
+	if ( ! empty( $unit_types ) && empty( $unit_type_ids ) ) {
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'unit_types'   => null,
+			'reason'       => 'missing_unit_type_ids',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $http_code,
+		);
+	}
+
+	return array(
+		'success'      => true,
+		'delete_safe'  => true,
+		'unit_types'   => $unit_types,
+		'reason'       => empty( $unit_types ) ? 'valid_empty_unit_types_array' : 'valid_unit_types_array',
+		'raw_response' => $response_body,
+		'status_code'  => (int) $http_code,
+	);
 }
 
 /**
@@ -625,7 +709,11 @@ function rfs_rentmanager_ignore_floorplans_with_no_bed_or_bath( $unit_types_data
 	return $filtered_unit_types;
 }
 
-function rfs_rentmanager_remove_unit_types_no_longer_in_api( $args, $unit_types_data ) {
+function rfs_rentmanager_remove_unit_types_no_longer_in_api( $args, $unit_types_data, $delete_safe = true ) {
+	if ( ! $delete_safe ) {
+		return;
+	}
+
 	
 	$existing_floorplan_query_args = array(
 		'post_type'      => 'floorplans',
@@ -676,8 +764,17 @@ function rfs_rentmanager_remove_unit_types_no_longer_in_api( $args, $unit_types_
  * @return  array  the unit data.
  */
 function rfs_rentmanager_get_units_data( $args ) {
-	$rentmanager_company_code = $args['credentials']['rentmanager']['companycode'];
-	$partner_token = $args['credentials']['rentmanager']['partner_token'];
+	$rentmanager_company_code = isset( $args['credentials']['rentmanager']['companycode'] ) ? $args['credentials']['rentmanager']['companycode'] : '';
+	$partner_token = isset( $args['credentials']['rentmanager']['partner_token'] ) ? $args['credentials']['rentmanager']['partner_token'] : '';
+
+	if ( ! $rentmanager_company_code || ! $partner_token || empty( $args['property_id'] ) ) {
+		return array(
+			'success'     => false,
+			'delete_safe' => false,
+			'units'       => null,
+			'reason'      => 'missing_credentials',
+		);
+	}
 
 	// Use the proxy endpoint instead of direct API call
 	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/units';
@@ -698,24 +795,93 @@ function rfs_rentmanager_get_units_data( $args ) {
 
 	if ( is_wp_error( $response ) ) {
 		error_log( 'WP Remote error in rfs_rentmanager_get_units_data: ' . $response->get_error_message() );
-		return array();
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'units'        => null,
+			'reason'       => 'request_error',
+			'raw_response' => $response->get_error_message(),
+		);
 	}
 
 	$http_code = wp_remote_retrieve_response_code( $response );
 	if ( $http_code !== 200 ) {
 		error_log( 'HTTP error in rfs_rentmanager_get_units_data: ' . $http_code );
-		return array();
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'units'        => null,
+			'reason'       => 'unexpected_response_code',
+			'raw_response' => wp_remote_retrieve_body( $response ),
+			'status_code'  => (int) $http_code,
+		);
 	}
 
 	$response_body = wp_remote_retrieve_body( $response );
 	$response_body = rentfetch_clean_json_string( $response_body );
+
+	if ( '' === trim( (string) $response_body ) ) {
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'units'        => null,
+			'reason'       => 'blank_response',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $http_code,
+		);
+	}
+
 	$units_data = json_decode( $response_body, true );
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
 		error_log( 'JSON decode error in rfs_rentmanager_get_units_data: ' . json_last_error_msg() );
-		return $response_body; // Return the cleaned JSON string if decode fails
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'units'        => null,
+			'reason'       => 'invalid_json',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $http_code,
+		);
 	}
 
-	return $units_data ?: array(); // Ensure it returns an array
+	if ( ! is_array( $units_data ) ) {
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'units'        => null,
+			'reason'       => 'invalid_payload',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $http_code,
+		);
+	}
+
+	$units = isset( $units_data['UnitID'] ) ? array( $units_data ) : array_values( $units_data ?: array() );
+	$unit_ids = array();
+	foreach ( $units as $unit ) {
+		if ( is_array( $unit ) && isset( $unit['UnitTypeID'], $unit['UnitID'] ) ) {
+			$unit_ids[] = (string) $unit['UnitTypeID'] . '-' . (string) $unit['UnitID'];
+		}
+	}
+
+	if ( ! empty( $units ) && empty( $unit_ids ) ) {
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'units'        => null,
+			'reason'       => 'missing_unit_ids',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $http_code,
+		);
+	}
+
+	return array(
+		'success'      => true,
+		'delete_safe'  => true,
+		'units'        => $units,
+		'reason'       => empty( $units ) ? 'valid_empty_units_array' : 'valid_units_array',
+		'raw_response' => $response_body,
+		'status_code'  => (int) $http_code,
+	);
 }
 
 function rfs_rentmanager_update_unit_meta( $args, $unit ) {
@@ -841,7 +1007,11 @@ function rfs_rentmanager_update_unit_meta( $args, $unit ) {
 	rfs_mark_sync_succeeded( $args['wordpress_unit_post_id'], 'units_api' );
 }
 
-function rfs_rentmanager_remove_units_no_longer_in_api( $args, $units_data ) {
+function rfs_rentmanager_remove_units_no_longer_in_api( $args, $units_data, $delete_safe = true ) {
+	if ( ! $delete_safe ) {
+		return;
+	}
+
 	
 	// Bail if we don't have the property ID.
 	if ( ! isset( $args['property_id'] ) || ! $args['property_id'] ) {

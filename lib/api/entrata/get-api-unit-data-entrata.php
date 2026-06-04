@@ -18,12 +18,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function rfs_entrata_get_unit_data( $args ) {
 	$api_key   = rfs_get_entrata_api_key();
-	$subdomain = $args['credentials']['entrata']['subdomain'];
-	$property_id = $args['property_id'];
+	$subdomain = isset( $args['credentials']['entrata']['subdomain'] ) ? $args['credentials']['entrata']['subdomain'] : '';
+	$property_id = isset( $args['property_id'] ) ? $args['property_id'] : '';
 
 	// Bail if required arguments are missing.
 	if ( ! $api_key || ! $subdomain || ! $property_id ) {
-		return;
+		return array(
+			'success'     => false,
+			'delete_safe' => false,
+			'units'       => null,
+			'reason'      => 'missing_credentials',
+		);
 	}
 
 	// Set the URL for the API request.
@@ -76,17 +81,112 @@ function rfs_entrata_get_unit_data( $args ) {
 
 	// Check for errors.
 	if ( is_wp_error( $response ) ) {
-		return; // Handle the error as needed.
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'units'        => null,
+			'reason'       => 'request_error',
+			'raw_response' => $response->get_error_message(),
+		);
 	}
 
 	// Retrieve and decode the response body.
+	$response_code = wp_remote_retrieve_response_code( $response );
 	$response_body = wp_remote_retrieve_body( $response );
 	$response_body = rentfetch_clean_json_string( $response_body );
-	$unit_data = json_decode( $response_body, true );
-	
-	if ( $unit_data === null && json_last_error() !== JSON_ERROR_NONE ) {
-		return $response_body; // Return the cleaned JSON string if decode fails
+
+	if ( 200 !== (int) $response_code || '' === trim( (string) $response_body ) ) {
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'units'        => null,
+			'reason'       => '' === trim( (string) $response_body ) ? 'blank_response' : 'unexpected_response_code',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $response_code,
+		);
 	}
-	
-	return $unit_data;
+
+	$unit_data = json_decode( $response_body, true );
+
+	if ( $unit_data === null && json_last_error() !== JSON_ERROR_NONE ) {
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'units'        => null,
+			'reason'       => 'invalid_json',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $response_code,
+		);
+	}
+
+	if (
+		isset( $unit_data['response']['result'] )
+		&& is_array( $unit_data['response']['result'] )
+		&& array_key_exists( 'ILS_Units', $unit_data['response']['result'] )
+		&& is_array( $unit_data['response']['result']['ILS_Units'] )
+	) {
+		$ils_units = $unit_data['response']['result']['ILS_Units'];
+		$units     = array();
+
+		if ( array_key_exists( 'Unit', $ils_units ) ) {
+			$units = rfs_entrata_normalize_unit_collection( $ils_units['Unit'] );
+		}
+
+		$unit_ids = array();
+		foreach ( $units as $unit ) {
+			if ( is_array( $unit ) && ! empty( $unit['@attributes']['PropertyUnitId'] ) ) {
+				$unit_ids[] = (string) $unit['@attributes']['PropertyUnitId'];
+			}
+		}
+
+		if ( ! empty( $units ) && empty( $unit_ids ) ) {
+			return array(
+				'success'      => false,
+				'delete_safe'  => false,
+				'units'        => null,
+				'data'         => $unit_data,
+				'reason'       => 'missing_unit_ids',
+				'raw_response' => $response_body,
+				'status_code'  => (int) $response_code,
+			);
+		}
+
+		return array(
+			'success'      => true,
+			'delete_safe'  => true,
+			'units'        => $units,
+			'data'         => $unit_data,
+			'reason'       => empty( $units ) ? 'valid_empty_units_array' : 'valid_units_array',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $response_code,
+		);
+	}
+
+	return array(
+		'success'      => false,
+		'delete_safe'  => false,
+		'units'        => null,
+		'data'         => $unit_data,
+		'reason'       => 'missing_units_key',
+		'raw_response' => $response_body,
+		'status_code'  => (int) $response_code,
+	);
+}
+
+/**
+ * Normalize Entrata Unit payloads to a list.
+ *
+ * @param mixed $units Raw Entrata Unit payload.
+ * @return array
+ */
+function rfs_entrata_normalize_unit_collection( $units ) {
+	if ( ! is_array( $units ) || empty( $units ) ) {
+		return array();
+	}
+
+	if ( isset( $units['@attributes'] ) ) {
+		return array( $units );
+	}
+
+	return array_values( $units );
 }

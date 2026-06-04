@@ -18,12 +18,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function rfs_entrata_get_floorplan_data( $args ) {
 	$api_key   = rfs_get_entrata_api_key();
-	$subdomain = $args['credentials']['entrata']['subdomain'];
-	$property_id = $args['property_id'];
+	$subdomain = isset( $args['credentials']['entrata']['subdomain'] ) ? $args['credentials']['entrata']['subdomain'] : '';
+	$property_id = isset( $args['property_id'] ) ? $args['property_id'] : '';
 
 	// Bail if required arguments are missing.
 	if ( ! $api_key || ! $subdomain || ! $property_id ) {
-		return;
+		return array(
+			'success'     => false,
+			'delete_safe' => false,
+			'floorplans'  => null,
+			'reason'      => 'missing_credentials',
+		);
 	}
 
 	// Set the URL for the API request.
@@ -64,17 +69,112 @@ function rfs_entrata_get_floorplan_data( $args ) {
 
 	// Check for errors.
 	if ( is_wp_error( $response ) ) {
-		return; // Handle the error as needed.
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'floorplans'   => null,
+			'reason'       => 'request_error',
+			'raw_response' => $response->get_error_message(),
+		);
 	}
 
 	// Retrieve and decode the response body.
+	$response_code = wp_remote_retrieve_response_code( $response );
 	$response_body = wp_remote_retrieve_body( $response );
 	$response_body = rentfetch_clean_json_string( $response_body );
-	$floorplan_data = json_decode( $response_body, true );
-	
-	if ( $floorplan_data === null && json_last_error() !== JSON_ERROR_NONE ) {
-		return $response_body; // Return the cleaned JSON string if decode fails
+
+	if ( 200 !== (int) $response_code || '' === trim( (string) $response_body ) ) {
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'floorplans'   => null,
+			'reason'       => '' === trim( (string) $response_body ) ? 'blank_response' : 'unexpected_response_code',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $response_code,
+		);
 	}
-	
-	return $floorplan_data;
+
+	$floorplan_data = json_decode( $response_body, true );
+
+	if ( $floorplan_data === null && json_last_error() !== JSON_ERROR_NONE ) {
+		return array(
+			'success'      => false,
+			'delete_safe'  => false,
+			'floorplans'   => null,
+			'reason'       => 'invalid_json',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $response_code,
+		);
+	}
+
+	if (
+		isset( $floorplan_data['response']['result'] )
+		&& is_array( $floorplan_data['response']['result'] )
+		&& array_key_exists( 'FloorPlans', $floorplan_data['response']['result'] )
+		&& is_array( $floorplan_data['response']['result']['FloorPlans'] )
+	) {
+		$floorplans_container = $floorplan_data['response']['result']['FloorPlans'];
+		$floorplans           = array();
+
+		if ( array_key_exists( 'FloorPlan', $floorplans_container ) ) {
+			$floorplans = rfs_entrata_normalize_floorplan_collection( $floorplans_container['FloorPlan'] );
+		}
+
+		$floorplan_ids = array();
+		foreach ( $floorplans as $floorplan ) {
+			if ( is_array( $floorplan ) && ! empty( $floorplan['Identification']['IDValue'] ) ) {
+				$floorplan_ids[] = (string) $floorplan['Identification']['IDValue'];
+			}
+		}
+
+		if ( ! empty( $floorplans ) && empty( $floorplan_ids ) ) {
+			return array(
+				'success'      => false,
+				'delete_safe'  => false,
+				'floorplans'   => null,
+				'data'         => $floorplan_data,
+				'reason'       => 'missing_floorplan_ids',
+				'raw_response' => $response_body,
+				'status_code'  => (int) $response_code,
+			);
+		}
+
+		return array(
+			'success'      => true,
+			'delete_safe'  => true,
+			'floorplans'   => $floorplans,
+			'data'         => $floorplan_data,
+			'reason'       => empty( $floorplans ) ? 'valid_empty_floorplans_array' : 'valid_floorplans_array',
+			'raw_response' => $response_body,
+			'status_code'  => (int) $response_code,
+		);
+	}
+
+	return array(
+		'success'      => false,
+		'delete_safe'  => false,
+		'floorplans'   => null,
+		'data'         => $floorplan_data,
+		'reason'       => 'missing_floorplans_key',
+		'raw_response' => $response_body,
+		'status_code'  => (int) $response_code,
+	);
+}
+
+/**
+ * Normalize Entrata FloorPlan payloads to a list.
+ *
+ * @param mixed $floorplans Raw Entrata FloorPlan payload.
+ * @return array
+ */
+function rfs_entrata_normalize_floorplan_collection( $floorplans ) {
+	if ( ! is_array( $floorplans ) || empty( $floorplans ) ) {
+		return array();
+	}
+
+	if ( isset( $floorplans['Identification'] ) ) {
+		return array( $floorplans );
+	}
+
+	return array_values( $floorplans );
 }

@@ -9,7 +9,7 @@
 	"requires_php": "7.4",
 	"sections": {
 		"description": "This is my plugin description.",
-		"changelog": "<h4>0.15.3</h4><ul><li>Hardened Rent Fetch API bootstrap caching so error responses no longer replace cached credential/token data.</li><li>Validated central API bootstrap responses before caching them as successful.</li><li>Prevented Yardi floorplan orphan cleanup from running against blank, malformed, missing-key, request-error, or non-200 floorplan API responses.</li><li>Preserved legitimate Yardi empty-floorplan cleanup behavior when the API explicitly returns a valid empty floorplans array.</li></ul>",
+		"changelog": "<h4>0.15.3</h4><ul><li>Hardened Rent Fetch API bootstrap caching so error responses no longer replace cached credential/token data.</li><li>Validated central API bootstrap responses before caching them as successful.</li><li>Cleared cached API bootstrap state, in-request bootstrap state, and property-limit state before starting an accelerated full sync.</li><li>Validated runtime credentials before provider syncs so missing provider tokens fail explicitly.</li><li>Prevented Yardi, Entrata, and Rent Manager deletion cleanup from running against blank, malformed, missing-key, request-error, or non-200 API responses.</li><li>Preserved legitimate empty-provider cleanup behavior when the API explicitly returns a valid empty collection.</li></ul>",
 		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
 	}
 }

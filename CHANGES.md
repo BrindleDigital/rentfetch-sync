@@ -2,7 +2,12 @@
 
 - Hardened Rent Fetch API bootstrap caching so error responses no longer replace cached credential/token data.
 - Added validation for central API bootstrap responses before caching them as successful, including required enabled-integration token fields.
+- Cleared cached API bootstrap state and property-limit state before starting an accelerated full sync.
+- Reset the in-request API bootstrap cache when clearing bootstrap state.
+- Added runtime credential validation so reduced Action Scheduler arguments fail explicitly when provider tokens are unavailable.
 - Added safer Yardi floorplan response handling so orphan deletion only runs against authoritative floorplan API responses.
+- Tightened Yardi floorplan response validation so malformed non-empty floorplan arrays without usable IDs cannot drive orphan deletion.
+- Added safer Entrata and Rent Manager deletion handling so failed, blank, malformed, missing-key, request-error, and non-200 responses cannot delete synced floorplans or units.
 - Preserved legitimate Yardi `floorplans: []` cleanup behavior while preventing blank, malformed, missing-key, request-error, and non-200 responses from deleting floorplans or related units.
 - Stored property-level Yardi floorplan API diagnostics for failed or explicitly empty floorplan responses.
 

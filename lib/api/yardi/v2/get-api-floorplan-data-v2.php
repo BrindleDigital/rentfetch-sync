@@ -100,6 +100,24 @@ function rfs_yardi_v2_get_floorplan_data( $args ) {
 	}
 
 	if ( isset( $data['floorplans'] ) && is_array( $data['floorplans'] ) ) {
+		$floorplan_ids = array();
+		foreach ( $data['floorplans'] as $floorplan ) {
+			if ( is_array( $floorplan ) && ! empty( $floorplan['floorplanId'] ) ) {
+				$floorplan_ids[] = (string) $floorplan['floorplanId'];
+			}
+		}
+
+		if ( ! empty( $data['floorplans'] ) && empty( $floorplan_ids ) ) {
+			return array(
+				'success'      => false,
+				'delete_safe'  => false,
+				'floorplans'   => null,
+				'reason'       => 'missing_floorplan_ids',
+				'raw_response' => $response_body,
+				'status_code'  => (int) $response_code,
+			);
+		}
+
 		return array(
 			'success'      => true,
 			'delete_safe'  => true,

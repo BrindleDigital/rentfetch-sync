@@ -39,9 +39,9 @@ function rfs_do_entrata_sync( $args ) {
 	
 	//* Get the unit data for this property.
 	
-	$unit_data = rfs_entrata_get_unit_data( $args );
-	if ( is_array( $unit_data ) && isset( $unit_data['response']['result']['ILS_Units']['Unit'] ) ) {
-		$units = $unit_data['response']['result']['ILS_Units']['Unit'];
+	$unit_response = rfs_entrata_get_unit_data( $args );
+	if ( is_array( $unit_response ) && isset( $unit_response['units'] ) && is_array( $unit_response['units'] ) ) {
+		$units = $unit_response['units'];
 	} else {
 		$units = [];
 	}
@@ -69,8 +69,10 @@ function rfs_do_entrata_sync( $args ) {
 		rfs_entrata_update_unit_meta( $args, $unit, $property_mits_data );
 	}
 	
-	rfs_entrata_remove_all_units_from_property_if_none_available( $args, $units );
-	rfs_entrata_remove_units_no_longer_available( $args, $units );
+	if ( ! empty( $unit_response['delete_safe'] ) ) {
+		rfs_entrata_remove_all_units_from_property_if_none_available( $args, $units );
+		rfs_entrata_remove_units_no_longer_available( $args, $units );
+	}
 	
 	// reset the floorplan_id and unit_id
 	$args['floorplan_id'] = null;
@@ -78,9 +80,9 @@ function rfs_do_entrata_sync( $args ) {
 	
 	//* Get the floorplan data for this property.
 	
-	$floorplan_data = rfs_entrata_get_floorplan_data( $args );
-	if ( is_array( $floorplan_data ) && isset( $floorplan_data['response']['result']['FloorPlans']['FloorPlan'] ) ) {
-		$floorplans = $floorplan_data['response']['result']['FloorPlans']['FloorPlan'];
+	$floorplan_response = rfs_entrata_get_floorplan_data( $args );
+	if ( is_array( $floorplan_response ) && isset( $floorplan_response['floorplans'] ) && is_array( $floorplan_response['floorplans'] ) ) {
+		$floorplans = $floorplan_response['floorplans'];
 	} else {
 		$floorplans = [];
 	}
@@ -105,6 +107,8 @@ function rfs_do_entrata_sync( $args ) {
 		
 	}
 	
-	rfs_entrata_remove_floorplans_no_longer_in_api( $args, $floorplans );
-	
+	if ( ! empty( $floorplan_response['delete_safe'] ) ) {
+		rfs_entrata_remove_floorplans_no_longer_in_api( $args, $floorplans );
+	}
+
 }
