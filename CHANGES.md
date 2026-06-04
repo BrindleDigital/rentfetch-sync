@@ -1,3 +1,9 @@
+## 0.15.2
+
+- Improved accelerated sync feedback in the RentFetch admin bar so status messages appear immediately and hidden empty status rows no longer take up space.
+- Started the first sync property immediately before handing remaining work to Action Scheduler, improving responsiveness on single-property sites.
+- Added clearer accelerated sync progress labels that include the active property identifier.
+
 ## 0.15.1
 
 - Hid and disabled full-sync start controls while an accelerated sync is already running.
