@@ -21,18 +21,21 @@ function rfs_get_info_from_rentfetch_api() {
 		return $request_cache;
 	}
 
-	// get the transient and return it if it exists.
+	// Get the successful API-info cache. Error responses are stored separately so
+	// token consumers never receive a cached error string in place of credentials.
 	$transient = get_transient( 'rentfetch_api_info' );
 
-	if ( $transient ) {
+	if ( is_array( $transient ) ) {
 		$request_cache = $transient;
 		return $request_cache;
+	} elseif ( false !== $transient ) {
+		delete_transient( 'rentfetch_api_info' );
 	}
 
 	$lock_acquired = rfs_acquire_rentfetch_api_info_lock();
 	if ( ! $lock_acquired ) {
 		$transient = rfs_wait_for_rentfetch_api_info_refresh();
-		if ( $transient ) {
+		if ( is_array( $transient ) ) {
 			$request_cache = $transient;
 			return $request_cache;
 		}
@@ -48,6 +51,12 @@ function rfs_get_info_from_rentfetch_api() {
 
 	try {
 		$request_cache = rfs_refresh_info_from_rentfetch_api();
+		if ( ! is_array( $request_cache ) ) {
+			$last_success = get_option( 'rentfetch_api_info_last_success', false );
+			if ( is_array( $last_success ) ) {
+				$request_cache = $last_success;
+			}
+		}
 		return $request_cache;
 	} finally {
 		delete_option( 'rentfetch_api_info_refresh_lock' );
@@ -81,7 +90,7 @@ function rfs_wait_for_rentfetch_api_info_refresh() {
 		usleep( 200000 );
 		$transient = get_transient( 'rentfetch_api_info' );
 
-		if ( $transient ) {
+		if ( is_array( $transient ) ) {
 			return $transient;
 		}
 	}
@@ -178,7 +187,7 @@ function rfs_refresh_info_from_rentfetch_api() {
 
 		$error_message = $response->get_error_message();
 
-		set_transient( 'rentfetch_api_info', $error_message, 5 * MINUTE_IN_SECONDS );
+		set_transient( 'rentfetch_api_info_error', $error_message, 5 * MINUTE_IN_SECONDS );
 
 		return "Something went wrong: $error_message";
 	} elseif ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
@@ -186,7 +195,7 @@ function rfs_refresh_info_from_rentfetch_api() {
 
 		$error_message = wp_remote_retrieve_response_message( $response );
 
-		set_transient( 'rentfetch_api_info', $error_message, 5 * MINUTE_IN_SECONDS );
+		set_transient( 'rentfetch_api_info_error', $error_message, 5 * MINUTE_IN_SECONDS );
 
 		return "Something went wrong: $error_message";
 
@@ -197,14 +206,70 @@ function rfs_refresh_info_from_rentfetch_api() {
 		$body = rentfetch_clean_json_string( $body );
 		$response_php_array = json_decode( $body, true );
 
+		if ( ! is_array( $response_php_array ) ) {
+			set_transient( 'rentfetch_api_info_error', 'Invalid JSON response from Rent Fetch API.', 5 * MINUTE_IN_SECONDS );
+			return 'Something went wrong: Invalid JSON response from Rent Fetch API.';
+		}
+
+		$validation_error = rfs_validate_rentfetch_api_info_response( $response_php_array, $apis_enabled );
+		if ( '' !== $validation_error ) {
+			set_transient( 'rentfetch_api_info_error', $validation_error, 5 * MINUTE_IN_SECONDS );
+			return "Something went wrong: $validation_error";
+		}
+
 		rfs_store_monitoring_bootstrap_data( $response_php_array );
 
 		// cache the response for 20 minutes and keep the last success as a fallback during refresh contention.
 		set_transient( 'rentfetch_api_info', $response_php_array, 20 * MINUTE_IN_SECONDS );
 		update_option( 'rentfetch_api_info_last_success', $response_php_array, false );
+		delete_transient( 'rentfetch_api_info_error' );
 
 		return $response_php_array;
 	}
+}
+
+/**
+ * Validate the central API bootstrap response before caching it as successful.
+ *
+ * @param array $response_php_array Decoded Rent Fetch API response.
+ * @param array $apis_enabled Enabled integration slugs.
+ * @return string Empty string when valid, otherwise a readable error.
+ */
+function rfs_validate_rentfetch_api_info_response( $response_php_array, $apis_enabled ) {
+	if ( ! is_array( $response_php_array ) ) {
+		return 'Invalid Rent Fetch API response.';
+	}
+
+	if ( ! is_array( $apis_enabled ) ) {
+		$apis_enabled = array();
+	}
+
+	$required_paths = array(
+		'yardi'       => array( 'yardi', 'access_token' ),
+		'entrata'     => array( 'entrata', 'api_key' ),
+		'rentmanager' => array( 'rentmanager', 'partner_token' ),
+	);
+
+	foreach ( $required_paths as $integration => $path ) {
+		if ( ! in_array( $integration, $apis_enabled, true ) ) {
+			continue;
+		}
+
+		$value = $response_php_array;
+		foreach ( $path as $key ) {
+			if ( ! is_array( $value ) || ! array_key_exists( $key, $value ) ) {
+				return sprintf( 'Rent Fetch API response missing %s credentials.', $integration );
+			}
+
+			$value = $value[ $key ];
+		}
+
+		if ( '' === trim( (string) $value ) ) {
+			return sprintf( 'Rent Fetch API response returned empty %s credentials.', $integration );
+		}
+	}
+
+	return '';
 }
 
 /**

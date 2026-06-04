@@ -3,13 +3,13 @@
 	"slug": "rentfetch-sync",
 	"author": "<a href='https://brindledigital.com'>Brindle Digital</a>",
 	"author_profile": "https://brindledigital.com",
-	"version": "0.15.1",
+	"version": "0.15.3",
 	"requires": "6.5",
 	"tested": "6.6",
 	"requires_php": "7.4",
 	"sections": {
 		"description": "This is my plugin description.",
-		"changelog": "<h4>0.15.1</h4><ul><li>Hid and disabled full-sync start controls while an accelerated sync is already running.</li><li>Tuned synced-data deletion progress so modal status updates happen in smaller, more frequent increments.</li><li>Cleared completed and cancelled sync/delete status messages more quickly and prevented stale finished statuses from reappearing after page reloads.</li></ul>",
+		"changelog": "<h4>0.15.3</h4><ul><li>Hardened Rent Fetch API bootstrap caching so error responses no longer replace cached credential/token data.</li><li>Validated central API bootstrap responses before caching them as successful.</li><li>Prevented Yardi floorplan orphan cleanup from running against blank, malformed, missing-key, request-error, or non-200 floorplan API responses.</li><li>Preserved legitimate Yardi empty-floorplan cleanup behavior when the API explicitly returns a valid empty floorplans array.</li></ul>",
 		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
 	}
 }

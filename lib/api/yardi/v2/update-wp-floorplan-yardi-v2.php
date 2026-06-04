@@ -239,6 +239,59 @@ function rfs_yardi_v2_update_floorplan_units_available_number( $args, $floorplan
 }
 
 /**
+ * Determine whether a Yardi floorplan response can be used for orphan cleanup.
+ *
+ * Structured responses from rfs_yardi_v2_get_floorplan_data() are authoritative
+ * only when delete_safe is true. Raw arrays are treated as the legacy valid
+ * response shape for backward compatibility.
+ *
+ * @param mixed $floorplans_data_v2 The floorplans data or structured response.
+ * @return bool
+ */
+function rfs_yardi_v2_floorplan_response_delete_safe( $floorplans_data_v2 ) {
+	if ( is_array( $floorplans_data_v2 ) && array_key_exists( 'delete_safe', $floorplans_data_v2 ) ) {
+		return true === $floorplans_data_v2['delete_safe'];
+	}
+
+	return is_array( $floorplans_data_v2 );
+}
+
+/**
+ * Normalize a Yardi floorplan response to the floorplan list.
+ *
+ * @param mixed $floorplans_data_v2 The floorplans data or structured response.
+ * @return array
+ */
+function rfs_yardi_v2_get_floorplans_from_response( $floorplans_data_v2 ) {
+	if ( is_array( $floorplans_data_v2 ) && array_key_exists( 'floorplans', $floorplans_data_v2 ) ) {
+		return is_array( $floorplans_data_v2['floorplans'] ) ? $floorplans_data_v2['floorplans'] : array();
+	}
+
+	return is_array( $floorplans_data_v2 ) ? $floorplans_data_v2 : array();
+}
+
+/**
+ * Get valid Yardi floorplan IDs from a floorplan response.
+ *
+ * @param mixed $floorplans_data_v2 The floorplans data or structured response.
+ * @return array
+ */
+function rfs_yardi_v2_get_floorplan_ids_from_response( $floorplans_data_v2 ) {
+	$floorplan_ids = array();
+	$floorplans    = rfs_yardi_v2_get_floorplans_from_response( $floorplans_data_v2 );
+
+	foreach ( $floorplans as $floorplan ) {
+		if ( ! is_array( $floorplan ) || empty( $floorplan['floorplanId'] ) ) {
+			continue;
+		}
+
+		$floorplan_ids[] = (string) $floorplan['floorplanId'];
+	}
+
+	return array_values( array_unique( $floorplan_ids ) );
+}
+
+/**
  * Zero the availability and avail date for orphan floorplans that no longer exist in the Yardi API data.
  *
  * @param   array  $args                The arguments passed to the function.
@@ -254,39 +307,41 @@ function rfs_yardi_v2_remove_availability_orphan_floorplans( $args, $floorplans_
 	if ( empty( $property_id ) ) {
 		return;
 	}
-	
-	// get the floorplan IDs from the API
-	$floorplan_ids = array();
-	foreach ( $floorplans_data_v2 as $floorplan ) {
-		if ( isset( $floorplan['floorplanId'] ) ) {
-			$floorplan_ids[] = $floorplan['floorplanId'];
-		}
+
+	if ( ! rfs_yardi_v2_floorplan_response_delete_safe( $floorplans_data_v2 ) ) {
+		return;
 	}
-	
+
+	$floorplan_ids = rfs_yardi_v2_get_floorplan_ids_from_response( $floorplans_data_v2 );
+
+	$meta_query = array(
+		'relation' => 'AND',
+		array(
+			'key'     => 'property_id',
+			'value'   => $property_id,
+			'compare' => '=',
+		),
+		array(
+			'key'     => 'floorplan_source',
+			'value'   => 'yardi',
+			'compare' => '=',
+		),
+	);
+
+	if ( ! empty( $floorplan_ids ) ) {
+		$meta_query[] = array(
+			'key'     => 'floorplan_id',
+			'value'   => $floorplan_ids,
+			'compare' => 'NOT IN',
+		);
+	}
 	
 	// get the floorplan posts for this property
 	$floorplan_posts = get_posts( array(
 		'post_type'      => 'floorplans',
 		'posts_per_page' => -1,
 		'post_status'    => 'publish',
-		'meta_query'     => array(
-			'relation' => 'AND',
-			array(
-				'key'     => 'property_id',
-				'value'   => $property_id,
-				'compare' => '=',
-			),
-			array(
-				'key'     => 'floorplan_id',
-				'value'   => $floorplan_ids,
-				'compare' => 'NOT IN',
-			),
-			array(
-				'key'     => 'floorplan_source',
-				'value'   => 'yardi',
-				'compare' => '=',
-			),
-		),
+		'meta_query'     => $meta_query,
 	) );
 	
 	// loop through the floorplan posts and remove the availability_date and the available_units meta
@@ -326,36 +381,40 @@ function rfs_yardi_v2_delete_orphan_floorplans( $args, $floorplans_data_v2 ) {
 	if ( empty( $property_id ) ) {
 		return;
 	}
-	
-	$floorplan_ids = array();
-	foreach ( $floorplans_data_v2 as $floorplan ) {
-		if ( isset( $floorplan['floorplanId'] ) ) {
-			$floorplan_ids[] = $floorplan['floorplanId'];
-		}
+
+	if ( ! rfs_yardi_v2_floorplan_response_delete_safe( $floorplans_data_v2 ) ) {
+		return;
+	}
+
+	$floorplan_ids = rfs_yardi_v2_get_floorplan_ids_from_response( $floorplans_data_v2 );
+
+	$meta_query = array(
+		'relation' => 'AND',
+		array(
+			'key'     => 'property_id',
+			'value'   => $property_id,
+			'compare' => '=',
+		),
+		array(
+			'key'     => 'floorplan_source',
+			'value'   => 'yardi',
+			'compare' => '=',
+		),
+	);
+
+	if ( ! empty( $floorplan_ids ) ) {
+		$meta_query[] = array(
+			'key'     => 'floorplan_id',
+			'value'   => $floorplan_ids,
+			'compare' => 'NOT IN',
+		);
 	}
 	
 	$floorplan_posts = get_posts( array(
 		'post_type'      => 'floorplans',
 		'posts_per_page' => -1,
 		'post_status'    => 'publish',
-		'meta_query'     => array(
-			'relation' => 'AND',
-			array(
-				'key'     => 'property_id',
-				'value'   => $property_id,
-				'compare' => '=',
-			),
-			array(
-				'key'     => 'floorplan_id',
-				'value'   => $floorplan_ids,
-				'compare' => 'NOT IN',
-			),
-			array(
-				'key'     => 'floorplan_source',
-				'value'   => 'yardi',
-				'compare' => '=',
-			),
-		),
+		'meta_query'     => $meta_query,
 	) );
 	
 	foreach ( $floorplan_posts as $floorplan_post ) {
@@ -375,36 +434,40 @@ function rfs_yardi_v2_delete_orphan_units( $args, $floorplans_data_v2 ) {
 	if ( empty( $property_id ) ) {
 		return;
 	}
-	
-	$floorplan_ids = array();
-	foreach ( $floorplans_data_v2 as $floorplan ) {
-		if ( isset( $floorplan['floorplanId'] ) ) {
-			$floorplan_ids[] = $floorplan['floorplanId'];
-		}
+
+	if ( ! rfs_yardi_v2_floorplan_response_delete_safe( $floorplans_data_v2 ) ) {
+		return;
+	}
+
+	$floorplan_ids = rfs_yardi_v2_get_floorplan_ids_from_response( $floorplans_data_v2 );
+
+	$meta_query = array(
+		'relation' => 'AND',
+		array(
+			'key'     => 'property_id',
+			'value'   => $property_id,
+			'compare' => '=',
+		),
+		array(
+			'key'     => 'unit_source',
+			'value'   => 'yardi',
+			'compare' => '=',
+		),
+	);
+
+	if ( ! empty( $floorplan_ids ) ) {
+		$meta_query[] = array(
+			'key'     => 'floorplan_id',
+			'value'   => $floorplan_ids,
+			'compare' => 'NOT IN',
+		);
 	}
 	
 	$unit_posts = get_posts( array(
 		'post_type'      => 'units',
 		'posts_per_page' => -1,
 		'post_status'    => 'publish',
-		'meta_query'     => array(
-			'relation' => 'AND',
-			array(
-				'key'     => 'property_id',
-				'value'   => $property_id,
-				'compare' => '=',
-			),
-			array(
-				'key'     => 'floorplan_id',
-				'value'   => $floorplan_ids,
-				'compare' => 'NOT IN',
-			),
-			array(
-				'key'     => 'unit_source',
-				'value'   => 'yardi',
-				'compare' => '=',
-			),
-		),
+		'meta_query'     => $meta_query,
 	) );
 	
 	foreach ( $unit_posts as $unit_post ) {

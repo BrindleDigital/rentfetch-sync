@@ -44,13 +44,26 @@ function rfs_do_yardi_sync( $args ) {
 	rfs_yardi_v2_update_property_amenities( $args, $property_data_v2 );
 	
 	// get the floorplans data for this property.
-	$floorplans_data_v2 = rfs_yardi_v2_get_floorplan_data( $args );
+	$floorplans_response_v2 = rfs_yardi_v2_get_floorplan_data( $args );
+	$floorplans_data_v2     = isset( $floorplans_response_v2['floorplans'] ) && is_array( $floorplans_response_v2['floorplans'] )
+		? $floorplans_response_v2['floorplans']
+		: array();
+
+	if (
+		is_array( $floorplans_response_v2 )
+		&& (
+			empty( $floorplans_response_v2['success'] )
+			|| ( ! empty( $floorplans_response_v2['delete_safe'] ) && empty( $floorplans_data_v2 ) )
+		)
+	) {
+		rfs_yardi_v2_update_property_floorplans_api_response( $args, $floorplans_response_v2 );
+	}
 	
 	// delete floorplans that are no longer in the API at all.
-	rfs_yardi_v2_delete_orphan_floorplans( $args, $floorplans_data_v2 );
+	rfs_yardi_v2_delete_orphan_floorplans( $args, $floorplans_response_v2 );
 	
 	// delete orphan units (orphaned by their floorplans being deleted).
-	rfs_yardi_v2_delete_orphan_units( $args, $floorplans_data_v2 );
+	rfs_yardi_v2_delete_orphan_units( $args, $floorplans_response_v2 );
 	
 	// get the availability data (this should be the units), which we'll need both for the floorplan and the unit.
 	$unit_data_v2 = rfs_yardi_v2_get_unit_data( $args );

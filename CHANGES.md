@@ -1,3 +1,11 @@
+## 0.15.3
+
+- Hardened Rent Fetch API bootstrap caching so error responses no longer replace cached credential/token data.
+- Added validation for central API bootstrap responses before caching them as successful, including required enabled-integration token fields.
+- Added safer Yardi floorplan response handling so orphan deletion only runs against authoritative floorplan API responses.
+- Preserved legitimate Yardi `floorplans: []` cleanup behavior while preventing blank, malformed, missing-key, request-error, and non-200 responses from deleting floorplans or related units.
+- Stored property-level Yardi floorplan API diagnostics for failed or explicitly empty floorplan responses.
+
 ## 0.15.2
 
 - Improved accelerated sync feedback in the RentFetch admin bar so status messages appear immediately and hidden empty status rows no longer take up space.
