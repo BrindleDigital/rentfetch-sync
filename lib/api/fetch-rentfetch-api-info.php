@@ -27,26 +27,23 @@ function rfs_get_info_from_rentfetch_api( $reset_request_cache = false ) {
 		return $request_cache;
 	}
 
-	// Get the successful API-info cache. Error responses are stored separately so
-	// token consumers never receive a cached error string in place of credentials.
-	$transient = get_transient( 'rentfetch_api_info' );
+	$apis_enabled = rfs_get_enabled_rentfetch_api_integrations();
+	$transient    = rfs_get_valid_rentfetch_api_info_transient( $apis_enabled );
 
 	if ( is_array( $transient ) ) {
 		$request_cache = $transient;
 		return $request_cache;
-	} elseif ( false !== $transient ) {
-		delete_transient( 'rentfetch_api_info' );
 	}
 
 	$lock_acquired = rfs_acquire_rentfetch_api_info_lock();
 	if ( ! $lock_acquired ) {
-		$transient = rfs_wait_for_rentfetch_api_info_refresh();
+		$transient = rfs_wait_for_rentfetch_api_info_refresh( $apis_enabled );
 		if ( is_array( $transient ) ) {
 			$request_cache = $transient;
 			return $request_cache;
 		}
 
-		$last_success = get_option( 'rentfetch_api_info_last_success', false );
+		$last_success = rfs_get_valid_rentfetch_api_info_last_success( $apis_enabled );
 		if ( is_array( $last_success ) ) {
 			$request_cache = $last_success;
 			return $request_cache;
@@ -58,7 +55,7 @@ function rfs_get_info_from_rentfetch_api( $reset_request_cache = false ) {
 	try {
 		$request_cache = rfs_refresh_info_from_rentfetch_api();
 		if ( ! is_array( $request_cache ) ) {
-			$last_success = get_option( 'rentfetch_api_info_last_success', false );
+			$last_success = rfs_get_valid_rentfetch_api_info_last_success( $apis_enabled );
 			if ( is_array( $last_success ) ) {
 				$request_cache = $last_success;
 			}
@@ -67,6 +64,21 @@ function rfs_get_info_from_rentfetch_api( $reset_request_cache = false ) {
 	} finally {
 		delete_option( 'rentfetch_api_info_refresh_lock' );
 	}
+}
+
+/**
+ * Get the enabled integrations as a normalized array.
+ *
+ * @return array
+ */
+function rfs_get_enabled_rentfetch_api_integrations() {
+	$apis_enabled = get_option( 'rentfetch_options_enabled_integrations' );
+
+	if ( ! is_array( $apis_enabled ) ) {
+		return array();
+	}
+
+	return $apis_enabled;
 }
 
 /**
@@ -99,14 +111,90 @@ function rfs_acquire_rentfetch_api_info_lock() {
 }
 
 /**
+ * Determine whether the stored API-info transient has the timeout row this
+ * plugin expects when WordPress is using database-backed transients.
+ *
+ * @return bool
+ */
+function rfs_rentfetch_api_info_transient_has_timeout() {
+	if ( wp_using_ext_object_cache() ) {
+		return true;
+	}
+
+	return false !== get_option( '_transient_timeout_rentfetch_api_info', false );
+}
+
+/**
+ * Get a cached API-info transient only when it is structurally valid and fresh.
+ *
+ * @param array $apis_enabled Enabled integration slugs.
+ * @return array|false
+ */
+function rfs_get_valid_rentfetch_api_info_transient( $apis_enabled ) {
+	if (
+		! wp_using_ext_object_cache()
+		&& false !== get_option( '_transient_rentfetch_api_info', false )
+		&& ! rfs_rentfetch_api_info_transient_has_timeout()
+	) {
+		delete_transient( 'rentfetch_api_info' );
+		return false;
+	}
+
+	// Error responses are stored separately so token consumers never receive a
+	// cached error string in place of credentials.
+	$transient = get_transient( 'rentfetch_api_info' );
+
+	if ( is_array( $transient ) ) {
+		$validation_error = rfs_validate_rentfetch_api_info_response( $transient, $apis_enabled );
+
+		if ( '' === $validation_error ) {
+			return $transient;
+		}
+
+		delete_transient( 'rentfetch_api_info' );
+		return false;
+	} elseif ( false !== $transient ) {
+		delete_transient( 'rentfetch_api_info' );
+	}
+
+	return false;
+}
+
+/**
+ * Get the last successful API-info payload only when it is still valid.
+ *
+ * @param array $apis_enabled Enabled integration slugs.
+ * @return array|false
+ */
+function rfs_get_valid_rentfetch_api_info_last_success( $apis_enabled ) {
+	$last_success = get_option( 'rentfetch_api_info_last_success', false );
+
+	if ( ! is_array( $last_success ) ) {
+		if ( false !== $last_success ) {
+			delete_option( 'rentfetch_api_info_last_success' );
+		}
+
+		return false;
+	}
+
+	if ( '' === rfs_validate_rentfetch_api_info_response( $last_success, $apis_enabled ) ) {
+		return $last_success;
+	}
+
+	delete_option( 'rentfetch_api_info_last_success' );
+	return false;
+}
+
+/**
  * Wait briefly for another process to refresh the API info transient.
  *
+ * @param array $apis_enabled Enabled integration slugs.
  * @return mixed
  */
-function rfs_wait_for_rentfetch_api_info_refresh() {
+function rfs_wait_for_rentfetch_api_info_refresh( $apis_enabled = array() ) {
 	for ( $attempt = 0; $attempt < 5; ++$attempt ) {
 		usleep( 200000 );
-		$transient = get_transient( 'rentfetch_api_info' );
+		$transient = rfs_get_valid_rentfetch_api_info_transient( $apis_enabled );
 
 		if ( is_array( $transient ) ) {
 			return $transient;
@@ -126,12 +214,7 @@ function rfs_refresh_info_from_rentfetch_api() {
 	// Let's build the array piece by piece.
 	$apis_used = array();
 	
-	$apis_enabled = get_option( 'rentfetch_options_enabled_integrations' );
-	
-	// if $apis_enabled is not an array, make it one.
-	if ( ! is_array( $apis_enabled ) ) {
-		$apis_enabled = array();
-	}
+	$apis_enabled = rfs_get_enabled_rentfetch_api_integrations();
 	
 	// get the Yardi integration settings.
 	if ( in_array( 'yardi', $apis_enabled, true ) ) {
@@ -285,9 +368,59 @@ function rfs_validate_rentfetch_api_info_response( $response_php_array, $apis_en
 		if ( '' === trim( (string) $value ) ) {
 			return sprintf( 'Rent Fetch API response returned empty %s credentials.', $integration );
 		}
+
+		if ( 'yardi' === $integration ) {
+			$expires_at = rfs_get_jwt_expires_at( (string) $value );
+
+			if ( ! $expires_at ) {
+				return 'Rent Fetch API response returned an unreadable Yardi bearer token.';
+			}
+
+			if ( $expires_at <= time() + ( 5 * MINUTE_IN_SECONDS ) ) {
+				return 'Rent Fetch API response returned an expired Yardi bearer token.';
+			}
+		}
 	}
 
 	return '';
+}
+
+/**
+ * Read the expiration timestamp from a JWT without verifying the signature.
+ *
+ * The signature is still verified by the API provider when the token is used;
+ * this only prevents obviously stale cached bearer tokens from being reused.
+ *
+ * @param string $token JWT string.
+ * @return int|null
+ */
+function rfs_get_jwt_expires_at( $token ) {
+	$parts = explode( '.', trim( $token ) );
+
+	if ( count( $parts ) < 2 ) {
+		return null;
+	}
+
+	$payload = strtr( $parts[1], '-_', '+/' );
+	$padding = strlen( $payload ) % 4;
+
+	if ( $padding ) {
+		$payload .= str_repeat( '=', 4 - $padding );
+	}
+
+	$decoded = base64_decode( $payload, true );
+
+	if ( false === $decoded ) {
+		return null;
+	}
+
+	$payload_data = json_decode( $decoded, true );
+
+	if ( ! is_array( $payload_data ) || ! isset( $payload_data['exp'] ) || ! is_numeric( $payload_data['exp'] ) ) {
+		return null;
+	}
+
+	return (int) $payload_data['exp'];
 }
 
 /**
@@ -328,7 +461,7 @@ function rfs_store_monitoring_bootstrap_data( $response_php_array ) {
 function rfs_get_yardi_bearer_token() {
 	$response = rfs_get_info_from_rentfetch_api();
 
-	if ( isset( $response['yardi']['access_token'] ) ) {
+	if ( is_array( $response ) && isset( $response['yardi']['access_token'] ) ) {
 		$token = stripslashes( $response['yardi']['access_token'] );
 
 		return $token;
@@ -345,7 +478,7 @@ function rfs_get_yardi_bearer_token() {
 function rfs_get_entrata_api_key() {
 	$response = rfs_get_info_from_rentfetch_api();
 
-	if ( isset( $response['entrata']['api_key'] ) ) {
+	if ( is_array( $response ) && isset( $response['entrata']['api_key'] ) ) {
 		$token = stripslashes( $response['entrata']['api_key'] );
 
 		return $token;
@@ -362,7 +495,7 @@ function rfs_get_entrata_api_key() {
 function rfs_get_rentmanager_partner_token() {
 	$response = rfs_get_info_from_rentfetch_api();
 
-	if ( isset( $response['rentmanager']['partner_token'] ) ) {
+	if ( is_array( $response ) && isset( $response['rentmanager']['partner_token'] ) ) {
 		$token = stripslashes( $response['rentmanager']['partner_token'] );
 
 		return $token;

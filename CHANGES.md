@@ -1,3 +1,8 @@
+## 0.15.4
+
+- Rejected stale Rent Fetch API bootstrap cache entries when the transient timeout row is missing.
+- Validated cached and last-success Yardi bearer tokens before reuse so expired tokens cannot keep syncs failing with 401/null floorplan responses.
+
 ## 0.15.3
 
 - Hardened Rent Fetch API bootstrap caching so error responses no longer replace cached credential/token data.
