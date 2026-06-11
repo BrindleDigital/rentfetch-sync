@@ -210,8 +210,24 @@ function rfs_entrata_remove_units_no_longer_available( $args, $units_from_api ) 
 	if ( !$units_from_api || !is_array( $units_from_api ) ) {
 		return;
 	}
+
+	if ( empty( $args['property_id'] ) ) {
+		return;
+	}
 	
-	$unit_ids_to_keep = array_keys( $units_from_api );
+	$unit_ids_to_keep = array();
+
+	foreach ( $units_from_api as $unit_from_api ) {
+		if ( isset( $unit_from_api['@attributes']['PropertyUnitId'] ) && '' !== (string) $unit_from_api['@attributes']['PropertyUnitId'] ) {
+			$unit_ids_to_keep[] = sanitize_text_field( (string) $unit_from_api['@attributes']['PropertyUnitId'] );
+		}
+	}
+
+	$unit_ids_to_keep = array_values( array_unique( $unit_ids_to_keep ) );
+
+	if ( empty( $unit_ids_to_keep ) ) {
+		return;
+	}
 	
 	
 	// get all the units for this property
