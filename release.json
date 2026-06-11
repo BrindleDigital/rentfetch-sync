@@ -3,13 +3,13 @@
 	"slug": "rentfetch-sync",
 	"author": "<a href='https://brindledigital.com'>Brindle Digital</a>",
 	"author_profile": "https://brindledigital.com",
-	"version": "0.15.4",
+	"version": "0.15.6",
 	"requires": "6.5",
 	"tested": "6.6",
 	"requires_php": "7.4",
 	"sections": {
 		"description": "This is my plugin description.",
-		"changelog": "<h4>0.15.4</h4><ul><li>Rejected stale Rent Fetch API bootstrap cache entries when the transient timeout row is missing.</li><li>Validated cached and last-success Yardi bearer tokens before reuse so expired tokens cannot keep syncs failing with 401/null floorplan responses.</li></ul>",
+		"changelog": "<h4>0.15.6</h4><ul><li>Fixed Entrata unit cleanup so synced units are retained by their actual PropertyUnitId values instead of numeric response indexes.</li><li>Added Entrata orphan cleanup for synced properties, floorplans, and units whose property IDs are no longer configured for sync.</li></ul>",
 		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
 	}
 }

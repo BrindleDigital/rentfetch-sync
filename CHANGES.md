@@ -1,3 +1,8 @@
+## 0.15.6
+
+- Fixed Entrata unit cleanup so synced units are retained by their actual `PropertyUnitId` values instead of numeric response indexes.
+- Added Entrata orphan cleanup for synced properties, floorplans, and units whose property IDs are no longer configured for sync.
+
 ## 0.15.4
 
 - Rejected stale Rent Fetch API bootstrap cache entries when the transient timeout row is missing.
