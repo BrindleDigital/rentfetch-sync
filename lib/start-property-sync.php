@@ -60,6 +60,7 @@ function rfs_maybe_migrate_sync_action_args() {
 
 	as_unschedule_all_actions( 'rfs_do_sync' );
 	as_unschedule_all_actions( 'rfs_yardi_do_delete_orphans' );
+	as_unschedule_all_actions( 'rfs_entrata_do_delete_orphans' );
 	update_option( 'rfs_sync_action_args_version', $target_version, false );
 }
 
@@ -250,6 +251,7 @@ function rfs_perform_syncs() {
 	if ( $data_sync_enabled != 'updatesync' ) {
 		as_unschedule_all_actions( 'rfs_do_sync' );
 		as_unschedule_all_actions( 'rfs_yardi_do_delete_orphans' );
+		as_unschedule_all_actions( 'rfs_entrata_do_delete_orphans' );
 		
 		return;
 	}
@@ -303,11 +305,11 @@ function rfs_perform_syncs() {
 		$entrata_properties = str_replace( ' ', '', $entrata_properties );
 		$entrata_properties = array_filter( explode( ',', $entrata_properties ) );
 
-		// TODO orphan detection
-		// // remove orphaned properties, floorplans, and units (this only deletes properties that are no longer in the settings and their associated floorplans and units)
-		// if ( false === as_has_scheduled_action( 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' ) ) {
-		// 	as_schedule_recurring_action( time(), (int) $sync_time, 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' );
-		// }	
+		// remove orphaned properties, floorplans, and units that are no longer in the Entrata settings.
+		if ( false === as_has_scheduled_action( 'rfs_entrata_do_delete_orphans', array( $entrata_properties ), 'rentfetch' ) ) {
+			as_schedule_recurring_action( rfs_get_staggered_sync_start_time( $sync_index ), (int) $sync_time, 'rfs_entrata_do_delete_orphans', array( $entrata_properties ), 'rentfetch' );
+		}
+		++$sync_index;
 		
 		// cycle through the properties and schedule a sync for each one			
 		foreach( $entrata_properties as $entrata_property ) {

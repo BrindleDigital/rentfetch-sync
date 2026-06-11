@@ -232,6 +232,17 @@ function rfs_get_accelerated_sync_manifest() {
 		$entrata_properties = str_replace( ' ', '', (string) $entrata_properties );
 		$entrata_properties = array_values( array_filter( explode( ',', $entrata_properties ) ) );
 
+		if ( ! empty( $entrata_properties ) ) {
+			$items[] = array(
+				'hook'        => 'rfs_entrata_do_delete_orphans',
+				'args'        => array( $entrata_properties ),
+				'type'        => 'cleanup',
+				'integration' => 'entrata',
+				'property_id' => '',
+				'label'       => 'Entrata orphan cleanup',
+			);
+		}
+
 		foreach ( $entrata_properties as $entrata_property ) {
 			$items[] = array(
 				'hook'        => 'rfs_do_sync',

@@ -42,6 +42,7 @@ register_deactivation_hook( __FILE__, 'rfs_deactivate_actions' );
 function rfs_deactivate_actions() {
 	as_unschedule_all_actions( 'rfs_do_sync' );
 	as_unschedule_all_actions( 'rfs_yardi_do_delete_orphans' );
+	as_unschedule_all_actions( 'rfs_entrata_do_delete_orphans' );
 }
 
 // include action scheduler.
