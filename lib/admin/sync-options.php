@@ -105,6 +105,17 @@ function rentfetch_settings_sync() {
 			label:has(input[name="rentfetch_options_enabled_integrations[]"]:checked)::after {
 				transform: translate(10px, -50%);
 			}
+
+			.rentfetch-yardi-credentials-row {
+				display: grid;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+				gap: 16px;
+			}
+			@media (max-width: 782px) {
+				.rentfetch-yardi-credentials-row {
+					grid-template-columns: 1fr;
+				}
+			}
 		</style>
 		<div class="row integration yardi">
 			<div class="section">
@@ -113,13 +124,15 @@ function rentfetch_settings_sync() {
 					Yardi/RentCafe
 				</label>
 				<div class="integration-settings">
-					<div class="white-box">
-						<label for="rentfetch_options_yardi_integration_creds_yardi_api_key">Yardi API token</label>
-						<input type="text" name="rentfetch_options_yardi_integration_creds_yardi_api_key" id="rentfetch_options_yardi_integration_creds_yardi_api_key" value="<?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_api_key' ) ); ?>">
-					</div>
-					<div class="white-box">
-						<label for="rentfetch_options_yardi_integration_creds_yardi_company_code">Yardi company code</label>
-						<input type="text" name="rentfetch_options_yardi_integration_creds_yardi_company_code" id="rentfetch_options_yardi_integration_creds_yardi_company_code" value="<?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_company_code' ) ); ?>">				
+					<div class="rentfetch-yardi-credentials-row">
+						<div class="white-box">
+							<label for="rentfetch_options_yardi_integration_creds_yardi_api_key">Yardi API token</label>
+							<input type="password" name="rentfetch_options_yardi_integration_creds_yardi_api_key" id="rentfetch_options_yardi_integration_creds_yardi_api_key" value="<?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_api_key' ) ); ?>" autocomplete="off">
+						</div>
+						<div class="white-box">
+							<label for="rentfetch_options_yardi_integration_creds_yardi_company_code">Yardi company code</label>
+							<input type="text" name="rentfetch_options_yardi_integration_creds_yardi_company_code" id="rentfetch_options_yardi_integration_creds_yardi_company_code" value="<?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_company_code' ) ); ?>">				
+						</div>
 					</div>
 					<!-- <div class="white-box">
 						<label for="rentfetch_options_yardi_integration_creds_yardi_voyager_code">Yardi Voyager Codes</label>
