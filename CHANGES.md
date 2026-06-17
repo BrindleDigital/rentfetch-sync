@@ -1,3 +1,7 @@
+## 0.15.7
+
+- Updated the Yardi API key field to use a password-style input.
+
 ## 0.15.6
 
 - Fixed Entrata unit cleanup so synced units are retained by their actual `PropertyUnitId` values instead of numeric response indexes.

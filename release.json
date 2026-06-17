@@ -3,13 +3,13 @@
 	"slug": "rentfetch-sync",
 	"author": "<a href='https://brindledigital.com'>Brindle Digital</a>",
 	"author_profile": "https://brindledigital.com",
-	"version": "0.15.6",
+	"version": "0.15.7",
 	"requires": "6.5",
 	"tested": "6.6",
 	"requires_php": "7.4",
 	"sections": {
 		"description": "This is my plugin description.",
-		"changelog": "<h4>0.15.6</h4><ul><li>Fixed Entrata unit cleanup so synced units are retained by their actual PropertyUnitId values instead of numeric response indexes.</li><li>Added Entrata orphan cleanup for synced properties, floorplans, and units whose property IDs are no longer configured for sync.</li></ul>",
+		"changelog": "<h4>0.15.7</h4><ul><li>Updated the Yardi API key field to use a password-style input.</li></ul>",
 		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
 	}
 }
