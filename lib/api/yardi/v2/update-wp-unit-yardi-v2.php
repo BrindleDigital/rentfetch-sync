@@ -127,6 +127,10 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 		return '';
 	};
 
+	// Normalize square footage to a positive integer; empty, missing, or zero values should be stored as null.
+	$square_feet = (int) str_replace( ',', '', (string) ( $unit_data['sqft'] ?? '' ) );
+	$square_feet = $square_feet < 1 ? null : $square_feet;
+
 	$meta = array(
 		'unit_id'           => sanitize_text_field( $unit_data['apartmentId'] ?? '' ),
 		'floorplan_id'      => sanitize_text_field( $unit_data['floorplanId'] ?? '' ),
@@ -138,7 +142,7 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 		'deposit'           => floatval( $unit_data['deposit'] ?? 0 ),
 		'minimum_rent'      => floatval( $unit_data['minimumRent'] ?? 0 ),
 		'maximum_rent'      => floatval( $unit_data['maximumRent'] ?? 0 ),
-		'sqrft'             => floatval( $unit_data['sqft'] ?? 0 ),
+		'sqrft'             => $square_feet,
 		'amenities'         => isset( $unit_data['amenities'] ) ? $sanitize_mixed( $unit_data['amenities'] ) : '',
 		'specials'          => isset( $unit_data['specials'] ) ? $sanitize_mixed( $unit_data['specials'] ) : '',
 		'unit_source'       => 'yardi',

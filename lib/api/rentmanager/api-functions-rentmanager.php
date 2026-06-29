@@ -977,6 +977,10 @@ function rfs_rentmanager_update_unit_meta( $args, $unit ) {
 		'updated'      => current_time( 'mysql' ),
 		'api_response' => $unit_data_string,
 	);
+
+	// Normalize square footage to a positive integer; empty, missing, or zero values should be stored as null.
+	$square_feet = (int) str_replace( ',', '', (string) ( $unit['SquareFootage'] ?? '' ) );
+	$square_feet = $square_feet < 1 ? null : $square_feet;
 	
 	// * Update the meta
 	$meta = array(
@@ -993,7 +997,7 @@ function rfs_rentmanager_update_unit_meta( $args, $unit ) {
 		'deposit'                   => null,
 		'minimum_rent'              => $minimum_rent,
 		'maximum_rent'              => $maximum_rent,
-		'sqrft'                     => (int) ($unit['SquareFootage'] ?? 0),
+		'sqrft'                     => $square_feet,
 		'specials'                  => null,
 		'unit_source'               => 'rentmanager',
 		'updated'                   => current_time( 'mysql' ),

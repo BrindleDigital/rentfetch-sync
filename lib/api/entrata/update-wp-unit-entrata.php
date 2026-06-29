@@ -81,8 +81,9 @@ function rfs_entrata_update_unit_meta( $args, $unit_data, $property_mits_data ) 
 		'api_response' => wp_json_encode( $unit_data ),
 	);
 	
-	// process square feet, removing ' SquareFeet' from the string
-	$square_feet = (int) str_replace( ' SquareFeet', '', (string) ( $unit_attributes['Area'] ?? '' ) );
+	// Normalize square footage to a positive integer; empty, missing, or zero values should be stored as null.
+	$square_feet = (int) str_replace( array( ' SquareFeet', 'SquareFeet', ',' ), '', (string) ( $unit_attributes['Area'] ?? '' ) );
+	$square_feet = $square_feet < 1 ? null : $square_feet;
 
 	// process the rent numbers, removing the $ and , characters
 	$min_rent = (int) str_replace( array( '$', ',' ), '', (string) ( $unit_data['Rent']['@attributes']['MinRent'] ?? '' ) );
