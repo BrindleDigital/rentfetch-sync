@@ -1,3 +1,8 @@
+## 0.15.8
+
+- Normalized synced unit square footage from Yardi, Entrata, and Rent Manager so empty, missing, and zero values are stored as null instead of `0`.
+- Cast positive synced unit square footage values to integers before saving.
+
 ## 0.15.7
 
 - Updated the Yardi API key field to use a password-style input.
