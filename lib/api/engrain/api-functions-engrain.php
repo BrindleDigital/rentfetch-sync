@@ -51,7 +51,7 @@ function rfs_do_engrain_sync( $args ) {
 	// Get the authoritative floorplan and unit inventory.
 	$inventory = rfs_engrain_get_inventory_sync_data( $args, $property_id );
 
-	// Get unit-level rent and availability, then supplement it with All-In Pricing.
+	// Get process enrichment, then authoritative All-In rent and availability.
 	$pricing_contexts = rfs_engrain_get_pricing_contexts_for_sync( $args );
 	$pricing_contexts = rfs_engrain_add_all_in_pricing_to_contexts( $args, $pricing_contexts );
 

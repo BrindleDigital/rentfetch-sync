@@ -214,6 +214,54 @@ function rfs_engrain_get_expense_entry_labels( $entries, $entry_id_key, $labels 
 }
 
 /**
+ * Sort provider-neutral fee rows in their shared display order.
+ *
+ * @param array $rows Fee rows.
+ * @return array
+ */
+function rfs_engrain_sort_fee_rows( $rows ) {
+	$category_order = array(
+		'Required Monthly Fees'  => 0,
+		'Required One-Time Fees' => 1,
+		'Optional Monthly Fees'  => 2,
+		'Optional One-Time Fees' => 3,
+	);
+	usort(
+		$rows,
+		static function ( $left, $right ) use ( $category_order ) {
+			$left_order  = $category_order[ $left['category'] ?? '' ] ?? 999;
+			$right_order = $category_order[ $right['category'] ?? '' ] ?? 999;
+			return $left_order === $right_order
+				? strcasecmp( (string) $left['description'], (string) $right['description'] )
+				: $left_order <=> $right_order;
+		}
+	);
+
+	return $rows;
+}
+
+/**
+ * Normalize the expense rows assigned to one floorplan or unit.
+ *
+ * @param array $scoped_expenses Joined expense/entry rows.
+ * @return array
+ */
+function rfs_engrain_normalize_scoped_expense_rows( $scoped_expenses ) {
+	$rows = array();
+
+	foreach ( (array) $scoped_expenses as $item ) {
+		$expense = is_array( $item ) && isset( $item['expense'] ) && is_array( $item['expense'] ) ? $item['expense'] : array();
+		$entry   = is_array( $item ) && isset( $item['entry'] ) && is_array( $item['entry'] ) ? $item['entry'] : array();
+		$row     = rfs_engrain_normalize_expense_row( $expense, array( $entry ) );
+		if ( $row ) {
+			$rows[] = $row;
+		}
+	}
+
+	return rfs_engrain_sort_fee_rows( $rows );
+}
+
+/**
  * Build normalized fee rows from the complete Engrain expense bundle.
  *
  * @param array $bundle Expense data bundle.
@@ -285,24 +333,7 @@ function rfs_engrain_normalize_expense_bundle( $bundle, $floorplans, $units ) {
 		unset( $row );
 	}
 
-	$category_order = array(
-		'Required Monthly Fees'  => 0,
-		'Required One-Time Fees' => 1,
-		'Optional Monthly Fees'  => 2,
-		'Optional One-Time Fees' => 3,
-	);
-	usort(
-		$rows,
-		static function ( $left, $right ) use ( $category_order ) {
-			$left_order  = $category_order[ $left['category'] ?? '' ] ?? 999;
-			$right_order = $category_order[ $right['category'] ?? '' ] ?? 999;
-			return $left_order === $right_order
-				? strcasecmp( (string) $left['description'], (string) $right['description'] )
-				: $left_order <=> $right_order;
-		}
-	);
-
-	return $rows;
+	return rfs_engrain_sort_fee_rows( $rows );
 }
 
 /**
@@ -628,6 +659,7 @@ function rfs_engrain_store_scoped_expenses( $args, $post_type, $source_key, $id_
 		$expenses   = $by_object_id[ $engrain_id ] ?? array();
 		rfs_engrain_delete_unused_meta( $post_id, array( 'synced_engrain_expenses' ) );
 		update_post_meta( $post_id, 'synced_scoped_fee_source', 'engrain' );
+		update_post_meta( $post_id, 'synced_scoped_fee_rows', rfs_engrain_normalize_scoped_expense_rows( $expenses ) );
 		update_post_meta( $post_id, 'synced_scoped_fee_monthly_summary', rfs_engrain_get_scoped_monthly_required_fee_summary( $expenses ) );
 	}
 }

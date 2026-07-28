@@ -1,3 +1,13 @@
+## 0.16.0
+
+- Added complete Engrain/SightMap property syncing, including configuration, scheduled and accelerated sync support, runtime credential validation, and cleanup for assets removed from the configured property list.
+- Added structural property, floorplan, and unit syncing with authoritative-response safeguards so failed, denied, malformed, or incomplete requests cannot erase previously synchronized inventory.
+- Added unit-level All-In Pricing and availability syncing, with floorplan price ranges, total-monthly-price ranges, availability dates, and available-unit counts derived from eligible units.
+- Limited synchronized Engrain Unit posts to units with authoritative availability dates, while allowing dated units without published pricing and normalizing past availability dates to today.
+- Added property galleries, floorplan images, property amenities, unit apply links, specials, scoped expenses, security deposits, and pricing disclaimers using shared Rent Fetch fields where supported.
+- Added provider-neutral normalized fee summaries and exact all-in monthly totals without persisting unused provider-specific payload data or double-counting synchronized fees.
+- Added a reusable paginated SightMap API client, compact endpoint diagnostics, and deletion-safe handling for authoritative empty responses.
+
 ## 0.15.8
 
 - Normalized synced unit square footage from Yardi, Entrata, and Rent Manager so empty, missing, and zero values are stored as null instead of `0`.

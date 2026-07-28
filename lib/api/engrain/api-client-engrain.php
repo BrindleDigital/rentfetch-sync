@@ -218,9 +218,10 @@ function rfs_engrain_get_pricing_processes( $args ) {
 /**
  * Select the most appropriate pricing process returned by SightMap.
  *
- * Primary and approved processes are preferred, followed by the most recently
- * updated process. This keeps the selection deterministic when an asset has
- * historical or secondary pricing integrations.
+ * Primary and approved processes are preferred. When Engrain does not tag its
+ * processes, prefer a RentCafe process because it represents the public
+ * leasing feed and includes online-leasing URLs that a parallel PMS process
+ * may omit. Recency and ID provide deterministic fallbacks.
  *
  * @param array $processes Pricing process rows.
  * @return array|null
@@ -244,8 +245,18 @@ function rfs_engrain_select_pricing_process( $processes ) {
 		static function ( $left, $right ) {
 			$left_tags   = array_map( 'strtolower', array_map( 'strval', (array) ( $left['tags'] ?? array() ) ) );
 			$right_tags  = array_map( 'strtolower', array_map( 'strval', (array) ( $right['tags'] ?? array() ) ) );
-			$left_score  = ( in_array( 'primary', $left_tags, true ) ? 2 : 0 ) + ( in_array( 'approved', $left_tags, true ) ? 1 : 0 );
-			$right_score = ( in_array( 'primary', $right_tags, true ) ? 2 : 0 ) + ( in_array( 'approved', $right_tags, true ) ? 1 : 0 );
+			$left_label  = strtolower( (string) ( $left['name'] ?? '' ) . ' ' . (string) ( $left['procedure'] ?? '' ) );
+			$right_label = strtolower( (string) ( $right['name'] ?? '' ) . ' ' . (string) ( $right['procedure'] ?? '' ) );
+			$left_score  = (
+				( in_array( 'primary', $left_tags, true ) ? 100 : 0 )
+				+ ( in_array( 'approved', $left_tags, true ) ? 50 : 0 )
+				+ ( false !== strpos( $left_label, 'rentcafe' ) ? 10 : 0 )
+			);
+			$right_score = (
+				( in_array( 'primary', $right_tags, true ) ? 100 : 0 )
+				+ ( in_array( 'approved', $right_tags, true ) ? 50 : 0 )
+				+ ( false !== strpos( $right_label, 'rentcafe' ) ? 10 : 0 )
+			);
 
 			if ( $left_score !== $right_score ) {
 				return $right_score <=> $left_score;
@@ -253,8 +264,11 @@ function rfs_engrain_select_pricing_process( $processes ) {
 
 			$left_updated  = isset( $left['updated_at'] ) ? strtotime( (string) $left['updated_at'] ) : 0;
 			$right_updated = isset( $right['updated_at'] ) ? strtotime( (string) $right['updated_at'] ) : 0;
+			if ( $left_updated !== $right_updated ) {
+				return $right_updated <=> $left_updated;
+			}
 
-			return $right_updated <=> $left_updated;
+			return strnatcmp( (string) $left['id'], (string) $right['id'] );
 		}
 	);
 
@@ -346,8 +360,11 @@ function rfs_engrain_select_sightmap( $sightmaps ) {
 
 			$left_updated  = isset( $left['updated_at'] ) ? strtotime( (string) $left['updated_at'] ) : 0;
 			$right_updated = isset( $right['updated_at'] ) ? strtotime( (string) $right['updated_at'] ) : 0;
+			if ( $left_updated !== $right_updated ) {
+				return $right_updated <=> $left_updated;
+			}
 
-			return $right_updated <=> $left_updated;
+			return strnatcmp( (string) $left['id'], (string) $right['id'] );
 		}
 	);
 

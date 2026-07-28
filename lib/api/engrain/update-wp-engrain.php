@@ -129,6 +129,26 @@ function rfs_engrain_normalize_date( $value ) {
 }
 
 /**
+ * Normalize an availability date and treat past dates as available today.
+ *
+ * Engrain can retain the original move-in date for a currently available unit.
+ * Rent Fetch uses today's date for that case so searches and display agree.
+ *
+ * @param mixed $value Date value.
+ * @return string
+ */
+function rfs_engrain_normalize_availability_date( $value ) {
+	$date = rfs_engrain_normalize_date( $value );
+	if ( '' === $date ) {
+		return '';
+	}
+
+	$today = current_time( 'Y-m-d' );
+
+	return $date < $today ? $today : $date;
+}
+
+/**
  * Format an Engrain availability date for Rent Fetch's shared meta conventions.
  *
  * Existing date-search queries use Ymd for floorplans and m/d/Y for units.
@@ -138,7 +158,7 @@ function rfs_engrain_normalize_date( $value ) {
  * @return string
  */
 function rfs_engrain_format_availability_date_meta( $value, $post_type ) {
-	$date = rfs_engrain_normalize_date( $value );
+	$date = rfs_engrain_normalize_availability_date( $value );
 	if ( '' === $date ) {
 		return '';
 	}
@@ -206,29 +226,34 @@ function rfs_engrain_group_pricing_entries_by_unit( $entries ) {
  */
 function rfs_engrain_empty_unit_pricing_context() {
 	return array(
-		'authoritative'     => true,
-		'minimum_rent'      => null,
-		'maximum_rent'      => null,
-		'all_in_min_price'  => null,
-		'all_in_max_price'  => null,
-		'availability_date' => '',
-		'is_available'      => false,
-		'specials'          => '',
+		'authoritative'                  => true,
+		'all_in_authoritative'           => false,
+		'minimum_rent'                   => null,
+		'maximum_rent'                   => null,
+		'all_in_min_price'               => null,
+		'all_in_max_price'               => null,
+		'availability_date'              => '',
+		'is_available'                   => false,
+		'specials'                       => '',
+		'apply_online_url'               => '',
+		'apply_online_url_authoritative' => false,
 	);
 }
 
 /**
  * Build normalized pricing contexts keyed by Engrain unit ID.
  *
- * Positive prices determine availability per Engrain's pricing ingest model.
- * Prices explicitly hidden with show_pricing=false are not exposed through
- * Rent Fetch's standard rent fields.
+ * A valid availability date determines whether a unit is available. Pricing is
+ * stored when supplied, but a missing or hidden price does not suppress a
+ * dated unit. Prices explicitly hidden with show_pricing=false are not exposed
+ * through Rent Fetch's standard rent fields.
  *
  * @param array $pricing_units Pricing process unit rows.
  * @param array $pricing_entries Pricing entry rows.
+ * @param bool  $pricing_entries_authoritative Whether the entries request completed successfully.
  * @return array
  */
-function rfs_engrain_build_unit_pricing_contexts( $pricing_units, $pricing_entries ) {
+function rfs_engrain_build_unit_pricing_contexts( $pricing_units, $pricing_entries, $pricing_entries_authoritative = true ) {
 	$units_by_id   = rfs_engrain_index_rows_by_id( $pricing_units );
 	$entries_by_id = rfs_engrain_group_pricing_entries_by_unit( $pricing_entries );
 	$unit_ids      = array_values( array_unique( array_merge( array_keys( $units_by_id ), array_keys( $entries_by_id ) ) ) );
@@ -240,44 +265,58 @@ function rfs_engrain_build_unit_pricing_contexts( $pricing_units, $pricing_entri
 		$context            = rfs_engrain_empty_unit_pricing_context();
 		$prices             = array();
 		$dates              = array();
-		$has_positive_price = false;
+		$specials           = '';
+		$apply_online_url   = '';
 
 		foreach ( $entries as $entry ) {
 			$price = isset( $entry['price'] ) && is_numeric( $entry['price'] ) ? (float) $entry['price'] : 0.0;
+			$date  = rfs_engrain_normalize_availability_date( $entry['available_on'] ?? '' );
+			if ( '' !== $date ) {
+				$dates[] = $date;
+			}
 			if ( $price > 0 ) {
-				$has_positive_price = true;
-				$date               = rfs_engrain_normalize_date( $entry['available_on'] ?? '' );
-				if ( '' !== $date ) {
-					$dates[] = $date;
-				}
 				if ( ! array_key_exists( 'show_pricing', $entry ) || false !== $entry['show_pricing'] ) {
 					$prices[] = $price;
 				}
+			}
+			if (
+				'' === $apply_online_url
+				&& ( ! array_key_exists( 'show_online_leasing', $entry ) || false !== $entry['show_online_leasing'] )
+				&& ! empty( $entry['leasing_fields']['apply_url'] )
+			) {
+				$apply_online_url = esc_url_raw( (string) $entry['leasing_fields']['apply_url'] );
+			}
+
+			if ( '' === $specials && ! empty( $entry['specials_description'] ) ) {
+				$specials = sanitize_text_field( (string) $entry['specials_description'] );
 			}
 		}
 
 		$unit_price = isset( $pricing_unit['price'] ) && is_numeric( $pricing_unit['price'] ) ? (float) $pricing_unit['price'] : 0.0;
 		if ( $unit_price > 0 ) {
-			$has_positive_price = true;
 			if ( ! array_key_exists( 'show_pricing', $pricing_unit ) || false !== $pricing_unit['show_pricing'] ) {
 				$prices[] = $unit_price;
 			}
 		}
 
-		$unit_date = rfs_engrain_normalize_date( $pricing_unit['available_on'] ?? '' );
-		if ( '' !== $unit_date && $unit_price > 0 ) {
+		$unit_date = rfs_engrain_normalize_availability_date( $pricing_unit['available_on'] ?? '' );
+		if ( '' !== $unit_date ) {
 			$dates[] = $unit_date;
 		}
 
 		$dates = array_values( array_unique( $dates ) );
 		sort( $dates );
 
-		$context['minimum_rent']       = empty( $prices ) ? null : min( $prices );
-		$context['maximum_rent']       = empty( $prices ) ? null : max( $prices );
-		$context['availability_date']  = empty( $dates ) ? '' : $dates[0];
-		$context['is_available']       = $has_positive_price && ! empty( $dates );
-		$context['specials']           = sanitize_text_field( (string) ( $pricing_unit['specials_description'] ?? '' ) );
-		$contexts[ (string) $unit_id ] = $context;
+		$context['minimum_rent']                   = empty( $prices ) ? null : min( $prices );
+		$context['maximum_rent']                   = empty( $prices ) ? null : max( $prices );
+		$context['availability_date']              = empty( $dates ) ? '' : $dates[0];
+		$context['is_available']                   = ! empty( $dates );
+		$context['specials']                       = ! empty( $pricing_unit['specials_description'] )
+			? sanitize_text_field( (string) $pricing_unit['specials_description'] )
+			: $specials;
+		$context['apply_online_url']               = $apply_online_url;
+		$context['apply_online_url_authoritative'] = (bool) $pricing_entries_authoritative;
+		$contexts[ (string) $unit_id ]             = $context;
 	}
 
 	return $contexts;
@@ -286,9 +325,10 @@ function rfs_engrain_build_unit_pricing_contexts( $pricing_units, $pricing_entri
 /**
  * Merge SightMap All-In Pricing rows into normalized unit contexts.
  *
- * All-In Pricing can serve as the authoritative pricing source when access to
- * pricing processes is unavailable. Shared minimum/maximum rent fields remain
- * base rent; all-in totals are stored separately to prevent fee double-counting.
+ * All-In Pricing is authoritative for base rent, total monthly rent, and
+ * availability. Pricing-process contexts contribute enrichment only, including
+ * apply URLs and specials. Shared minimum/maximum rent fields remain base rent;
+ * all-in totals are stored separately to prevent fee double-counting.
  *
  * @param array|null $contexts Existing process-pricing contexts.
  * @param array      $all_in_rows All-In Pricing rows.
@@ -296,6 +336,18 @@ function rfs_engrain_build_unit_pricing_contexts( $pricing_units, $pricing_entri
  */
 function rfs_engrain_merge_all_in_pricing_contexts( $contexts, $all_in_rows ) {
 	$contexts = is_array( $contexts ) ? $contexts : array();
+
+	foreach ( $contexts as &$context ) {
+		$context['authoritative']        = true;
+		$context['all_in_authoritative'] = true;
+		$context['minimum_rent']         = null;
+		$context['maximum_rent']         = null;
+		$context['all_in_min_price']     = null;
+		$context['all_in_max_price']     = null;
+		$context['availability_date']    = '';
+		$context['is_available']         = false;
+	}
+	unset( $context );
 
 	foreach ( (array) $all_in_rows as $row ) {
 		if ( ! is_array( $row ) || empty( $row['unit_id'] ) ) {
@@ -307,29 +359,27 @@ function rfs_engrain_merge_all_in_pricing_contexts( $contexts, $all_in_rows ) {
 		$base_price   = isset( $row['base_price'] ) && is_numeric( $row['base_price'] ) ? (float) $row['base_price'] : null;
 		$all_in_min   = isset( $row['all_in_min_price'] ) && is_numeric( $row['all_in_min_price'] ) ? (float) $row['all_in_min_price'] : null;
 		$all_in_max   = isset( $row['all_in_max_price'] ) && is_numeric( $row['all_in_max_price'] ) ? (float) $row['all_in_max_price'] : null;
-		$available_on = rfs_engrain_normalize_date( $row['available_on'] ?? '' );
+		$available_on = rfs_engrain_normalize_availability_date( $row['available_on'] ?? '' );
 
-		$context['authoritative']    = true;
-		$context['all_in_min_price'] = null !== $all_in_min && $all_in_min > 0 ? $all_in_min : null;
-		$context['all_in_max_price'] = null !== $all_in_max && $all_in_max > 0 ? $all_in_max : null;
+		$context['authoritative']        = true;
+		$context['all_in_authoritative'] = true;
+		$context['minimum_rent']         = null;
+		$context['maximum_rent']         = null;
+		$context['all_in_min_price']     = null !== $all_in_min && $all_in_min > 0 ? $all_in_min : null;
+		$context['all_in_max_price']     = null !== $all_in_max && $all_in_max > 0 ? $all_in_max : null;
+		$context['availability_date']    = '';
+		$context['is_available']         = false;
 
 		if ( null !== $base_price && $base_price > 0 ) {
-			if ( ! is_numeric( $context['minimum_rent'] ?? null ) || (float) $context['minimum_rent'] <= 0 ) {
-				$context['minimum_rent'] = $base_price;
-			}
-			if ( ! is_numeric( $context['maximum_rent'] ?? null ) || (float) $context['maximum_rent'] <= 0 ) {
-				$context['maximum_rent'] = $base_price;
-			}
+			$context['minimum_rent'] = $base_price;
+			$context['maximum_rent'] = $base_price;
+		}
+		if ( '' !== $available_on ) {
+			$context['availability_date'] = $available_on;
+			$context['is_available']      = true;
 		}
 
-		if ( '' === (string) ( $context['availability_date'] ?? '' ) && '' !== $available_on ) {
-			$context['availability_date'] = $available_on;
-		}
-		$context['is_available'] = (
-			! empty( $context['is_available'] )
-			|| ( null !== $base_price && $base_price > 0 && '' !== $available_on )
-		);
-		$contexts[ $unit_id ]    = $context;
+		$contexts[ $unit_id ] = $context;
 	}
 
 	return $contexts;
@@ -839,6 +889,12 @@ function rfs_engrain_update_unit( $args, $unit, $floorplan, $pricing_context = n
 		$meta['maximum_total_monthly_price'] = $pricing_context['all_in_max_price'] ?? null;
 		$meta['availability_date']           = rfs_engrain_format_availability_date_meta( $pricing_context['availability_date'] ?? '', 'units' );
 		$meta['specials']                    = sanitize_text_field( (string) ( $pricing_context['specials'] ?? '' ) );
+	}
+	if (
+		is_array( $pricing_context )
+		&& ! empty( $pricing_context['apply_online_url_authoritative'] )
+	) {
+		$meta['apply_online_url'] = esc_url_raw( (string) ( $pricing_context['apply_online_url'] ?? '' ) );
 	}
 	if ( is_array( $description_context ) && ! empty( $description_context['authoritative'] ) ) {
 		$meta['amenities'] = sanitize_text_field( (string) ( $description_context['amenities'] ?? '' ) );

@@ -3,13 +3,13 @@
 	"slug": "rentfetch-sync",
 	"author": "<a href='https://brindledigital.com'>Brindle Digital</a>",
 	"author_profile": "https://brindledigital.com",
-	"version": "0.15.8",
+	"version": "0.16.0",
 	"requires": "6.5",
 	"tested": "6.6",
 	"requires_php": "7.4",
 	"sections": {
 		"description": "This is my plugin description.",
-		"changelog": "<h4>0.15.8</h4><ul><li>Normalized synced unit square footage from Yardi, Entrata, and Rent Manager so empty, missing, and zero values are stored as null instead of 0.</li><li>Cast positive synced unit square footage values to integers before saving.</li></ul>",
+		"changelog": "<h4>0.16.0</h4><ul><li>Added complete Engrain/SightMap property, floorplan, and availability-qualified unit syncing.</li><li>Added All-In Pricing, unit-derived floorplan pricing and availability, galleries, images, amenities, apply links, scoped expenses, deposits, and pricing disclaimers.</li><li>Added paginated API handling and authoritative-response safeguards so failed or incomplete requests cannot erase synchronized inventory.</li><li>Normalized Engrain data into shared Rent Fetch fields and provider-neutral fee and total-monthly-price fields.</li></ul>",
 		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
 	}
 }

@@ -114,7 +114,8 @@ function rfs_engrain_get_pricing_contexts_for_sync( $args ) {
 	$pricing_contexts = ! empty( $pricing_units_response['success'] )
 		? rfs_engrain_build_unit_pricing_contexts(
 			$pricing_units_response['data'],
-			! empty( $pricing_entries_response['success'] ) ? $pricing_entries_response['data'] : array()
+			! empty( $pricing_entries_response['success'] ) ? $pricing_entries_response['data'] : array(),
+			! empty( $pricing_entries_response['success'] )
 		)
 		: null;
 
@@ -136,10 +137,10 @@ function rfs_engrain_get_pricing_contexts_for_sync( $args ) {
 }
 
 /**
- * Fetch All-In Pricing and merge it into unit pricing contexts.
+ * Fetch authoritative All-In Pricing and merge process enrichment into it.
  *
  * @param array      $args Runtime sync args.
- * @param array|null $pricing_contexts Existing normalized pricing contexts.
+ * @param array|null $pricing_contexts Existing process-enrichment contexts.
  * @return array|null
  */
 function rfs_engrain_add_all_in_pricing_to_contexts( $args, $pricing_contexts ) {
@@ -152,7 +153,11 @@ function rfs_engrain_add_all_in_pricing_to_contexts( $args, $pricing_contexts ) 
 	if ( '' !== $sightmap_id ) {
 		$all_in_pricing_response = rfs_engrain_get_all_in_pricing( $args, $sightmap_id );
 	} elseif ( ! empty( $sightmaps_response['success'] ) ) {
-		$all_in_pricing_response = rfs_engrain_get_empty_pricing_response();
+		$all_in_pricing_response = rfs_engrain_failed_response(
+			'missing_sightmap',
+			200,
+			'No SightMap was available for authoritative pricing.'
+		);
 	} else {
 		$all_in_pricing_response = rfs_engrain_failed_response(
 			'sightmaps_unavailable',
@@ -166,6 +171,8 @@ function rfs_engrain_add_all_in_pricing_to_contexts( $args, $pricing_contexts ) 
 			$pricing_contexts,
 			$all_in_pricing_response['data']
 		);
+	} else {
+		$pricing_contexts = null;
 	}
 
 	$all_in_response = rfs_engrain_combine_responses(
