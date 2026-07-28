@@ -245,6 +245,7 @@ function rfs_start_delete_synced_data( $confirmation ) {
 	if ( function_exists( 'as_unschedule_all_actions' ) ) {
 		as_unschedule_all_actions( 'rfs_do_sync' );
 		as_unschedule_all_actions( 'rfs_yardi_do_delete_orphans' );
+		as_unschedule_all_actions( 'rfs_engrain_do_delete_orphans' );
 	}
 
 	if ( function_exists( 'rfs_cancel_accelerated_sync' ) ) {

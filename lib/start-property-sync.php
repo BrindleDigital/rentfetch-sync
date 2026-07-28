@@ -42,7 +42,7 @@ function rfs_sync_single_property( $property_id, $integration ) {
  * @return string
  */
 function rfs_get_sync_action_args_version() {
-	return '2';
+	return '3';
 }
 
 /**
@@ -61,6 +61,7 @@ function rfs_maybe_migrate_sync_action_args() {
 	as_unschedule_all_actions( 'rfs_do_sync' );
 	as_unschedule_all_actions( 'rfs_yardi_do_delete_orphans' );
 	as_unschedule_all_actions( 'rfs_entrata_do_delete_orphans' );
+	as_unschedule_all_actions( 'rfs_engrain_do_delete_orphans' );
 	update_option( 'rfs_sync_action_args_version', $target_version, false );
 }
 
@@ -130,6 +131,12 @@ function rfs_get_runtime_sync_credentials_error( $integration, $credentials ) {
 				|| ! rfs_get_entrata_api_key()
 			) {
 				return 'Entrata runtime credentials or API key were not available.';
+			}
+			break;
+
+		case 'engrain':
+			if ( empty( $credentials['engrain']['api_key'] ) ) {
+				return 'Engrain runtime API key was not available.';
 			}
 			break;
 
@@ -252,6 +259,7 @@ function rfs_perform_syncs() {
 		as_unschedule_all_actions( 'rfs_do_sync' );
 		as_unschedule_all_actions( 'rfs_yardi_do_delete_orphans' );
 		as_unschedule_all_actions( 'rfs_entrata_do_delete_orphans' );
+		as_unschedule_all_actions( 'rfs_engrain_do_delete_orphans' );
 		
 		return;
 	}
@@ -294,6 +302,34 @@ function rfs_perform_syncs() {
 			++$sync_index;
 		}
 			
+	}
+
+	//* Engrain / SightMap
+
+	if ( in_array( 'engrain', $enabled_integrations, true ) ) {
+		$engrain_assets = function_exists( 'rfs_engrain_get_configured_asset_ids' )
+			? rfs_engrain_get_configured_asset_ids()
+			: array();
+
+		if ( false === as_has_scheduled_action( 'rfs_engrain_do_delete_orphans', array( $engrain_assets ), 'rentfetch' ) ) {
+			as_schedule_recurring_action(
+				rfs_get_staggered_sync_start_time( $sync_index ),
+				(int) $sync_time,
+				'rfs_engrain_do_delete_orphans',
+				array( $engrain_assets ),
+				'rentfetch'
+			);
+		}
+		++$sync_index;
+
+		foreach ( $engrain_assets as $engrain_asset ) {
+			$args = array(
+				'integration' => 'engrain',
+				'property_id' => $engrain_asset,
+			);
+			rfs_schedule_property_sync_action( $args, $sync_time, $sync_index );
+			++$sync_index;
+		}
 	}
 		
 	//* Entrata
@@ -390,6 +426,11 @@ function rfs_trigger_specific_api_sync( $args ) {
 			
 			rfs_do_entrata_sync( $args );
 			
+			break;
+		case 'engrain':
+
+			rfs_do_engrain_sync( $args );
+
 			break;
 		default:
 			// Handle other integration cases or show an error message.

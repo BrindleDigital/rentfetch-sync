@@ -225,6 +225,14 @@ function rfs_refresh_info_from_rentfetch_api() {
 			'number_of_properties' => rfs_get_number_of_properties( 'yardi' ),
 		);
 	}
+
+	// Engrain credentials remain local; report only configured assets and usage.
+	if ( in_array( 'engrain', $apis_enabled, true ) ) {
+		$apis_used['engrain'] = array(
+			'asset_ids'            => function_exists( 'rfs_engrain_get_configured_asset_ids' ) ? rfs_engrain_get_configured_asset_ids() : array(),
+			'number_of_properties' => rfs_get_number_of_properties( 'engrain' ),
+		);
+	}
 		
 	// get the Rent Manager integration settings.
 	if ( in_array( 'rentmanager', $apis_enabled, true ) ) {

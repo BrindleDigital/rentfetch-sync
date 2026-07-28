@@ -227,6 +227,37 @@ function rfs_get_accelerated_sync_manifest() {
 		}
 	}
 
+	if ( in_array( 'engrain', $enabled_integrations, true ) ) {
+		$engrain_assets = function_exists( 'rfs_engrain_get_configured_asset_ids' )
+			? rfs_engrain_get_configured_asset_ids()
+			: array();
+
+		$items[] = array(
+			'hook'        => 'rfs_engrain_do_delete_orphans',
+			'args'        => array( $engrain_assets ),
+			'type'        => 'cleanup',
+			'integration' => 'engrain',
+			'property_id' => '',
+			'label'       => 'Engrain orphan cleanup',
+		);
+
+		foreach ( $engrain_assets as $engrain_asset ) {
+			$items[] = array(
+				'hook'        => 'rfs_do_sync',
+				'args'        => array(
+					array(
+						'integration' => 'engrain',
+						'property_id' => $engrain_asset,
+					),
+				),
+				'type'        => 'property',
+				'integration' => 'engrain',
+				'property_id' => $engrain_asset,
+				'label'       => sprintf( 'Engrain asset %s', $engrain_asset ),
+			);
+		}
+	}
+
 	if ( in_array( 'entrata', $enabled_integrations, true ) ) {
 		$entrata_properties = get_option( 'rentfetch_options_entrata_integration_creds_entrata_property_ids' );
 		$entrata_properties = str_replace( ' ', '', (string) $entrata_properties );

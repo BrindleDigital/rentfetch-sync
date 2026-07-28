@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return  void.
  */
 function rfs_do_entrata_sync( $args ) {
-
+ 
 	// ~ With just the property ID, we can get property data, property images, and the floorplan data.
 	// create a new post if needed, adding the post ID to the args if we do (don't need any API calls for this)
 	$args = rfs_maybe_create_property( $args );

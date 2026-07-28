@@ -18,6 +18,12 @@ function rfs_get_credentials() {
 		];
 	}
 
+	if ( in_array( 'engrain', $enabled, true ) ) {
+		$credentials['engrain'] = [
+			'api_key' => get_option( 'rentfetch_options_engrain_integration_creds_engrain_api_key' ),
+		];
+	}
+
 	if ( in_array( 'entrata', $enabled, true ) ) {
 		$credentials['entrata'] = [
 			'subdomain' => get_option( 'rentfetch_options_entrata_integration_creds_entrata_subdomain' ),
