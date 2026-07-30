@@ -32,6 +32,17 @@ function rfs_test_assert_same( $expected, $actual, $message ) {
 
 $today = '2026-07-30';
 
+rfs_test_assert_same(
+	true,
+	rfs_rentmanager_unit_has_sync_identifiers( array( 'UnitID' => 12, 'UnitTypeID' => 44 ) ),
+	'Documented positive unit identifiers are safe for relationship and deletion comparisons.'
+);
+rfs_test_assert_same(
+	false,
+	rfs_rentmanager_unit_has_sync_identifiers( array( 'UnitID' => 12, 'UnitTypeID' => null ) ),
+	'A unit without a usable floorplan identifier is not deletion-safe.'
+);
+
 $vacant = rfs_rentmanager_derive_unit_availability(
 	array(
 		'IsVacant' => true,
@@ -86,6 +97,37 @@ $on_notice_with_buffer = rfs_rentmanager_derive_unit_availability(
 	5
 );
 rfs_test_assert_same( '09/08/2026', $on_notice_with_buffer['availability_date'], 'The make-ready buffer is added to expected move-out.' );
+rfs_test_assert_same( 'current_lease_expected_move_out', $on_notice_with_buffer['reason'], 'Expected move-out works even when notice date is absent.' );
+
+$overdue_move_out_with_buffer = rfs_rentmanager_derive_unit_availability(
+	array(
+		'IsVacant' => false,
+		'Leases'   => array(
+			array(
+				'MoveInDate'          => '2025-09-01',
+				'ExpectedMoveOutDate' => '2026-07-28',
+			),
+		),
+	),
+	$today,
+	5
+);
+rfs_test_assert_same( '08/02/2026', $overdue_move_out_with_buffer['availability_date'], 'The buffer is added to expected move-out before clamping to today.' );
+
+$long_overdue_move_out_with_buffer = rfs_rentmanager_derive_unit_availability(
+	array(
+		'IsVacant' => false,
+		'Leases'   => array(
+			array(
+				'MoveInDate'          => '2025-09-01',
+				'ExpectedMoveOutDate' => '2026-07-01',
+			),
+		),
+	),
+	$today,
+	5
+);
+rfs_test_assert_same( '07/30/2026', $long_overdue_move_out_with_buffer['availability_date'], 'An expired buffered date is available today.' );
 
 $future_lease_after_notice = rfs_rentmanager_derive_unit_availability(
 	array(
@@ -171,9 +213,9 @@ $moved_out_today = rfs_rentmanager_derive_unit_availability(
 		'IsVacant' => true,
 		'Leases'   => array(
 			array(
-				'MoveInDate'          => '2025-01-01',
-				'MoveOutDate'         => '2026-07-30',
-				'IsMoveOutConfirmed'  => true,
+				'MoveInDate'         => '2025-01-01',
+				'MoveOutDate'        => '2026-07-30',
+				'IsMoveOutConfirmed' => true,
 			),
 		),
 	),
@@ -220,5 +262,20 @@ rfs_test_assert_same( '20260730', $floorplan['availability_date'], 'Floorplan av
 $unavailable_floorplan = rfs_rentmanager_summarize_unit_availability_dates( array( '', null, 'not-a-date' ) );
 rfs_test_assert_same( 0, $unavailable_floorplan['available_units'], 'A floorplan without unit dates has no availability.' );
 rfs_test_assert_same( null, $unavailable_floorplan['availability_date'], 'A floorplan without unit dates has no availability date.' );
+
+$missing_market_rent = rfs_rentmanager_get_market_rent_range( array() );
+rfs_test_assert_same( 0.0, $missing_market_rent['minimum'], 'Missing market rent does not prevent an available unit from syncing.' );
+rfs_test_assert_same( 0.0, $missing_market_rent['maximum'], 'Missing market rent produces a safe zero maximum.' );
+
+$sparse_market_rent = rfs_rentmanager_get_market_rent_range(
+	array(
+		array(),
+		array( 'Amount' => '1,425.50' ),
+		array( 'Amount' => 'not-a-price' ),
+		array( 'Amount' => 1625 ),
+	)
+);
+rfs_test_assert_same( 1425.5, $sparse_market_rent['minimum'], 'Invalid market-rent rows are ignored.' );
+rfs_test_assert_same( 1625.0, $sparse_market_rent['maximum'], 'Valid market-rent rows determine the range.' );
 
 echo "Rent Manager availability tests passed.\n";
