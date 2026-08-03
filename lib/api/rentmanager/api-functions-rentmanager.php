@@ -62,6 +62,7 @@ function rfs_do_rentmanager_sync( $args ) {
 	$unit_types_data     = isset( $unit_types_response['unit_types'] ) && is_array( $unit_types_response['unit_types'] )
 		? $unit_types_response['unit_types']
 		: array();
+	rfs_rentmanager_update_property_related_api_response( $args, 'unit_types_api', $unit_types_response );
 
 	// error_log('Got unit_types_data for ' . ($args['property_id'] ?? 'unknown') . ': ' . (is_array($unit_types_data) ? count($unit_types_data) : 'not array') . ' items');
 
@@ -76,6 +77,7 @@ function rfs_do_rentmanager_sync( $args ) {
 	$units_data     = isset( $units_response['units'] ) && is_array( $units_response['units'] )
 		? $units_response['units']
 		: array();
+	rfs_rentmanager_update_property_related_api_response( $args, 'units_api', $units_response );
 	
 	// error_log('Got units_data for ' . ($args['property_id'] ?? 'unknown') . ': ' . (is_array($units_data) ? count($units_data) : 'not array') . ' items');
 		
@@ -84,21 +86,12 @@ function rfs_do_rentmanager_sync( $args ) {
 		// create the individual units, ignoring availability.
 		foreach( $units_data as $unit ) {
 			
-			// skip this one if there's no attached unit type.
-			if ( !isset( $unit['UnitTypeID'] ) ) {
+			// A unit needs both documented identifiers to attach to the correct
+			// floorplan and to participate safely in removal comparisons.
+			if ( ! rfs_rentmanager_unit_has_sync_identifiers( $unit ) ) {
 				continue;
 			}
 			
-			// skip this one if there's no valid unit ID.
-			if ( !isset( $unit['UnitID'] ) ) {
-				continue;
-			}
-			
-			// skip this one if there's no market rent being set.
-			if ( !isset( $unit['MarketRent'][0]['Amount'] ) ) {
-				continue;
-			}
-
 			$args['floorplan_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'];
 			$args['unit_id'] = $args['property_id'] . '-' . $unit['UnitTypeID'] . '-' . $unit['UnitID'];
 			
@@ -148,6 +141,51 @@ function rfs_do_rentmanager_sync( $args ) {
 }
 
 /**
+ * Keep related-record failures on the property without replacing the last
+ * successful response stored on an individual floorplan or unit.
+ *
+ * @param array  $args     Sync args.
+ * @param string $endpoint Related endpoint key.
+ * @param array  $response Structured Rent Manager response.
+ * @return void
+ */
+function rfs_rentmanager_update_property_related_api_response( $args, $endpoint, $response ) {
+	if ( empty( $args['wordpress_property_post_id'] ) || ! is_array( $response ) ) {
+		return;
+	}
+
+	$endpoint     = sanitize_key( $endpoint );
+	$api_response = get_post_meta( $args['wordpress_property_post_id'], 'api_response', true );
+	$api_response = is_array( $api_response ) ? $api_response : array();
+
+	if ( ! empty( $response['success'] ) && ! empty( $response['delete_safe'] ) ) {
+		if ( isset( $api_response[ $endpoint ] ) ) {
+			unset( $api_response[ $endpoint ] );
+			update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		}
+		return;
+	}
+
+	$raw_response = $response['raw_response'] ?? $response;
+	if ( ! is_scalar( $raw_response ) && null !== $raw_response ) {
+		$raw_response = wp_json_encode( $raw_response );
+	}
+
+	$api_response[ $endpoint ] = array(
+		'updated'     => current_time( 'mysql' ),
+		'reason'      => sanitize_text_field( $response['reason'] ?? '' ),
+		'delete_safe' => ! empty( $response['delete_safe'] ) ? 'true' : 'false',
+		'status_code' => isset( $response['status_code'] ) ? absint( $response['status_code'] ) : '',
+	);
+	if ( ! empty( $response['error_message'] ) ) {
+		$api_response[ $endpoint ]['error_message'] = sanitize_text_field( $response['error_message'] );
+	}
+	$api_response[ $endpoint ]['api_response'] = (string) $raw_response;
+
+	update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+}
+
+/**
  * Get the property data from Rent Manager.
  *
  * @param   array $args  everything needed to do this.
@@ -162,9 +200,9 @@ function rfs_rentmanager_get_property_data( $args ) {
 	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/properties';
 
 	$body = wp_json_encode(array(
-		'company_code' => $rentmanager_company_code,
+		'company_code'  => $rentmanager_company_code,
 		'partner_token' => $partner_token,
-		'property_id' => $args['property_id']
+		'property_id'   => $args['property_id'],
 	));
 
 	$response = wp_remote_post( $url, array(
@@ -636,17 +674,11 @@ function rfs_rentmanager_update_floorplan_meta( $args, $floorplan_data ) {
 		}
 	}
 	
-	// get the number of avilable by units by counting the number of non-empty values in the floorplan_availability_date_array
-	$floorplan_available_units = count( array_filter( $floorplan_availability_date_array ) );
-	
-	// get the floorplan availability date by looking at the date in the floorplan_availability_date_array that is closest to today. discard all empty values and values more than a week in the past.
-	// $floorplan_availability_date = null;
-	// if ( ! empty( $floorplan_availability_date_array ) ) {
-	// 	$floorplan_availability_date_array = array_filter( $floorplan_availability_date_array, function( $value ) {
-	// 		return strtotime( $value ) >= strtotime( '-1 week' );
-	// 	} );
-	// 	$floorplan_availability_date = min( $floorplan_availability_date_array );
-	// }
+	// Unit availability is authoritative. A floorplan is available when at
+	// least one related unit has a derived current or future availability date.
+	$floorplan_availability       = rfs_rentmanager_summarize_unit_availability_dates( $floorplan_availability_date_array );
+	$floorplan_available_units    = $floorplan_availability['available_units'];
+	$floorplan_availability_date  = $floorplan_availability['availability_date'];
 	
 	if ( isset( $floorplan_data['Bedrooms'] ) ) {
 		// silence is golden.
@@ -679,7 +711,7 @@ function rfs_rentmanager_update_floorplan_meta( $args, $floorplan_data ) {
 		'minimum_sqft' => $floorplan_minimum_square_footage ?? 0,
 		'floorplan_image_url' => $images ?? '',
 		'floorplan_source' => 'rentmanager',
-		'availability_date' => null,
+		'availability_date' => $floorplan_availability_date,
 		'updated'   => current_time( 'mysql' ),
 		'api_response' => $api_response,
 	);
@@ -780,9 +812,10 @@ function rfs_rentmanager_get_units_data( $args ) {
 	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/units';
 
 	$body = wp_json_encode(array(
-		'company_code' => $rentmanager_company_code,
-		'partner_token' => $partner_token,
-		'property_id' => $args['property_id']
+		'company_code'       => $rentmanager_company_code,
+		'partner_token'      => $partner_token,
+		'property_id'        => $args['property_id'],
+		'lease_availability' => true,
 	));
 
 	$response = wp_remote_post( $url, array(
@@ -790,7 +823,9 @@ function rfs_rentmanager_get_units_data( $args ) {
 			'Content-Type' => 'application/json',
 		),
 		'body' => $body,
-		'timeout' => 30,
+		// The proxy may need multiple documented pages from both Units and
+		// Leases, so its caller must allow more than one upstream timeout.
+		'timeout' => 120,
 	) );
 
 	if ( is_wp_error( $response ) ) {
@@ -856,11 +891,33 @@ function rfs_rentmanager_get_units_data( $args ) {
 	}
 
 	$units = isset( $units_data['UnitID'] ) ? array( $units_data ) : array_values( $units_data ?: array() );
-	$unit_ids = array();
-	foreach ( $units as $unit ) {
-		if ( is_array( $unit ) && isset( $unit['UnitTypeID'], $unit['UnitID'] ) ) {
+	$unit_ids    = array();
+	$delete_safe = true;
+	foreach ( $units as $index => $unit ) {
+		if ( rfs_rentmanager_unit_has_sync_identifiers( $unit ) ) {
 			$unit_ids[] = (string) $unit['UnitTypeID'] . '-' . (string) $unit['UnitID'];
+		} else {
+			// Continue syncing valid records, but do not delete anything based
+			// on a response containing an unidentifiable unit.
+			$delete_safe = false;
 		}
+
+		// Lease data is authoritative for Rent Manager availability. An older
+		// proxy or a partial response must not silently fall back to vacancy.
+		if ( ! is_array( $unit ) || ! array_key_exists( 'Leases', $unit ) ) {
+			return array(
+				'success'      => false,
+				'delete_safe'  => false,
+				'units'        => null,
+				'reason'       => 'missing_leases_embed',
+				'error_message' => 'RentFetch API returned HTTP 200, but at least one unit omitted the required Leases field. Verify that the lease-availability proxy is deployed.',
+				'raw_response' => $response_body,
+				'status_code'  => (int) $http_code,
+			);
+		}
+
+		// Only retain the non-tenant lease fields used for availability.
+		$units[ $index ]['Leases'] = rfs_rentmanager_normalize_leases( $unit['Leases'] );
 	}
 
 	if ( ! empty( $units ) && empty( $unit_ids ) ) {
@@ -876,11 +933,310 @@ function rfs_rentmanager_get_units_data( $args ) {
 
 	return array(
 		'success'      => true,
-		'delete_safe'  => true,
+		'delete_safe'  => $delete_safe,
 		'units'        => $units,
-		'reason'       => empty( $units ) ? 'valid_empty_units_array' : 'valid_units_array',
+		'reason'       => empty( $units )
+			? 'valid_empty_units_array'
+			: ( $delete_safe ? 'valid_units_array' : 'valid_units_array_with_unusable_records' ),
 		'raw_response' => $response_body,
 		'status_code'  => (int) $http_code,
+	);
+}
+
+/**
+ * Determine whether a UnitModel can be related and compared safely.
+ *
+ * @param mixed $unit Rent Manager unit record.
+ * @return bool Whether UnitID and UnitTypeID are usable positive identifiers.
+ */
+function rfs_rentmanager_unit_has_sync_identifiers( $unit ) {
+	return is_array( $unit )
+		&& isset( $unit['UnitID'], $unit['UnitTypeID'] )
+		&& (int) $unit['UnitID'] > 0
+		&& (int) $unit['UnitTypeID'] > 0;
+}
+
+/**
+ * Normalize a Rent Manager date without shifting it across time zones.
+ *
+ * @param mixed $value Date value from Rent Manager.
+ * @return string|null Date in Y-m-d format, or null when invalid.
+ */
+function rfs_rentmanager_normalize_date( $value ) {
+	if ( ! is_scalar( $value ) || '' === trim( (string) $value ) ) {
+		return null;
+	}
+
+	$value = trim( (string) $value );
+
+	if ( preg_match( '/^(\d{4})-(\d{2})-(\d{2})/', $value, $matches ) ) {
+		$year  = (int) $matches[1];
+		$month = (int) $matches[2];
+		$day   = (int) $matches[3];
+
+		return checkdate( $month, $day, $year )
+			? sprintf( '%04d-%02d-%02d', $year, $month, $day )
+			: null;
+	}
+
+	if ( preg_match( '/^(\d{1,2})\/(\d{1,2})\/(\d{4})/', $value, $matches ) ) {
+		$month = (int) $matches[1];
+		$day   = (int) $matches[2];
+		$year  = (int) $matches[3];
+
+		return checkdate( $month, $day, $year )
+			? sprintf( '%04d-%02d-%02d', $year, $month, $day )
+			: null;
+	}
+
+	return null;
+}
+
+/**
+ * Aggregate unit availability for floorplan and property-level consumers.
+ *
+ * Rent Fetch derives property availability from each floorplan's available
+ * unit count and earliest Ymd availability date.
+ *
+ * @param array $availability_dates Unit availability date values.
+ * @return array{available_units:int,availability_date:?string}
+ */
+function rfs_rentmanager_summarize_unit_availability_dates( $availability_dates ) {
+	$normalized_dates = array();
+
+	foreach ( (array) $availability_dates as $availability_date ) {
+		$normalized_date = rfs_rentmanager_normalize_date( $availability_date );
+		if ( null !== $normalized_date ) {
+			$normalized_dates[] = $normalized_date;
+		}
+	}
+
+	return array(
+		'available_units'    => count( $normalized_dates ),
+		'availability_date' => empty( $normalized_dates )
+			? null
+			: str_replace( '-', '', min( $normalized_dates ) ),
+	);
+}
+
+/**
+ * Get a unit's usable Rent Manager market-rent range.
+ *
+ * Availability must not depend on pricing being populated. Invalid or missing
+ * MarketRent rows are ignored and produce a zero range while the unit remains
+ * eligible to roll up availability.
+ *
+ * @param mixed $market_rents Rent Manager MarketRent records.
+ * @return array{minimum:float,maximum:float}
+ */
+function rfs_rentmanager_get_market_rent_range( $market_rents ) {
+	$amounts = array();
+
+	foreach ( (array) $market_rents as $market_rent ) {
+		if ( ! is_array( $market_rent ) || ! array_key_exists( 'Amount', $market_rent ) || ! is_scalar( $market_rent['Amount'] ) ) {
+			continue;
+		}
+
+		$amount = str_replace( ',', '', trim( (string) $market_rent['Amount'] ) );
+		if ( ! is_numeric( $amount ) ) {
+			continue;
+		}
+
+		$amounts[] = (float) $amount;
+	}
+
+	return array(
+		'minimum' => empty( $amounts ) ? 0.0 : min( $amounts ),
+		'maximum' => empty( $amounts ) ? 0.0 : max( $amounts ),
+	);
+}
+
+/**
+ * Reduce embedded leases to the fields used for availability calculations.
+ *
+ * @param mixed $leases Embedded Rent Manager lease data.
+ * @return array<int,array<string,mixed>> Normalized lease records.
+ */
+function rfs_rentmanager_normalize_leases( $leases ) {
+	if ( ! is_array( $leases ) || empty( $leases ) ) {
+		return array();
+	}
+
+	$is_list = array_keys( $leases ) === range( 0, count( $leases ) - 1 );
+	if ( ! $is_list ) {
+		$leases = array( $leases );
+	}
+
+	$normalized = array();
+	$fields     = array(
+		'MoveInDate',
+		'MoveOutDate',
+		'ExpectedMoveOutDate',
+		'NoticeDate',
+		'IsMoveOutConfirmed',
+	);
+
+	foreach ( $leases as $lease ) {
+		if ( ! is_array( $lease ) ) {
+			continue;
+		}
+
+		$record = array();
+		foreach ( $fields as $field ) {
+			$record[ $field ] = $lease[ $field ] ?? null;
+		}
+
+		$normalized[] = $record;
+	}
+
+	return $normalized;
+}
+
+/**
+ * Determine whether Rent Manager reports a unit as vacant.
+ *
+ * @param array $unit Rent Manager unit data.
+ * @return bool Whether the current unit status is vacant.
+ */
+function rfs_rentmanager_unit_is_vacant( $unit ) {
+	if ( array_key_exists( 'IsVacant', $unit ) ) {
+		return true === $unit['IsVacant'] || 'true' === strtolower( (string) $unit['IsVacant'] ) || '1' === (string) $unit['IsVacant'];
+	}
+
+	$current_status = $unit['CurrentUnitStatus'] ?? array();
+	if ( isset( $current_status['UnitStatusType'] ) ) {
+		$current_status = array( $current_status );
+	}
+
+	foreach ( (array) $current_status as $status ) {
+		$status_type = $status['UnitStatusType'] ?? array();
+		if ( array_key_exists( 'IsVacant', $status_type ) ) {
+			return true === $status_type['IsVacant']
+				|| 'true' === strtolower( (string) $status_type['IsVacant'] )
+				|| '1' === (string) $status_type['IsVacant'];
+		}
+
+		$status_name = $status_type['Name'] ?? '';
+		if ( 'vacant' === strtolower( trim( (string) $status_name ) ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Derive availability from embedded Rent Manager leases.
+ *
+ * A future lease always makes the unit unavailable. Otherwise an active lease
+ * on notice becomes available on its expected move-out date. A vacant unit with
+ * no active or future lease is available today.
+ *
+ * @param array       $unit            Rent Manager unit data.
+ * @param string|null $today           Optional Y-m-d date for deterministic tests.
+ * @param int         $make_ready_days Optional make-ready buffer in days.
+ * @return array{available:bool,availability_date:?string,reason:string}
+ */
+function rfs_rentmanager_derive_unit_availability( $unit, $today = null, $make_ready_days = 0 ) {
+	$today = rfs_rentmanager_normalize_date( $today ?: current_time( 'Y-m-d' ) );
+	if ( null === $today ) {
+		return array(
+			'available'         => false,
+			'availability_date' => null,
+			'reason'            => 'invalid_current_date',
+		);
+	}
+
+	$leases        = rfs_rentmanager_normalize_leases( $unit['Leases'] ?? array() );
+	$active_leases = array();
+
+	foreach ( $leases as $lease ) {
+		$move_in_date = rfs_rentmanager_normalize_date( $lease['MoveInDate'] ?? null );
+		if ( null === $move_in_date ) {
+			$move_out_date = rfs_rentmanager_normalize_date( $lease['MoveOutDate'] ?? null );
+
+			if ( null !== $move_out_date && $move_out_date <= $today ) {
+				continue;
+			}
+
+			return array(
+				'available'         => false,
+				'availability_date' => null,
+				'reason'            => 'lease_missing_move_in_date',
+			);
+		}
+
+		if ( $move_in_date > $today ) {
+			return array(
+				'available'         => false,
+				'availability_date' => null,
+				'reason'            => 'future_lease',
+			);
+		}
+
+		$move_out_date = rfs_rentmanager_normalize_date( $lease['MoveOutDate'] ?? null );
+		if ( null === $move_out_date || $move_out_date > $today ) {
+			$active_leases[] = $lease;
+		}
+	}
+
+	if ( ! empty( $active_leases ) ) {
+		usort(
+			$active_leases,
+			static function( $first, $second ) {
+				$first_date  = rfs_rentmanager_normalize_date( $first['MoveInDate'] ?? null ) ?: '';
+				$second_date = rfs_rentmanager_normalize_date( $second['MoveInDate'] ?? null ) ?: '';
+				return strcmp( $second_date, $first_date );
+			}
+		);
+
+		$current_lease = $active_leases[0];
+		$notice_date   = rfs_rentmanager_normalize_date( $current_lease['NoticeDate'] ?? null );
+		$expected_date = rfs_rentmanager_normalize_date( $current_lease['ExpectedMoveOutDate'] ?? null );
+
+		if ( null !== $expected_date ) {
+			$make_ready_days = max( 0, (int) $make_ready_days );
+			$available_date  = new DateTimeImmutable( $expected_date );
+
+			if ( $make_ready_days > 0 ) {
+				$available_date = $available_date->modify( '+' . $make_ready_days . ' days' );
+			}
+
+			$today_date = new DateTimeImmutable( $today );
+			if ( $available_date < $today_date ) {
+				$available_date = $today_date;
+			}
+
+			return array(
+				'available'         => true,
+				'availability_date' => $available_date->format( 'm/d/Y' ),
+				'reason'            => null !== $notice_date
+					? 'current_lease_on_notice'
+					: 'current_lease_expected_move_out',
+			);
+		}
+
+		return array(
+			'available'         => false,
+			'availability_date' => null,
+			'reason'            => null !== $notice_date ? 'notice_without_expected_move_out' : 'active_lease',
+		);
+	}
+
+	if ( rfs_rentmanager_unit_is_vacant( $unit ) ) {
+		$available_date = new DateTimeImmutable( $today );
+
+		return array(
+			'available'         => true,
+			'availability_date' => $available_date->format( 'm/d/Y' ),
+			'reason'            => 'vacant_without_future_lease',
+		);
+	}
+
+	return array(
+		'available'         => false,
+		'availability_date' => null,
+		'reason'            => 'occupied_without_notice',
 	);
 }
 
@@ -918,51 +1274,21 @@ function rfs_rentmanager_update_unit_meta( $args, $unit ) {
 	
 	wp_update_post( $post_info );
 	
-	$availability_date = null;
-	if ( isset( $unit['IsVacant'] ) && $unit['IsVacant'] === true ) {
-		// set the availability date to today.
-		$availability_date = current_time( 'mysql' );
-	} else {
-		// bail if the unit is not vacant. 
-		//! NOTE: THIS MEANS WE ARE NOT SYNCING OCCUPIED UNITS.
-		//! FOR THIS INFORMATION, WE NEED TO PULL A REPORT ON UNIT AVAILABILITY SPECIFICALLY FROM ANOTHER API.
-		// delete the post if it exists.
+	$make_ready_days = (int) apply_filters( 'rfs_rentmanager_make_ready_days', 0, $unit, $args );
+	$availability    = rfs_rentmanager_derive_unit_availability( $unit, null, $make_ready_days );
+
+	if ( ! $availability['available'] ) {
 		if ( isset( $args['wordpress_unit_post_id'] ) && $args['wordpress_unit_post_id'] ) {
 			wp_delete_post( $args['wordpress_unit_post_id'], true );
 		}
 		return;
 	}
+
+	$availability_date = $availability['availability_date'];
 	
-	// get the rent
-	$minimum_rent = null;
-	$maximum_rent = null;
-	if ( isset( $unit['MarketRent'] ) && is_array( $unit['MarketRent'] ) ) {
-		foreach( $unit['MarketRent'] as $rent ) {
-			if ( null === $minimum_rent ) {
-				$minimum_rent = $rent['Amount'];
-			}
-			
-			if ( null === $maximum_rent ) {
-				$maximum_rent = $rent['Amount'];
-			}
-			
-			if ( $minimum_rent > $rent['Amount'] ) {
-				$minimum_rent = $rent['Amount'];
-			}
-			
-			if ( $maximum_rent < $rent['Amount'] ) {
-				$maximum_rent = $rent['Amount'];
-			}
-		}
-	}
-	
-	if ( empty( $minimum_rent ) ) {
-		$minimum_rent = 0;
-	}
-	
-	if ( empty( $maximum_rent ) ) {
-		$maximum_rent = 0;
-	}
+	$market_rent_range = rfs_rentmanager_get_market_rent_range( $unit['MarketRent'] ?? array() );
+	$minimum_rent      = $market_rent_range['minimum'];
+	$maximum_rent      = $market_rent_range['maximum'];
 	
 	// Save the API response for debugging/inspection
 	$api_response = get_post_meta( $args['wordpress_unit_post_id'], 'api_response', true );
@@ -1000,6 +1326,7 @@ function rfs_rentmanager_update_unit_meta( $args, $unit ) {
 		'sqrft'                     => $square_feet,
 		'specials'                  => null,
 		'unit_source'               => 'rentmanager',
+		'rentmanager_availability_reason' => sanitize_key( $availability['reason'] ),
 		'updated'                   => current_time( 'mysql' ),
 		'api_response'              => $api_response,
 	);
