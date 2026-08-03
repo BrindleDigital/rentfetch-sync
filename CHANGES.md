@@ -1,3 +1,8 @@
+## 0.16.1
+
+- Stored property-level Yardi apartment availability diagnostics for `204` responses and cleared them after a later valid or unchanged response.
+- Fixed single-property sync redirects so repeated syncs replace the existing success flag instead of appending duplicate query parameters.
+
 ## 0.16.0
 
 - Added complete Engrain/SightMap property syncing, including configuration, scheduled and accelerated sync support, runtime credential validation, and cleanup for assets removed from the configured property list.

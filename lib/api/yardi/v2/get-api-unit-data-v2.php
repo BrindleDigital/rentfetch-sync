@@ -10,6 +10,45 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Store or clear the latest property-level apartment availability response.
+ *
+ * @param array      $args     Sync arguments.
+ * @param array|null $response Response to store, or null after a successful response.
+ * @return void
+ */
+function rfs_yardi_v2_update_property_units_api_response( $args, $response = null ) {
+	if ( empty( $args['wordpress_property_post_id'] ) ) {
+		return;
+	}
+
+	$property_id  = $args['wordpress_property_post_id'];
+	$api_response = get_post_meta( $property_id, 'api_response', true );
+
+	if ( ! is_array( $api_response ) ) {
+		$api_response = array();
+	}
+
+	if ( null === $response ) {
+		if ( isset( $api_response['apartmentavailability_api'] ) ) {
+			unset( $api_response['apartmentavailability_api'] );
+			update_post_meta( $property_id, 'api_response', $api_response );
+		}
+
+		return;
+	}
+
+	$api_response['apartmentavailability_api'] = array(
+		'updated'      => current_time( 'mysql' ),
+		'reason'       => isset( $response['reason'] ) ? sanitize_text_field( $response['reason'] ) : '',
+		'delete_safe'  => ! empty( $response['delete_safe'] ) ? 'true' : 'false',
+		'status_code'  => isset( $response['status_code'] ) ? absint( $response['status_code'] ) : '',
+		'api_response' => isset( $response['raw_response'] ) ? (string) $response['raw_response'] : '',
+	);
+
+	update_post_meta( $property_id, 'api_response', $api_response );
+}
+
+/**
  * Get the unit availability for a particular property from the Yardi API (v2)
  *
  * @param   array  $args  The credentials and property ID.
@@ -59,12 +98,22 @@ function rfs_yardi_v2_get_unit_data( $args ) {
 
 	$response_code = wp_remote_retrieve_response_code( $response );
 
-	if ( $response_code == 204 ) {
+	if ( 204 === (int) $response_code ) {
+		rfs_yardi_v2_update_property_units_api_response(
+			$args,
+			array(
+				'reason'       => 'blank_response',
+				'delete_safe'  => true,
+				'status_code'  => 204,
+				'raw_response' => '',
+			)
+		);
 		rfs_delete_orphan_units_if_property_204_response( $args, array() );
 		return array();
 	}
 	
-	if ( $response_code == 304 ) {
+	if ( 304 === (int) $response_code ) {
+		rfs_yardi_v2_update_property_units_api_response( $args );
 		return '304';
 	}
 
@@ -81,6 +130,7 @@ function rfs_yardi_v2_get_unit_data( $args ) {
 	}
 
 	if ( isset( $data['apartmentAvailabilities'] ) && is_array( $data['apartmentAvailabilities'] ) ) {
+		rfs_yardi_v2_update_property_units_api_response( $args );
 		return $data['apartmentAvailabilities'];
 	}
 		

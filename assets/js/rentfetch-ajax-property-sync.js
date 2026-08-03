@@ -62,8 +62,9 @@ jQuery(document).ready(function ($) {
 
 					// Refresh the page to show changes with success message
 					setTimeout(function () {
-						window.location.href =
-							window.location.href + '&sync_success=1';
+						var url = new URL(window.location.href);
+						url.searchParams.set('sync_success', '1');
+						window.location.href = url;
 					}, 1000);
 				} else {
 					// Handle server-side error
