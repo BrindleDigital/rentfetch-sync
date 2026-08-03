@@ -62,6 +62,7 @@ function rfs_do_rentmanager_sync( $args ) {
 	$unit_types_data     = isset( $unit_types_response['unit_types'] ) && is_array( $unit_types_response['unit_types'] )
 		? $unit_types_response['unit_types']
 		: array();
+	rfs_rentmanager_update_property_related_api_response( $args, 'unit_types_api', $unit_types_response );
 
 	// error_log('Got unit_types_data for ' . ($args['property_id'] ?? 'unknown') . ': ' . (is_array($unit_types_data) ? count($unit_types_data) : 'not array') . ' items');
 
@@ -76,6 +77,7 @@ function rfs_do_rentmanager_sync( $args ) {
 	$units_data     = isset( $units_response['units'] ) && is_array( $units_response['units'] )
 		? $units_response['units']
 		: array();
+	rfs_rentmanager_update_property_related_api_response( $args, 'units_api', $units_response );
 	
 	// error_log('Got units_data for ' . ($args['property_id'] ?? 'unknown') . ': ' . (is_array($units_data) ? count($units_data) : 'not array') . ' items');
 		
@@ -136,6 +138,51 @@ function rfs_do_rentmanager_sync( $args ) {
 	}
 	
 	// error_log('Completed rfs_do_rentmanager_sync for property: ' . ($args['property_id'] ?? 'unknown'));
+}
+
+/**
+ * Keep related-record failures on the property without replacing the last
+ * successful response stored on an individual floorplan or unit.
+ *
+ * @param array  $args     Sync args.
+ * @param string $endpoint Related endpoint key.
+ * @param array  $response Structured Rent Manager response.
+ * @return void
+ */
+function rfs_rentmanager_update_property_related_api_response( $args, $endpoint, $response ) {
+	if ( empty( $args['wordpress_property_post_id'] ) || ! is_array( $response ) ) {
+		return;
+	}
+
+	$endpoint     = sanitize_key( $endpoint );
+	$api_response = get_post_meta( $args['wordpress_property_post_id'], 'api_response', true );
+	$api_response = is_array( $api_response ) ? $api_response : array();
+
+	if ( ! empty( $response['success'] ) && ! empty( $response['delete_safe'] ) ) {
+		if ( isset( $api_response[ $endpoint ] ) ) {
+			unset( $api_response[ $endpoint ] );
+			update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
+		}
+		return;
+	}
+
+	$raw_response = $response['raw_response'] ?? $response;
+	if ( ! is_scalar( $raw_response ) && null !== $raw_response ) {
+		$raw_response = wp_json_encode( $raw_response );
+	}
+
+	$api_response[ $endpoint ] = array(
+		'updated'     => current_time( 'mysql' ),
+		'reason'      => sanitize_text_field( $response['reason'] ?? '' ),
+		'delete_safe' => ! empty( $response['delete_safe'] ) ? 'true' : 'false',
+		'status_code' => isset( $response['status_code'] ) ? absint( $response['status_code'] ) : '',
+	);
+	if ( ! empty( $response['error_message'] ) ) {
+		$api_response[ $endpoint ]['error_message'] = sanitize_text_field( $response['error_message'] );
+	}
+	$api_response[ $endpoint ]['api_response'] = (string) $raw_response;
+
+	update_post_meta( $args['wordpress_property_post_id'], 'api_response', $api_response );
 }
 
 /**
@@ -863,6 +910,7 @@ function rfs_rentmanager_get_units_data( $args ) {
 				'delete_safe'  => false,
 				'units'        => null,
 				'reason'       => 'missing_leases_embed',
+				'error_message' => 'RentFetch API returned HTTP 200, but at least one unit omitted the required Leases field. Verify that the lease-availability proxy is deployed.',
 				'raw_response' => $response_body,
 				'status_code'  => (int) $http_code,
 			);

@@ -7,6 +7,51 @@ define( 'ABSPATH', dirname( __DIR__ ) . '/' );
 
 require_once dirname( __DIR__ ) . '/lib/api/rentmanager/api-functions-rentmanager.php';
 
+$GLOBALS['rfs_test_post_meta'] = array();
+
+if ( ! function_exists( 'get_post_meta' ) ) {
+	function get_post_meta( $post_id, $key, $single = false ) {
+		return $GLOBALS['rfs_test_post_meta'][ $post_id ][ $key ] ?? '';
+	}
+}
+
+if ( ! function_exists( 'update_post_meta' ) ) {
+	function update_post_meta( $post_id, $key, $value ) {
+		$GLOBALS['rfs_test_post_meta'][ $post_id ][ $key ] = $value;
+		return true;
+	}
+}
+
+if ( ! function_exists( 'sanitize_key' ) ) {
+	function sanitize_key( $value ) {
+		return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) );
+	}
+}
+
+if ( ! function_exists( 'sanitize_text_field' ) ) {
+	function sanitize_text_field( $value ) {
+		return trim( (string) $value );
+	}
+}
+
+if ( ! function_exists( 'absint' ) ) {
+	function absint( $value ) {
+		return abs( (int) $value );
+	}
+}
+
+if ( ! function_exists( 'wp_json_encode' ) ) {
+	function wp_json_encode( $value ) {
+		return json_encode( $value );
+	}
+}
+
+if ( ! function_exists( 'current_time' ) ) {
+	function current_time( $type = 'mysql' ) {
+		return '2026-08-02 12:00:00';
+	}
+}
+
 /**
  * Assert that two values are identical.
  *
@@ -31,6 +76,54 @@ function rfs_test_assert_same( $expected, $actual, $message ) {
 }
 
 $today = '2026-07-30';
+
+$GLOBALS['rfs_test_post_meta'][31]['api_response'] = array(
+	'properties_api' => array( 'api_response' => 'last successful property response' ),
+);
+$GLOBALS['rfs_test_post_meta'][44]['api_response'] = array(
+	'units_api' => array( 'api_response' => 'last successful unit response' ),
+);
+
+rfs_rentmanager_update_property_related_api_response(
+	array( 'wordpress_property_post_id' => 31 ),
+	'units_api',
+	array(
+		'success'      => false,
+		'delete_safe'  => false,
+		'reason'       => 'unexpected_response_code',
+		'status_code'  => 403,
+		'error_message' => 'Rent Manager lease access is required.',
+		'raw_response' => '{"error":"Customers: View required"}',
+	)
+);
+$property_responses = $GLOBALS['rfs_test_post_meta'][31]['api_response'];
+rfs_test_assert_same( 'last successful property response', $property_responses['properties_api']['api_response'], 'A related failure preserves the property response.' );
+rfs_test_assert_same( 403, $property_responses['units_api']['status_code'], 'A unit request failure is stored on the property.' );
+rfs_test_assert_same( 'Rent Manager lease access is required.', $property_responses['units_api']['error_message'], 'A human-readable failure explanation is stored when available.' );
+rfs_test_assert_same( 'last successful unit response', $GLOBALS['rfs_test_post_meta'][44]['api_response']['units_api']['api_response'], 'A unit request failure does not overwrite the last successful unit response.' );
+
+rfs_rentmanager_update_property_related_api_response(
+	array( 'wordpress_property_post_id' => 31 ),
+	'units_api',
+	array(
+		'success'     => true,
+		'delete_safe' => true,
+		'units'       => array(),
+	)
+);
+rfs_test_assert_same( false, array_key_exists( 'units_api', $GLOBALS['rfs_test_post_meta'][31]['api_response'] ), 'A good unit response clears the last property-level unit failure.' );
+
+rfs_rentmanager_update_property_related_api_response(
+	array( 'wordpress_property_post_id' => 31 ),
+	'unit_types_api',
+	array(
+		'success'      => true,
+		'delete_safe'  => false,
+		'reason'       => 'valid_unit_types_with_unusable_records',
+		'raw_response' => '[{}]',
+	)
+);
+rfs_test_assert_same( 'valid_unit_types_with_unusable_records', $GLOBALS['rfs_test_post_meta'][31]['api_response']['unit_types_api']['reason'], 'An unsafe partial response remains visible on the property.' );
 
 rfs_test_assert_same(
 	true,
