@@ -20,7 +20,7 @@ function rfs_get_credentials() {
 
 	if ( in_array( 'engrain', $enabled, true ) ) {
 		$credentials['engrain'] = [
-			'api_key' => get_option( 'rentfetch_options_engrain_integration_creds_engrain_api_key' ),
+			'api_key' => rfs_get_engrain_api_key(),
 		];
 	}
 

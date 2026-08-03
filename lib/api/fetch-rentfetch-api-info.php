@@ -226,7 +226,7 @@ function rfs_refresh_info_from_rentfetch_api() {
 		);
 	}
 
-	// Engrain credentials remain local; report only configured assets and usage.
+	// Report Engrain configuration so the API can return its runtime key.
 	if ( in_array( 'engrain', $apis_enabled, true ) ) {
 		$apis_used['engrain'] = array(
 			'asset_ids'            => function_exists( 'rfs_engrain_get_configured_asset_ids' ) ? rfs_engrain_get_configured_asset_ids() : array(),
@@ -355,6 +355,7 @@ function rfs_validate_rentfetch_api_info_response( $response_php_array, $apis_en
 
 	$required_paths = array(
 		'yardi'       => array( 'yardi', 'access_token' ),
+		'engrain'     => array( 'engrain', 'api_key' ),
 		'entrata'     => array( 'entrata', 'api_key' ),
 		'rentmanager' => array( 'rentmanager', 'partner_token' ),
 	);
@@ -490,6 +491,21 @@ function rfs_get_entrata_api_key() {
 		$token = stripslashes( $response['entrata']['api_key'] );
 
 		return $token;
+	}
+
+	return null;
+}
+
+/**
+ * Grab the Engrain API key from the Rentfetch API.
+ *
+ * @return string|null The API key.
+ */
+function rfs_get_engrain_api_key() {
+	$response = rfs_get_info_from_rentfetch_api();
+
+	if ( is_array( $response ) && isset( $response['engrain']['api_key'] ) ) {
+		return stripslashes( $response['engrain']['api_key'] );
 	}
 
 	return null;

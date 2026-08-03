@@ -170,16 +170,10 @@ function rentfetch_settings_sync() {
 					Engrain / SightMap
 				</label>
 				<div class="integration-settings">
-					<div class="rentfetch-yardi-credentials-row">
-						<div class="white-box">
-							<label for="rentfetch_options_engrain_integration_creds_engrain_api_key">Engrain API key</label>
-							<input type="password" name="rentfetch_options_engrain_integration_creds_engrain_api_key" id="rentfetch_options_engrain_integration_creds_engrain_api_key" value="<?php echo esc_attr( get_option( 'rentfetch_options_engrain_integration_creds_engrain_api_key' ) ); ?>" autocomplete="off">
-						</div>
-						<div class="white-box">
-							<label for="rentfetch_options_engrain_integration_creds_engrain_asset_ids">Engrain Asset IDs</label>
-							<textarea rows="5" style="width: 100%;" name="rentfetch_options_engrain_integration_creds_engrain_asset_ids" id="rentfetch_options_engrain_integration_creds_engrain_asset_ids"><?php echo esc_textarea( get_option( 'rentfetch_options_engrain_integration_creds_engrain_asset_ids' ) ); ?></textarea>
-							<p class="description">Enter one or more SightMap asset IDs separated by commas.</p>
-						</div>
+					<div class="white-box">
+						<label for="rentfetch_options_engrain_integration_creds_engrain_asset_ids">Engrain Asset IDs</label>
+						<textarea rows="5" style="width: 100%;" name="rentfetch_options_engrain_integration_creds_engrain_asset_ids" id="rentfetch_options_engrain_integration_creds_engrain_asset_ids"><?php echo esc_textarea( get_option( 'rentfetch_options_engrain_integration_creds_engrain_asset_ids' ) ); ?></textarea>
+						<p class="description">Enter one or more SightMap asset IDs separated by commas.</p>
 					</div>
 				</div>
 			</div>
