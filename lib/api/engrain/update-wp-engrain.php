@@ -751,6 +751,25 @@ function rfs_engrain_get_units_for_floorplan( $units, $floorplan_id ) {
 }
 
 /**
+ * Get the unique unit view images supplied by Engrain.
+ *
+ * @param array $unit Unit row.
+ * @return array
+ */
+function rfs_engrain_get_unit_image_urls( $unit ) {
+	return array_values(
+		array_unique(
+			array_filter(
+				array(
+					esc_url_raw( (string) ( $unit['view_image_url'] ?? '' ) ),
+					esc_url_raw( (string) ( $unit['secondary_view_image_url'] ?? '' ) ),
+				)
+			)
+		)
+	);
+}
+
+/**
  * Update an Engrain floorplan.
  *
  * @param array      $args Sync args.
@@ -872,15 +891,16 @@ function rfs_engrain_update_unit( $args, $unit, $floorplan, $pricing_context = n
 
 	$area = isset( $unit['area'] ) && is_numeric( $unit['area'] ) ? (int) round( (float) $unit['area'] ) : 0;
 	$meta = array(
-		'unit_id'      => sanitize_text_field( (string) $unit['id'] ),
-		'floorplan_id' => sanitize_text_field( (string) $unit['floor_plan_id'] ),
-		'property_id'  => sanitize_text_field( (string) $args['property_id'] ),
-		'unit_source'  => 'engrain',
-		'unit_number'  => sanitize_text_field( (string) ( $unit['unit_number'] ?? '' ) ),
-		'sqrft'        => $area > 0 ? $area : null,
-		'beds'         => isset( $floorplan['bedroom_count'] ) ? (float) $floorplan['bedroom_count'] : 0,
-		'baths'        => isset( $floorplan['bathroom_count'] ) ? (float) $floorplan['bathroom_count'] : 0,
-		'updated'      => current_time( 'mysql' ),
+		'unit_id'         => sanitize_text_field( (string) $unit['id'] ),
+		'floorplan_id'    => sanitize_text_field( (string) $unit['floor_plan_id'] ),
+		'property_id'     => sanitize_text_field( (string) $args['property_id'] ),
+		'unit_source'     => 'engrain',
+		'unit_number'     => sanitize_text_field( (string) ( $unit['unit_number'] ?? '' ) ),
+		'unit_image_urls' => rfs_engrain_get_unit_image_urls( $unit ),
+		'sqrft'           => $area > 0 ? $area : null,
+		'beds'            => isset( $floorplan['bedroom_count'] ) ? (float) $floorplan['bedroom_count'] : 0,
+		'baths'           => isset( $floorplan['bathroom_count'] ) ? (float) $floorplan['bathroom_count'] : 0,
+		'updated'         => current_time( 'mysql' ),
 	);
 	if ( is_array( $pricing_context ) && ! empty( $pricing_context['authoritative'] ) ) {
 		$meta['minimum_rent']                = $pricing_context['minimum_rent'] ?? null;
@@ -906,7 +926,6 @@ function rfs_engrain_update_unit( $args, $unit, $floorplan, $pricing_context = n
 	rfs_engrain_delete_unused_meta(
 		$post_id,
 		array(
-			'unit_image_urls',
 			'engrain_building_id',
 			'engrain_floor_id',
 			'engrain_map_id',
@@ -937,8 +956,8 @@ function rfs_engrain_update_unit( $args, $unit, $floorplan, $pricing_context = n
 		)
 	);
 
-	// Building/map IDs, address fragments, affordable flags, raw pricing rows,
-	// and unit image URLs have no current Rent Fetch field or template consumer.
+	// Building/map IDs, address fragments, affordable flags, and raw pricing
+	// rows have no current Rent Fetch field or template consumer.
 	$response = array(
 		'success'     => true,
 		'delete_safe' => false,
