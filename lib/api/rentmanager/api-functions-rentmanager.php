@@ -1024,17 +1024,19 @@ function rfs_rentmanager_summarize_unit_availability_dates( $availability_dates 
 }
 
 /**
- * Get a unit's usable Rent Manager market-rent range.
+ * Get a unit's usable Rent Manager market-rent range for its availability.
  *
  * Availability must not depend on pricing being populated. Invalid or missing
  * MarketRent rows are ignored and produce a zero range while the unit remains
  * eligible to roll up availability.
  *
- * @param mixed $market_rents Rent Manager MarketRent records.
+ * @param mixed       $market_rents  Rent Manager MarketRent records.
+ * @param string|null $reference_date Unit availability date; defaults to today.
+ * @param string|null $today          Current date override for deterministic tests.
  * @return array{minimum:float,maximum:float}
  */
-function rfs_rentmanager_get_market_rent_range( $market_rents ) {
-	$amounts = array();
+function rfs_rentmanager_get_market_rent_range( $market_rents, $reference_date = null, $today = null ) {
+	$rows = array();
 
 	foreach ( (array) $market_rents as $market_rent ) {
 		if ( ! is_array( $market_rent ) || ! array_key_exists( 'Amount', $market_rent ) || ! is_scalar( $market_rent['Amount'] ) ) {
@@ -1046,8 +1048,56 @@ function rfs_rentmanager_get_market_rent_range( $market_rents ) {
 			continue;
 		}
 
-		$amounts[] = (float) $amount;
+		$has_to_date = isset( $market_rent['ToDate'] ) && is_scalar( $market_rent['ToDate'] ) && '' !== trim( (string) $market_rent['ToDate'] );
+		$create_date = isset( $market_rent['CreateDate'] ) && is_scalar( $market_rent['CreateDate'] )
+			? strtotime( (string) $market_rent['CreateDate'] )
+			: false;
+
+		$rows[] = array(
+			'amount'       => (float) $amount,
+			'from_date'    => rfs_rentmanager_normalize_date( $market_rent['FromDate'] ?? null ),
+			'to_date'      => rfs_rentmanager_normalize_date( $market_rent['ToDate'] ?? null ),
+			'open_ended'   => ! $has_to_date,
+			'create_date'  => $create_date,
+		);
 	}
+
+	$today          = rfs_rentmanager_normalize_date( $today ) ?: current_time( 'Y-m-d' );
+	$reference_date = rfs_rentmanager_normalize_date( $reference_date ) ?: $today;
+	$selected       = array_values(
+		array_filter(
+			$rows,
+			function ( $row ) use ( $reference_date ) {
+				return null !== $row['from_date']
+					&& $row['from_date'] <= $reference_date
+					&& ( $row['open_ended'] || ( null !== $row['to_date'] && $row['to_date'] >= $reference_date ) );
+			}
+		)
+	);
+
+	if ( empty( $selected ) ) {
+		$selected = array_values(
+			array_filter(
+				$rows,
+				function ( $row ) use ( $today ) {
+					return null !== $row['from_date']
+						&& ( $row['open_ended'] || ( null !== $row['to_date'] && $row['to_date'] >= $today ) );
+				}
+			)
+		);
+	}
+
+	if ( empty( $selected ) ) {
+		$latest_create_date = false;
+		foreach ( $rows as $row ) {
+			if ( false !== $row['create_date'] && ( false === $latest_create_date || $row['create_date'] > $latest_create_date ) ) {
+				$latest_create_date = $row['create_date'];
+				$selected           = array( $row );
+			}
+		}
+	}
+
+	$amounts = array_column( $selected, 'amount' );
 
 	return array(
 		'minimum' => empty( $amounts ) ? 0.0 : min( $amounts ),
@@ -1290,7 +1340,7 @@ function rfs_rentmanager_update_unit_meta( $args, $unit ) {
 
 	$availability_date = $availability['availability_date'];
 	
-	$market_rent_range = rfs_rentmanager_get_market_rent_range( $unit['MarketRent'] ?? array() );
+	$market_rent_range = rfs_rentmanager_get_market_rent_range( $unit['MarketRent'] ?? array(), $availability_date );
 	$minimum_rent      = $market_rent_range['minimum'];
 	$maximum_rent      = $market_rent_range['maximum'];
 	

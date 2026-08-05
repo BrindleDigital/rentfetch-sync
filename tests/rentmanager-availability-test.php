@@ -48,7 +48,7 @@ if ( ! function_exists( 'wp_json_encode' ) ) {
 
 if ( ! function_exists( 'current_time' ) ) {
 	function current_time( $type = 'mysql' ) {
-		return '2026-08-02 12:00:00';
+		return 'Y-m-d' === $type ? '2026-08-02' : '2026-08-02 12:00:00';
 	}
 }
 
@@ -360,15 +360,40 @@ $missing_market_rent = rfs_rentmanager_get_market_rent_range( array() );
 rfs_test_assert_same( 0.0, $missing_market_rent['minimum'], 'Missing market rent does not prevent an available unit from syncing.' );
 rfs_test_assert_same( 0.0, $missing_market_rent['maximum'], 'Missing market rent produces a safe zero maximum.' );
 
-$sparse_market_rent = rfs_rentmanager_get_market_rent_range(
+$availability_market_rent = rfs_rentmanager_get_market_rent_range(
 	array(
-		array(),
-		array( 'Amount' => '1,425.50' ),
+		array( 'Amount' => '1,425.50', 'FromDate' => '2025-01-01', 'ToDate' => '2026-08-30', 'CreateDate' => '2025-01-01T08:00:00' ),
 		array( 'Amount' => 'not-a-price' ),
-		array( 'Amount' => 1625 ),
-	)
+		array( 'Amount' => 1625, 'FromDate' => '2026-08-31', 'ToDate' => '2026-09-30', 'CreateDate' => '2026-01-01T08:00:00' ),
+		array( 'Amount' => 1725, 'FromDate' => '2026-08-01', 'ToDate' => '2026-09-15', 'CreateDate' => '2026-02-01T08:00:00' ),
+	),
+	'2026-08-31',
+	'2026-08-02'
 );
-rfs_test_assert_same( 1425.5, $sparse_market_rent['minimum'], 'Invalid market-rent rows are ignored.' );
-rfs_test_assert_same( 1625.0, $sparse_market_rent['maximum'], 'Valid market-rent rows determine the range.' );
+rfs_test_assert_same( 1625.0, $availability_market_rent['minimum'], 'Historical and invalid market rents are excluded.' );
+rfs_test_assert_same( 1725.0, $availability_market_rent['maximum'], 'All market rents covering availability determine the range.' );
+
+$future_market_rent = rfs_rentmanager_get_market_rent_range(
+	array(
+		array( 'Amount' => 1300, 'FromDate' => '2021-01-01', 'ToDate' => '2026-08-20', 'CreateDate' => '2021-01-01T08:00:00' ),
+		array( 'Amount' => 1400, 'FromDate' => '2026-08-21', 'ToDate' => '2026-09-15', 'CreateDate' => '2026-01-01T08:00:00' ),
+		array( 'Amount' => 1100, 'FromDate' => '2020-01-01', 'ToDate' => '2026-08-01', 'CreateDate' => '2020-01-01T08:00:00' ),
+	),
+	'2026-10-01',
+	'2026-08-02'
+);
+rfs_test_assert_same( 1300.0, $future_market_rent['minimum'], 'The future fallback includes a rent that began in the past.' );
+rfs_test_assert_same( 1400.0, $future_market_rent['maximum'], 'The future fallback includes upcoming rents.' );
+
+$latest_created_market_rent = rfs_rentmanager_get_market_rent_range(
+	array(
+		array( 'Amount' => 1200, 'FromDate' => '2025-01-01', 'ToDate' => '2025-12-31', 'CreateDate' => '2026-02-01T08:00:00' ),
+		array( 'Amount' => 1500, 'FromDate' => '2025-01-01', 'ToDate' => '2025-12-31', 'CreateDate' => '2026-03-01T08:00:00' ),
+	),
+	'2026-10-01',
+	'2026-08-02'
+);
+rfs_test_assert_same( 1500.0, $latest_created_market_rent['minimum'], 'Expired rents fall back to the most recently created record.' );
+rfs_test_assert_same( 1500.0, $latest_created_market_rent['maximum'], 'The latest-created fallback produces a single rent.' );
 
 echo "Rent Manager availability tests passed.\n";
