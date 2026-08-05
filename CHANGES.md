@@ -1,3 +1,7 @@
+## 0.16.3
+
+- Reconciled Yardi `204` floorplan responses with apartment availability: empty availability removes synced floorplans and units, while available units preserve or create their referenced floorplans and continue syncing safely.
+
 ## 0.16.2
 
 - Replaced comma-separated Yardi, Engrain/SightMap, and Entrata property fields with compact, status-colored tags that show matched property names and support individual removal, Copy all, and Clear all actions.
