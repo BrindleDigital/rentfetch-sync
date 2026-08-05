@@ -1,3 +1,13 @@
+## 0.16.4
+
+- Improved Rent Manager availability by using lease move-in, notice, and expected move-out data instead of relying on current vacancy alone.
+- Prevented units with future leases from appearing available, while allowing occupied units on notice to show their expected future availability.
+- Rolled unit availability up to floorplans and properties so they remain available whenever at least one related unit has current or future availability.
+- Updated Rent Manager base rent calculations to use market rents applicable to the unit's availability date, then future applicable rents, and finally the most recently created rent record when needed.
+- Excluded expired historical rents from advertised ranges when current or future pricing is available.
+- Hardened Rent Manager syncing against failed, incomplete, or malformed unit and floorplan responses so those responses cannot remove valid synced inventory.
+- Preserved the last successful floorplan and unit diagnostics while recording related request failures on the property for easier troubleshooting.
+
 ## 0.16.3
 
 - Reconciled Yardi `204` floorplan responses with apartment availability: empty availability removes synced floorplans and units, while available units preserve or create their referenced floorplans and continue syncing safely.
