@@ -1,6 +1,9 @@
 ## 0.16.2
 
-- Treated Yardi `204` floorplan responses as authoritative empty inventory, deleting the property's synced Yardi floorplans and units without running a unit sync.
+- Replaced comma-separated Yardi, Engrain/SightMap, and Entrata property fields with compact, status-colored tags that show matched property names and support individual removal, Copy all, and Clear all actions.
+- Added per-property Rent Manager sync toggles and removed disabled properties, floorplans, and units from the site while retaining the API-provided property list in settings.
+- Excluded disabled Rent Manager properties from scheduled, accelerated, and direct sync execution.
+- Improved Sync settings spacing, alignment, guidance text, accessibility, and scroll behavior, and removed the obsolete Rent Manager requesting-IP notice.
 
 ## 0.16.1
 

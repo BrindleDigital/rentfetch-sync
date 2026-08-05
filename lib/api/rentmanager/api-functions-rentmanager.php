@@ -22,6 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return  void.
  */
 function rfs_do_rentmanager_sync( $args ) {
+	$enabled_shortnames = array_column( rfs_get_enabled_rentmanager_properties(), 'ShortName' );
+	if ( empty( $args['property_id'] ) || ! in_array( (string) $args['property_id'], $enabled_shortnames, true ) ) {
+		return;
+	}
 	
 	// Increase memory limit to handle large datasets
 	ini_set('memory_limit', '512M');

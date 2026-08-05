@@ -9,7 +9,7 @@
 	"requires_php": "7.4",
 	"sections": {
 		"description": "This is my plugin description.",
-		"changelog": "<h4>0.16.2</h4><ul><li>Treated Yardi 204 floorplan responses as authoritative empty inventory, deleting the property's synced Yardi floorplans and units without running a unit sync.</li></ul>",
+		"changelog": "<h4>0.16.2</h4><ul><li>Replaced comma-separated Yardi, Engrain/SightMap, and Entrata property fields with compact, status-colored tags that show matched property names and support individual removal, Copy all, and Clear all actions.</li><li>Added per-property Rent Manager sync toggles and removed disabled properties, floorplans, and units from the site while retaining the API-provided property list in settings.</li><li>Excluded disabled Rent Manager properties from scheduled, accelerated, and direct sync execution.</li><li>Improved Sync settings spacing, alignment, guidance text, accessibility, and scroll behavior, and removed the obsolete Rent Manager requesting-IP notice.</li></ul>",
 		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
 	}
 }

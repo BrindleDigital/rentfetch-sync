@@ -49,7 +49,7 @@ function rfs_rentmanager_remove_properties_that_shouldnt_be_synced_property_dele
 	}
 
 	// let's get the array of the shortnames of the properties from the setting.
-	$property_shortnames = array_column( $property_shortnames, 'ShortName' );
+	$property_shortnames = array_column( rfs_get_enabled_rentmanager_properties(), 'ShortName' );
 
 	// if we have any $wordpress_posts that are not in the $property_shortnames, we need to delete them.
 	foreach ( $wordpress_posts as $post ) {
@@ -99,7 +99,7 @@ function rfs_rentmanager_remove_floorplans_that_shouldnt_be_synced_property_dele
 	}
 
 	// let's get the array of the shortnames of the properties from the setting.
-	$property_shortnames = array_column( $property_shortnames, 'ShortName' );
+	$property_shortnames = array_column( rfs_get_enabled_rentmanager_properties(), 'ShortName' );
 
 	// if we have any $wordpress_posts that are not in the $property_shortnames, we need to delete them.
 	foreach ( $wordpress_posts as $post ) {
@@ -149,7 +149,7 @@ function rfs_rentmanager_remove_units_that_shouldnt_be_synced_property_deleted()
 	}
 
 	// let's get the array of the shortnames of the properties from the setting.
-	$property_shortnames = array_column( $property_shortnames, 'ShortName' );
+	$property_shortnames = array_column( rfs_get_enabled_rentmanager_properties(), 'ShortName' );
 
 	// if we have any $wordpress_posts that are not in the $property_shortnames, we need to delete them.
 	foreach ( $wordpress_posts as $post ) {
