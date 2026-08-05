@@ -62,7 +62,7 @@ function rfs_maybe_create_floorplan( $args ) {
 
 	// if we're here, we need to create the floorplan post.
 	$new_floorplan_post = array(
-		'post_title'  => $floorplan_id,
+		'post_title'  => $args['floorplan_name'] ?? $floorplan_id,
 		'post_type'   => 'floorplans',
 		'post_status' => 'publish',
 		'meta_input'  => array(

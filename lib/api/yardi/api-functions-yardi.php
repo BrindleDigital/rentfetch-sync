@@ -48,11 +48,21 @@ function rfs_do_yardi_sync( $args ) {
 	$floorplans_data_v2     = isset( $floorplans_response_v2['floorplans'] ) && is_array( $floorplans_response_v2['floorplans'] )
 		? $floorplans_response_v2['floorplans']
 		: array();
+	$unit_data_v2           = rfs_yardi_v2_get_unit_data( $args );
+
+	$floorplans_cleanup_response_v2 = $floorplans_response_v2;
+	$floorplans_from_units          = false;
+
+	if ( 204 === (int) ( $floorplans_response_v2['status_code'] ?? 0 ) ) {
+		list( $floorplans_response_v2, $floorplans_cleanup_response_v2, $floorplans_from_units ) =
+			rfs_yardi_v2_reconcile_floorplan_204_response( $floorplans_response_v2, $unit_data_v2 );
+	}
 
 	if (
 		is_array( $floorplans_response_v2 )
 		&& (
 			empty( $floorplans_response_v2['success'] )
+			|| 204 === (int) ( $floorplans_response_v2['status_code'] ?? 0 )
 			|| ( ! empty( $floorplans_response_v2['delete_safe'] ) && empty( $floorplans_data_v2 ) )
 		)
 	) {
@@ -60,18 +70,10 @@ function rfs_do_yardi_sync( $args ) {
 	}
 	
 	// delete floorplans that are no longer in the API at all.
-	rfs_yardi_v2_delete_orphan_floorplans( $args, $floorplans_response_v2 );
+	rfs_yardi_v2_delete_orphan_floorplans( $args, $floorplans_cleanup_response_v2 );
 	
 	// delete orphan units (orphaned by their floorplans being deleted).
-	rfs_yardi_v2_delete_orphan_units( $args, $floorplans_response_v2 );
-
-	// A 204 means this property has no floorplans or units to sync.
-	if ( 204 === (int) ( $floorplans_response_v2['status_code'] ?? 0 ) ) {
-		return;
-	}
-	
-	// get the availability data (this should be the units), which we'll need both for the floorplan and the unit.
-	$unit_data_v2 = rfs_yardi_v2_get_unit_data( $args );
+	rfs_yardi_v2_delete_orphan_units( $args, $floorplans_cleanup_response_v2 );
 						
 	// ~ We'll need the floorplan ID to update that.
 	if ( is_array( $floorplans_data_v2 ) ) {
@@ -121,6 +123,12 @@ function rfs_do_yardi_sync( $args ) {
 			}
 			
 			$args['floorplan_id'] = $unit['floorplanId'];
+
+			if ( $floorplans_from_units ) {
+				$args['floorplan_name'] = $unit['floorplanName'] ?? $unit['floorplanId'];
+				$args                   = rfs_maybe_create_floorplan( $args );
+				unset( $args['floorplan_name'] );
+			}
 
 			// now that we have the unit ID, we can create that if needed, or just get the post ID if it already exists (returned in $args).
 			$args = rfs_maybe_create_unit( $args );
@@ -206,4 +214,49 @@ function rfs_do_yardi_sync( $args ) {
 	// 	}
 	// }
 	
+}
+
+/**
+ * Reconcile an empty Yardi floorplan response with apartment availability.
+ *
+ * @param array $floorplans_response_v2 Structured floorplan response.
+ * @param mixed $unit_data_v2 Apartment availability data.
+ * @return array Updated response, cleanup response, and whether floorplans came from units.
+ */
+function rfs_yardi_v2_reconcile_floorplan_204_response( $floorplans_response_v2, $unit_data_v2 ) {
+	$floorplans_cleanup_response_v2 = $floorplans_response_v2;
+	$floorplans_from_units          = false;
+
+	if ( ! empty( $unit_data_v2 ) && is_array( $unit_data_v2 ) ) {
+		$unit_floorplan_ids = array();
+
+		foreach ( $unit_data_v2 as $unit ) {
+			if ( is_array( $unit ) && ! empty( $unit['floorplanId'] ) ) {
+				$unit_floorplan_ids[] = (string) $unit['floorplanId'];
+			}
+		}
+
+		$unit_floorplan_ids = array_values( array_unique( $unit_floorplan_ids ) );
+
+		if ( $unit_floorplan_ids ) {
+			$floorplans_cleanup_response_v2['floorplans'] = array_map(
+				static function( $floorplan_id ) {
+					return array( 'floorplanId' => $floorplan_id );
+				},
+				$unit_floorplan_ids
+			);
+			$floorplans_response_v2['reason'] = 'blank_response_with_available_units';
+			$floorplans_from_units            = true;
+		} else {
+			$floorplans_cleanup_response_v2['delete_safe'] = false;
+			$floorplans_response_v2['delete_safe']         = false;
+			$floorplans_response_v2['reason']              = 'blank_response_with_unusable_units';
+		}
+	} elseif ( ! is_array( $unit_data_v2 ) ) {
+		$floorplans_cleanup_response_v2['delete_safe'] = false;
+		$floorplans_response_v2['delete_safe']         = false;
+		$floorplans_response_v2['reason']              = 'blank_response_with_unconfirmed_units';
+	}
+
+	return array( $floorplans_response_v2, $floorplans_cleanup_response_v2, $floorplans_from_units );
 }
