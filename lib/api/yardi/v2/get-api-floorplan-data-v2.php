@@ -75,6 +75,17 @@ function rfs_yardi_v2_get_floorplan_data( $args ) {
 	$response_body = wp_remote_retrieve_body( $response );
 	$response_body = rentfetch_clean_json_string( $response_body );
 
+	if ( 204 === (int) $response_code ) {
+		return array(
+			'success'      => true,
+			'delete_safe'  => true,
+			'floorplans'   => array(),
+			'reason'       => 'blank_response',
+			'raw_response' => $response_body,
+			'status_code'  => 204,
+		);
+	}
+
 	if ( 200 !== (int) $response_code || '' === trim( (string) $response_body ) ) {
 		return array(
 			'success'      => false,

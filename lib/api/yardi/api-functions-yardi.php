@@ -64,6 +64,11 @@ function rfs_do_yardi_sync( $args ) {
 	
 	// delete orphan units (orphaned by their floorplans being deleted).
 	rfs_yardi_v2_delete_orphan_units( $args, $floorplans_response_v2 );
+
+	// A 204 means this property has no floorplans or units to sync.
+	if ( 204 === (int) ( $floorplans_response_v2['status_code'] ?? 0 ) ) {
+		return;
+	}
 	
 	// get the availability data (this should be the units), which we'll need both for the floorplan and the unit.
 	$unit_data_v2 = rfs_yardi_v2_get_unit_data( $args );

@@ -1,3 +1,7 @@
+## 0.16.2
+
+- Treated Yardi `204` floorplan responses as authoritative empty inventory, deleting the property's synced Yardi floorplans and units without running a unit sync.
+
 ## 0.16.1
 
 - Stored property-level Yardi apartment availability diagnostics for `204` responses and cleared them after a later valid or unchanged response.
