@@ -3,13 +3,13 @@
 	"slug": "rentfetch-sync",
 	"author": "<a href='https://brindledigital.com'>Brindle Digital</a>",
 	"author_profile": "https://brindledigital.com",
-	"version": "0.16.1",
+	"version": "0.16.2",
 	"requires": "6.5",
 	"tested": "6.6",
 	"requires_php": "7.4",
 	"sections": {
 		"description": "This is my plugin description.",
-		"changelog": "<h4>0.16.1</h4><ul><li>Stored property-level Yardi apartment availability diagnostics for 204 responses and cleared them after a later valid or unchanged response.</li><li>Fixed single-property sync redirects so repeated syncs replace the existing success flag instead of appending duplicate query parameters.</li></ul>",
+		"changelog": "<h4>0.16.2</h4><ul><li>Replaced comma-separated Yardi, Engrain/SightMap, and Entrata property fields with compact, status-colored tags that show matched property names and support individual removal, Copy all, and Clear all actions.</li><li>Added per-property Rent Manager sync toggles and removed disabled properties, floorplans, and units from the site while retaining the API-provided property list in settings.</li><li>Excluded disabled Rent Manager properties from scheduled, accelerated, and direct sync execution.</li><li>Improved Sync settings spacing, alignment, guidance text, accessibility, and scroll behavior, and removed the obsolete Rent Manager requesting-IP notice.</li></ul>",
 		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
 	}
 }

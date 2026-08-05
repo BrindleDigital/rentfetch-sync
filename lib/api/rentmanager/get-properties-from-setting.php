@@ -10,6 +10,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Get only Rent Manager properties currently enabled for syncing.
+ *
+ * @return array
+ */
+function rfs_get_enabled_rentmanager_properties() {
+	$properties = get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames', array() );
+	$disabled   = get_option( 'rentfetch_options_rentmanager_disabled_property_shortnames', array() );
+
+	if ( ! is_array( $properties ) ) {
+		return array();
+	}
+
+	$disabled = is_array( $disabled ) ? array_map( 'strval', array_filter( $disabled, 'is_scalar' ) ) : array();
+
+	return array_values(
+		array_filter(
+			$properties,
+			static function ( $property ) use ( $disabled ) {
+				return is_array( $property )
+					&& ! empty( $property['ShortName'] )
+					&& ! in_array( (string) $property['ShortName'], $disabled, true );
+			}
+		)
+	);
+}
+
+/**
  * Query the RentManager API for properties and save the shortnames to the settings.
  *
  * @return  void

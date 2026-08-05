@@ -12,9 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Enqueue the scripts
  *
+ * @param string $hook Current admin page hook.
  * @return  void.
  */
-function rfs_enqueue_backend_scripts() {
+function rfs_enqueue_backend_scripts( $hook ) {
 	wp_register_script(
 		'rentfetch-ajax-property-sync',
 		RENTFETCHSYNC_PATH . 'assets/js/rentfetch-ajax-property-sync.js',
@@ -22,6 +23,18 @@ function rfs_enqueue_backend_scripts() {
 		RENTFETCHSYNC_VERSION,
 		true
 	);
+
+	wp_register_script(
+		'rentfetch-sync-settings-tags',
+		RENTFETCHSYNC_PATH . 'assets/js/rentfetch-sync-settings-tags.js',
+		array(),
+		RENTFETCHSYNC_VERSION,
+		true
+	);
+
+	if ( 'toplevel_page_rentfetch-options' === $hook ) {
+		wp_enqueue_script( 'rentfetch-sync-settings-tags' );
+	}
 }
 add_action( 'admin_enqueue_scripts', 'rfs_enqueue_backend_scripts' );
 

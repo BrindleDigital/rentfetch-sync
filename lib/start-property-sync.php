@@ -365,7 +365,7 @@ function rfs_perform_syncs() {
 	if ( in_array( 'rentmanager', $enabled_integrations ) ) {
 		
 		// get the properties for rent manager, then turn it into an array
-		$rentmanager_properties = get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' );
+		$rentmanager_properties = rfs_get_enabled_rentmanager_properties();
 		
 		if ( !is_array( $rentmanager_properties ) ) {
 			$rentmanager_properties = [];
