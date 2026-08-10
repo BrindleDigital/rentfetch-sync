@@ -1,3 +1,7 @@
+## 0.16.5
+
+- Synced every Yardi property, floorplan, and unit video or virtual-tour URL into normalized `synced_tours` post meta.
+
 ## 0.16.4
 
 - Improved Rent Manager availability by using lease move-in, notice, and expected move-out data instead of relying on current vacancy alone.

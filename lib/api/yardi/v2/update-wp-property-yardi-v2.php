@@ -107,6 +107,7 @@ function rfs_yardi_v2_update_property_meta( $args, $property_data ) {
 		'phone' => esc_html( $data['phone'] ),
 		'latitude' => esc_html( $data['latitude'] ),
 		'longitude' => esc_html( $data['longitude'] ),
+		'synced_tours' => rfs_yardi_v2_get_synced_tours( $data ),
 		'updated' => current_time('mysql'),
 		'api_response' => $api_response,
 	];

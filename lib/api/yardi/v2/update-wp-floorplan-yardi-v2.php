@@ -138,6 +138,7 @@ function rfs_yardi_v2_update_floorplan_meta( $args, $floorplan_data, $unit_data_
 		'minimum_deposit'          => floatval( $floorplan_data['minimumDeposit'] ?? 0 ),
 		'minimum_rent'             => floatval( $floorplan_data['minimumRent'] ?? 0 ),
 		'minimum_sqft'             => absint( $floorplan_data['minimumSQFT'] ?? 0 ),
+		'synced_tours'             => rfs_yardi_v2_get_synced_tours( $floorplan_data ),
 		'updated'                  => current_time( 'mysql' ),
 		'api_error'                => '',
 		'api_response'             => $api_response,

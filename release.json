@@ -3,13 +3,13 @@
 	"slug": "rentfetch-sync",
 	"author": "<a href='https://brindledigital.com'>Brindle Digital</a>",
 	"author_profile": "https://brindledigital.com",
-	"version": "0.16.4",
+	"version": "0.16.5",
 	"requires": "6.5",
 	"tested": "6.6",
 	"requires_php": "7.4",
 	"sections": {
 		"description": "This is my plugin description.",
-		"changelog": "<h4>0.16.4</h4><ul><li>Improved Rent Manager availability by using lease move-in, notice, and expected move-out data instead of relying on current vacancy alone.</li><li>Prevented units with future leases from appearing available, while allowing occupied units on notice to show their expected future availability.</li><li>Rolled unit availability up to floorplans and properties whenever at least one related unit has current or future availability.</li><li>Updated base rent calculations to favor pricing applicable to a unit's availability date and exclude expired historical rents when current or future pricing is available.</li><li>Hardened Rent Manager syncing against incomplete or failed responses and improved diagnostic preservation for troubleshooting.</li></ul>",
+		"changelog": "<h4>0.16.5</h4><ul><li>Synced every Yardi property, floorplan, and unit video or virtual-tour URL into normalized <code>synced_tours</code> post meta.</li></ul>",
 		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
 	}
 }

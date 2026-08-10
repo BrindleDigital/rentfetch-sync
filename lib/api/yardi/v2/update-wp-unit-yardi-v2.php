@@ -145,6 +145,7 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 		'sqrft'             => $square_feet,
 		'amenities'         => isset( $unit_data['amenities'] ) ? $sanitize_mixed( $unit_data['amenities'] ) : '',
 		'specials'          => isset( $unit_data['specials'] ) ? $sanitize_mixed( $unit_data['specials'] ) : '',
+		'synced_tours'      => rfs_yardi_v2_get_synced_tours( $unit_data ),
 		'unit_source'       => 'yardi',
 		'updated'           => current_time( 'mysql' ),
 		'api_response'      => $api_response,
