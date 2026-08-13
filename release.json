@@ -3,13 +3,13 @@
 	"slug": "rentfetch-sync",
 	"author": "<a href='https://brindledigital.com'>Brindle Digital</a>",
 	"author_profile": "https://brindledigital.com",
-	"version": "0.16.5",
+	"version": "0.16.6",
 	"requires": "6.5",
 	"tested": "6.6",
 	"requires_php": "7.4",
 	"sections": {
 		"description": "This is my plugin description.",
-		"changelog": "<h4>0.16.5</h4><ul><li>Synced every Yardi property, floorplan, and unit video or virtual-tour URL into normalized <code>synced_tours</code> post meta.</li></ul>",
+		"changelog": "<h4>0.16.6</h4><ul><li>Stored Yardi unit-level image URLs in normalized <code>unit_image_urls</code> post meta for display in the Rent Fetch unit editor.</li></ul>",
 		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
 	}
 }

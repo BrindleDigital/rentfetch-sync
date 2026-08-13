@@ -10,6 +10,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Normalize the unit image URLs included in a Yardi availability record.
+ *
+ * @param array $unit_data Unit data from the API.
+ * @return array
+ */
+function rfs_yardi_v2_get_unit_image_urls( $unit_data ) {
+	$urls = array_merge(
+		(array) ( $unit_data['unitImageURLs'] ?? array() ),
+		(array) ( $unit_data['unitImageURLsArray'] ?? array() )
+	);
+
+	$urls = array_reduce(
+		$urls,
+		static function( $normalized, $url ) {
+			return array_merge( $normalized, preg_split( '/\s*,\s*/', (string) $url, -1, PREG_SPLIT_NO_EMPTY ) );
+		},
+		array()
+	);
+
+	return array_values( array_unique( array_filter( array_map( 'esc_url_raw', $urls ) ) ) );
+}
+
+/**
  * Update the unit meta
  *
  * @param   array $args       the current $args in the sync process.
@@ -145,6 +168,7 @@ function rfs_yardi_v2_update_unit_meta( $args, $unit_data ) {
 		'sqrft'             => $square_feet,
 		'amenities'         => isset( $unit_data['amenities'] ) ? $sanitize_mixed( $unit_data['amenities'] ) : '',
 		'specials'          => isset( $unit_data['specials'] ) ? $sanitize_mixed( $unit_data['specials'] ) : '',
+		'unit_image_urls'   => rfs_yardi_v2_get_unit_image_urls( $unit_data ),
 		'synced_tours'      => rfs_yardi_v2_get_synced_tours( $unit_data ),
 		'unit_source'       => 'yardi',
 		'updated'           => current_time( 'mysql' ),

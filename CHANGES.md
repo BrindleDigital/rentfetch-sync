@@ -1,3 +1,7 @@
+## 0.16.6
+
+- Stored Yardi unit-level image URLs in normalized `unit_image_urls` post meta for display in the Rent Fetch unit editor.
+
 ## 0.16.5
 
 - Synced every Yardi property, floorplan, and unit video or virtual-tour URL into normalized `synced_tours` post meta.
