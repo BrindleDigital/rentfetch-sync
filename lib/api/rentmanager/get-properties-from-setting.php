@@ -53,20 +53,18 @@ function rfs_get_rentmanager_properties_from_setting() {
 
 	$credentials = rfs_get_credentials();
 
-	if ( ! isset( $credentials['rentmanager']['companycode'] ) || ! isset( $credentials['rentmanager']['partner_token'] ) ) {
+	if ( empty( $credentials['rentmanager']['companycode'] ) ) {
 		update_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames', 'Provide credentials to get properties list.' );
 		return;
 	}
 
 	$rentmanager_company_code = $credentials['rentmanager']['companycode'];
-	$partner_token = $credentials['rentmanager']['partner_token'];
 
 	// Use the proxy endpoint instead of direct API call
 	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/properties-all';
 
 	$body = wp_json_encode(array(
 		'company_code' => $rentmanager_company_code,
-		'partner_token' => $partner_token
 	));
 
 	// Prepare the headers.

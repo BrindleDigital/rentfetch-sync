@@ -198,14 +198,12 @@ function rfs_rentmanager_update_property_related_api_response( $args, $endpoint,
  */
 function rfs_rentmanager_get_property_data( $args ) {
 	$rentmanager_company_code = $args['credentials']['rentmanager']['companycode'];
-	$partner_token = $args['credentials']['rentmanager']['partner_token'];
 
 	// Use the proxy endpoint instead of direct API call
 	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/properties';
 
 	$body = wp_json_encode(array(
 		'company_code'  => $rentmanager_company_code,
-		'partner_token' => $partner_token,
 		'property_id'   => $args['property_id'],
 	));
 
@@ -403,9 +401,8 @@ function rfs_rentmanager_update_property_meta( $args, $property_data ) {
  */
 function rfs_rentmanager_get_unit_types_data( $args ) {
 	$rentmanager_company_code = isset( $args['credentials']['rentmanager']['companycode'] ) ? $args['credentials']['rentmanager']['companycode'] : '';
-	$partner_token = isset( $args['credentials']['rentmanager']['partner_token'] ) ? $args['credentials']['rentmanager']['partner_token'] : '';
 
-	if ( ! $rentmanager_company_code || ! $partner_token || empty( $args['rentmanager_property_id'] ) ) {
+	if ( ! $rentmanager_company_code || empty( $args['rentmanager_property_id'] ) ) {
 		return array(
 			'success'     => false,
 			'delete_safe' => false,
@@ -419,7 +416,6 @@ function rfs_rentmanager_get_unit_types_data( $args ) {
 
 	$body = wp_json_encode(array(
 		'company_code' => $rentmanager_company_code,
-		'partner_token' => $partner_token,
 		'property_id' => $args['rentmanager_property_id']
 	));
 
@@ -801,9 +797,8 @@ function rfs_rentmanager_remove_unit_types_no_longer_in_api( $args, $unit_types_
  */
 function rfs_rentmanager_get_units_data( $args ) {
 	$rentmanager_company_code = isset( $args['credentials']['rentmanager']['companycode'] ) ? $args['credentials']['rentmanager']['companycode'] : '';
-	$partner_token = isset( $args['credentials']['rentmanager']['partner_token'] ) ? $args['credentials']['rentmanager']['partner_token'] : '';
 
-	if ( ! $rentmanager_company_code || ! $partner_token || empty( $args['property_id'] ) ) {
+	if ( ! $rentmanager_company_code || empty( $args['property_id'] ) ) {
 		return array(
 			'success'     => false,
 			'delete_safe' => false,
@@ -817,7 +812,6 @@ function rfs_rentmanager_get_units_data( $args ) {
 
 	$body = wp_json_encode(array(
 		'company_code'       => $rentmanager_company_code,
-		'partner_token'      => $partner_token,
 		'property_id'        => $args['property_id'],
 		'lease_availability' => true,
 	));

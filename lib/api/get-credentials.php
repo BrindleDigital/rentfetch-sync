@@ -40,9 +40,10 @@ function rfs_get_credentials() {
 	}
 
 	if ( in_array( 'rentmanager', $enabled, true ) ) {
+		// Keep site registration and monitoring bootstrap updates; the partner token stays on the API.
+		rfs_get_info_from_rentfetch_api();
 		$credentials['rentmanager'] = [
 			'companycode' => get_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_companycode' ),
-			'partner_token' => rfs_get_rentmanager_partner_token(),
 		];
 	}
 	

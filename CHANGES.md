@@ -1,3 +1,10 @@
+## 0.16.8
+
+- Stopped retrieving or sending the Brindle Rent Manager partner token. Property, floorplan, unit, and property-list requests now use the company code and property identifiers while Rent Fetch API supplies the shared credential.
+- Removed the partner-token requirement from bootstrap and runtime validation, discarded tokens returned by older APIs, and cleaned up previously cached client copies while preserving other integrations' fallback credentials.
+- Preserved central site registration and monitoring bootstrap updates for sites using only Rent Manager.
+- Requires Rent Fetch API 0.4.5 or later for Rent Manager proxy requests; release both updates together.
+
 ## 0.16.7
 
 - Included the current sync pause setting as a boolean `sync_paused` in Rent Fetch API bootstrap requests without changing the setting, sync execution, or credential caching.

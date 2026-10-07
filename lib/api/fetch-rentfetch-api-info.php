@@ -321,6 +321,11 @@ function rfs_refresh_info_from_rentfetch_api() {
 			return 'Something went wrong: Invalid JSON response from Rent Fetch API.';
 		}
 
+		// Discard the shared token if an older API still includes it.
+		if ( isset( $response_php_array['rentmanager'] ) && is_array( $response_php_array['rentmanager'] ) ) {
+			unset( $response_php_array['rentmanager']['partner_token'] );
+		}
+
 		$validation_error = rfs_validate_rentfetch_api_info_response( $response_php_array, $apis_enabled );
 		if ( '' !== $validation_error ) {
 			set_transient( 'rentfetch_api_info_error', $validation_error, 5 * MINUTE_IN_SECONDS );
@@ -358,7 +363,6 @@ function rfs_validate_rentfetch_api_info_response( $response_php_array, $apis_en
 		'yardi'       => array( 'yardi', 'access_token' ),
 		'engrain'     => array( 'engrain', 'api_key' ),
 		'entrata'     => array( 'entrata', 'api_key' ),
-		'rentmanager' => array( 'rentmanager', 'partner_token' ),
 	);
 
 	foreach ( $required_paths as $integration => $path ) {
@@ -513,23 +517,6 @@ function rfs_get_engrain_api_key() {
 }
 
 /**
- * Grab just the Rent Manager partner token from the Rentfetch API.
- *
- * @return  string the token.
- */
-function rfs_get_rentmanager_partner_token() {
-	$response = rfs_get_info_from_rentfetch_api();
-
-	if ( is_array( $response ) && isset( $response['rentmanager']['partner_token'] ) ) {
-		$token = stripslashes( $response['rentmanager']['partner_token'] );
-
-		return $token;
-	}
-
-	return null;
-}
-
-/**
  * Get the number of properties for a given API.
  *
  * @param   string  $api  the name of the API.
@@ -571,4 +558,22 @@ function rfs_get_number_of_properties( $api ) {
 	$number_of_properties = $properties->found_posts;
 	
 	return (int) $number_of_properties;
+}
+
+/**
+ * Remove previously distributed Rent Manager tokens from client caches.
+ *
+ * @return void
+ */
+function rfs_remove_cached_rentmanager_partner_token() {
+	$cached = get_transient( 'rentfetch_api_info' );
+	if ( is_array( $cached ) && isset( $cached['rentmanager'] ) && is_array( $cached['rentmanager'] ) && array_key_exists( 'partner_token', $cached['rentmanager'] ) ) {
+		delete_transient( 'rentfetch_api_info' );
+	}
+
+	$last_success = get_option( 'rentfetch_api_info_last_success', false );
+	if ( is_array( $last_success ) && isset( $last_success['rentmanager'] ) && is_array( $last_success['rentmanager'] ) && array_key_exists( 'partner_token', $last_success['rentmanager'] ) ) {
+		unset( $last_success['rentmanager']['partner_token'] );
+		update_option( 'rentfetch_api_info_last_success', $last_success, false );
+	}
 }

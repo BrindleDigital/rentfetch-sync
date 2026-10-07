@@ -141,11 +141,8 @@ function rfs_get_runtime_sync_credentials_error( $integration, $credentials ) {
 			break;
 
 		case 'rentmanager':
-			if (
-				empty( $credentials['rentmanager']['companycode'] )
-				|| empty( $credentials['rentmanager']['partner_token'] )
-			) {
-				return 'Rent Manager runtime credentials or partner token were not available.';
+			if ( empty( $credentials['rentmanager']['companycode'] ) ) {
+				return 'Rent Manager company code was not available.';
 			}
 			break;
 	}
