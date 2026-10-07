@@ -265,6 +265,7 @@ function rfs_refresh_info_from_rentfetch_api() {
 		'site_url'              => $site_url,
 		'site_origin'           => $site_origin,
 		'site_name'             => get_bloginfo( 'name' ),
+		'sync_paused'           => 'updatesync' !== get_option( 'rentfetch_options_data_sync' ),
 		'current_date_time'     => current_time( 'mysql' ),
 		'rentfetch_version'     => defined( 'RENTFETCH_VERSION' ) ? RENTFETCH_VERSION : 'unknown',
 		'rentfetchsync_version' => defined( 'RENTFETCHSYNC_VERSION' ) ? RENTFETCHSYNC_VERSION : 'unknown',

@@ -1,3 +1,8 @@
+## 0.16.7
+
+- Included the current sync pause setting as a boolean `sync_paused` in Rent Fetch API bootstrap requests without changing the setting, sync execution, or credential caching.
+- Pause state is confirmed by the signed Rent Fetch monitoring check; unauthenticated bootstrap submissions do not control dashboard alerts.
+
 ## 0.16.6
 
 - Stored Yardi unit-level image URLs in normalized `unit_image_urls` post meta for display in the Rent Fetch unit editor.
