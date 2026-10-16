@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+require_once __DIR__ . '/sync-access.php';
+
 /**
  * Get the information from the Rentfetch API.
  *
@@ -21,6 +23,10 @@ function rfs_get_info_from_rentfetch_api( $reset_request_cache = false ) {
 	if ( $reset_request_cache ) {
 		$request_cache = null;
 		return null;
+	}
+
+	if ( rfs_is_sync_locked() ) {
+		return rfs_sync_locked_message();
 	}
 
 	if ( null !== $request_cache ) {
@@ -131,6 +137,9 @@ function rfs_rentfetch_api_info_transient_has_timeout() {
  * @return array|false
  */
 function rfs_get_valid_rentfetch_api_info_transient( $apis_enabled ) {
+	if ( rfs_is_sync_locked() ) {
+		return false;
+	}
 	if (
 		! wp_using_ext_object_cache()
 		&& false !== get_option( '_transient_rentfetch_api_info', false )
@@ -167,6 +176,9 @@ function rfs_get_valid_rentfetch_api_info_transient( $apis_enabled ) {
  * @return array|false
  */
 function rfs_get_valid_rentfetch_api_info_last_success( $apis_enabled ) {
+	if ( rfs_is_sync_locked() ) {
+		return false;
+	}
 	$last_success = get_option( 'rentfetch_api_info_last_success', false );
 
 	if ( ! is_array( $last_success ) ) {
@@ -210,6 +222,9 @@ function rfs_wait_for_rentfetch_api_info_refresh( $apis_enabled = array() ) {
  * @return array|string
  */
 function rfs_refresh_info_from_rentfetch_api() {
+	if ( rfs_is_sync_locked() ) {
+		return rfs_sync_locked_message();
+	}
 		
 	// Let's build the array piece by piece.
 	$apis_used = array();
@@ -273,24 +288,10 @@ function rfs_refresh_info_from_rentfetch_api() {
 		'apis_used'             => $apis_used,
 	);
 
-	// turn the array into a json string.
-	$args = wp_json_encode( $args );
-
-	// If RENTFETCH_API_URL is defined, constant('RENTFETCH_API_URL') retrieves its value and assigns it to $api_url.
-	// If RENTFETCH_API_URL is not defined, the default URL 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/data' is assigned to $api_url.
-	$api_url = defined( 'RENTFETCH_API_URL' ) ? constant( 'RENTFETCH_API_URL' ) : 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/data';
-
-	$response = wp_remote_post(
-		$api_url,
-		array(
-			'method'  => 'POST',
-			'body'    => $args,
-			'timeout' => 15,
-			'headers' => array(
-				'Content-Type' => 'application/json',
-			),
-		)
-	);
+	$response = rfs_rentfetch_api_post( 'data', $args, 15 );
+	if ( rfs_is_sync_locked() ) {
+		return rfs_sync_locked_message();
+	}
 
 	if ( is_wp_error( $response ) ) {
 		// When WordPress returns an error.
@@ -338,6 +339,12 @@ function rfs_refresh_info_from_rentfetch_api() {
 		set_transient( 'rentfetch_api_info', $response_php_array, 20 * MINUTE_IN_SECONDS );
 		update_option( 'rentfetch_api_info_last_success', $response_php_array, false );
 		delete_transient( 'rentfetch_api_info_error' );
+
+		// A proxy response may have detected a lock while this response was being cached.
+		if ( rfs_is_sync_locked( true ) ) {
+			rfs_purge_rentfetch_api_credentials();
+			return rfs_sync_locked_message();
+		}
 
 		return $response_php_array;
 	}

@@ -174,6 +174,9 @@ function rfs_release_accelerated_sync_lock( $lock_key ) {
  * @return true|WP_Error
  */
 function rfs_can_start_accelerated_sync() {
+	if ( rfs_is_sync_locked() ) {
+		return new WP_Error( 'rentfetch_sync_locked', rfs_sync_locked_message() );
+	}
 	if ( ! function_exists( 'as_enqueue_async_action' ) ) {
 		return new WP_Error( 'action_scheduler_unavailable', 'Action Scheduler is not available.' );
 	}
@@ -381,6 +384,13 @@ function rfs_queue_accelerated_sync_workers( $state ) {
  * @return array|WP_Error
  */
 function rfs_start_accelerated_sync() {
+	if ( rfs_is_sync_locked() ) {
+		// An explicit sync request should recover immediately after the API unlocks this site.
+		$access = rfs_check_sync_access();
+		if ( is_wp_error( $access ) ) {
+			return $access;
+		}
+	}
 	update_option( 'rentfetch_options_data_sync', 'updatesync' );
 	delete_transient( 'rentfetchsync_properties_limit' );
 
@@ -504,6 +514,9 @@ function rfs_cancel_accelerated_sync() {
  * @return void
  */
 function rfs_process_accelerated_sync_step( $run_id, $item_index = null, $queue_next = true ) {
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 	$state = rfs_get_accelerated_sync_state();
 
 	if (
@@ -730,7 +743,11 @@ function rfs_get_accelerated_sync_status_payload( $include_finished = false ) {
 		$status = 'idle';
 	}
 
-	if ( 'running' === $status ) {
+	if ( rfs_is_sync_locked() ) {
+		$status  = 'locked';
+		$current = '';
+		$message = rfs_sync_locked_message();
+	} elseif ( 'running' === $status ) {
 		$active_type = '';
 		foreach ( array( 'property', 'floorplan', 'unit' ) as $type ) {
 			if ( ! empty( $active_type_counts[ $type ] ) ) {
@@ -784,6 +801,8 @@ function rfs_get_accelerated_sync_status_payload( $include_finished = false ) {
 		'completed' => $completed,
 		'failed'    => $failed,
 		'running'   => 'running' === $status,
+		'sync_locked' => rfs_is_sync_locked(),
+		'sync_enabled' => 'updatesync' === get_option( 'rentfetch_options_data_sync' ),
 		'errors'    => isset( $state['errors'] ) && is_array( $state['errors'] ) ? $state['errors'] : array(),
 	);
 }
@@ -878,7 +897,7 @@ function rfs_start_accelerated_sync_ajax_handler() {
 
 	$state = rfs_start_accelerated_sync();
 	if ( is_wp_error( $state ) ) {
-		wp_send_json_error( array( 'message' => $state->get_error_message() ), 400 );
+		wp_send_json_error( rfs_is_sync_locked() ? rfs_get_accelerated_sync_status_payload( true ) : array( 'message' => $state->get_error_message() ), 400 );
 	}
 
 	wp_send_json_success( rfs_get_accelerated_sync_status_payload( true ) );
@@ -1148,6 +1167,23 @@ function rfs_accelerated_sync_admin_script() {
 				return;
 			}
 
+			if (payload.sync_locked === true) {
+				document.dispatchEvent(new Event('rfs-sync-locked'));
+			}
+
+			var resume = document.getElementById('rentfetch_options_data_sync_updatesync');
+			if (payload.sync_locked === false && (document.querySelector('.rfs-sync-locked-notice') || (resume && resume.disabled))) {
+				document.querySelectorAll('.rfs-sync-locked-notice').forEach(function(notice) {
+					notice.remove();
+				});
+				if (resume) resume.disabled = false;
+				if (typeof payload.sync_enabled === 'boolean') {
+					document.querySelectorAll('input[name="rentfetch_options_data_sync"]').forEach(function(input) {
+						input.checked = input.value === (payload.sync_enabled ? 'updatesync' : 'nosync');
+					});
+				}
+			}
+
 			if (clearTimer) {
 				window.clearTimeout(clearTimer);
 				clearTimer = null;
@@ -1269,7 +1305,8 @@ function rfs_accelerated_sync_admin_script() {
 						setStatus(data);
 					} else {
 						setStatus({
-							status: 'error',
+							status: data.sync_locked ? 'locked' : 'error',
+							sync_locked: data.sync_locked,
 							message: data.message || 'Sync request failed.',
 							current: ''
 						});
@@ -1282,6 +1319,10 @@ function rfs_accelerated_sync_admin_script() {
 						current: ''
 					});
 				});
+		});
+
+		document.addEventListener('rfs-sync-access-checked', function(event) {
+			setStatus(event.detail);
 		});
 
 		pollStatus();

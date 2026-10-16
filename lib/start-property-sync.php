@@ -88,6 +88,9 @@ function rfs_get_staggered_sync_start_time( $index ) {
  * @return void
  */
 function rfs_schedule_property_sync_action( $args, $sync_time, $index ) {
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 	if ( false !== as_has_scheduled_action( 'rfs_do_sync', array( $args ), 'rentfetch' ) ) {
 		return;
 	}
@@ -231,6 +234,9 @@ add_action('wp_ajax_rfs_get_sync_progress', 'rfs_get_sync_progress_ajax_handler'
  * @return  void.
  */
 function rfs_perform_syncs() {
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 	
 	// --- Throttle and context guard ------------------------------------------------
     // Run immediately when in admin, WP-CLI, or during cron jobs.
@@ -392,6 +398,9 @@ add_action( 'wp_loaded', 'rfs_perform_syncs' );
  * @return  void.
  */
 function rfs_trigger_specific_api_sync( $args ) {
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 	
 	// bail if there's no integration
 	if ( !isset($args['integration']) || !$args['integration'] )
@@ -401,8 +410,24 @@ function rfs_trigger_specific_api_sync( $args ) {
 	if ( !isset($args['property_id']) || !$args['property_id'] )
 		return;
 
+	if ( in_array( $args['integration'], array( 'yardi', 'entrata', 'engrain' ), true ) ) {
+		$access = rfs_verify_sync_access_before_sync();
+		if ( is_wp_error( $access ) ) {
+			if ( rfs_is_sync_locked() ) {
+				return;
+			}
+			throw new RuntimeException( $access->get_error_message() );
+		}
+	}
+
 	$args['credentials'] = rfs_get_credentials();
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 	$credentials_error   = rfs_get_runtime_sync_credentials_error( $args['integration'], $args['credentials'] );
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 
 	if ( '' !== $credentials_error ) {
 		throw new RuntimeException( $credentials_error );

@@ -1,3 +1,22 @@
+## 0.16.9
+
+- Check API access before every Yardi, Entrata, and Engrain property sync, including manual and accelerated runs, so cached credentials cannot bypass a newly applied lock. Unconfirmed access stops that attempt without permanently pausing the site. Rent Manager continues to enforce access through its existing proxy requests.
+- Support fresh bootstrap fallback only for older APIs without the access route and new sites needing registration; cached credentials never substitute for a failed access check.
+
+- Place Ajax lock notices at the same WordPress notice anchor as notices rendered on page load, keeping their width and spacing identical.
+
+- Use a pale red sync-quota notice with a plain Ajax access-check link, inline results, and no redirect. Show the quota message immediately when a full sync first discovers an API lock.
+
+- Run full sync now rechecks API access when a local lock is remembered, resumes immediately after a confirmed unlock, and clears the stale quota notice and paused controls without an extra access-check step.
+
+- Show a red sync-quota notice throughout WordPress admin, with support@brindledigital.com for restoring sync access.
+- Purge all central API credential caches on locked-site startup and after any in-flight response finishes caching while a lock is detected.
+
+- Honor API-owned Syncing Locked responses across credential requests and all four Rent Manager proxies, including configured local API URLs.
+- Persist remote locks, pause the local sync setting, clear all credential caches and fallbacks, and cancel recurring, queued, and accelerated sync work without removing synced data.
+- Disable local resume while locked and provide an administrator Check sync access action. A confirmed API unlock leaves syncing paused until explicitly resumed.
+- Supports rolling deployment with the API: normal unlocked syncing remains compatible with the previous API. Remote locking and credential-free access checks become available once the API update is deployed.
+
 ## 0.16.8
 
 - Stopped retrieving or sending the Brindle Rent Manager partner token. Property, floorplan, unit, and property-list requests now use the company code and property identifiers while Rent Fetch API supplies the shared credential.

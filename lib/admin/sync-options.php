@@ -181,7 +181,7 @@ function rentfetch_settings_sync() {
 					</li>
 					<li>
 						<label>
-							<input type="radio" name="rentfetch_options_data_sync" id="rentfetch_options_data_sync_updatesync" value="updatesync" <?php checked( get_option( 'rentfetch_options_data_sync' ), 'updatesync' ); ?>>
+							<input type="radio" name="rentfetch_options_data_sync" id="rentfetch_options_data_sync_updatesync" value="updatesync" <?php disabled( rfs_is_sync_locked() ); ?> <?php checked( get_option( 'rentfetch_options_data_sync' ), 'updatesync' ); ?>>
 							<span class="rfs-data-sync-copy">
 								<span>Update data on this site with data from the API.</span>
 								<span class="description rfs-settings-note">This option should never modify manually-added properties/floor plans, nor should it overwrite any custom data you've added to otherwise synced properties/floor plans.</span>

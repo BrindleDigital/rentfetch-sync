@@ -18,6 +18,9 @@ add_action( 'rfs_entrata_do_delete_orphans', 'rfs_entrata_delete_orphans_propert
  * @return void
  */
 function rfs_entrata_delete_orphans_properties_floorplans_units( $entrata_properties_in_settings_box ) {
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 	if ( ! is_array( $entrata_properties_in_settings_box ) ) {
 		return;
 	}

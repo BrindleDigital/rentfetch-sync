@@ -1061,6 +1061,9 @@ function rfs_engrain_delete_orphan_records( $post_type, $source_key, $id_key, $p
  * @return void
  */
 function rfs_engrain_delete_unconfigured_assets( $configured_asset_ids ) {
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 	if ( ! is_array( $configured_asset_ids ) ) {
 		return;
 	}

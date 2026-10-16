@@ -14,6 +14,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 add_action( 'rfs_yardi_do_delete_orphans', 'rfs_yardi_delete_orphans_properties_floorplans_units', 10, 1 );
 function rfs_yardi_delete_orphans_properties_floorplans_units( $yardi_properties_in_settings_box ) {
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 		
 	if ( !is_array( $yardi_properties_in_settings_box ) )
 		return;

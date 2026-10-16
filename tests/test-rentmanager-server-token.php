@@ -11,6 +11,8 @@ $GLOBALS['rm_http_body'] = array( 'monitoring' => array() );
 class RentManagerSyncRequestCaptured extends RuntimeException {}
 class WP_Query { public $found_posts = 0; }
 function add_action() {}
+function wp_cache_delete() {}
+function wp_cache_get() { return false; }
 function add_filter() {}
 function get_option( $name, $default = false ) { return $GLOBALS['rm_options'][$name] ?? $default; }
 function update_option( $name, $value, $autoload = null ) { $GLOBALS['rm_options'][$name] = $value; }
@@ -35,6 +37,7 @@ function wp_remote_retrieve_response_code( $response ) { return 200; }
 function wp_remote_retrieve_body( $response ) { return json_encode( $GLOBALS['rm_http_body'] ); }
 function wp_remote_post( $url, $args ) {
 	$GLOBALS['rm_request'] = array( 'url' => $url, 'body' => json_decode( $args['body'], true ) );
+	$GLOBALS['rm_requests'][] = $GLOBALS['rm_request'];
 	if ( false !== strpos( $url, '/rentmanager/' ) ) { throw new RentManagerSyncRequestCaptured(); }
 	return array();
 }
@@ -82,7 +85,10 @@ foreach ( array( 'properties' => 'rfs_rentmanager_get_property_data', 'unit-type
 	try { $handler( $args ); } catch ( RentManagerSyncRequestCaptured $exception ) {}
 	$request = $GLOBALS['rm_request'];
 	rm_check( is_array( $request ) && str_ends_with( $request['url'], '/rentmanager/' . $route ), 'Every proxy request must proceed without a partner token: ' . $route );
-	rm_check( 'example' === $request['body']['company_code'] && ! array_key_exists( 'partner_token', $request['body'] ), 'Proxy request bodies must omit the partner token: ' . $route );
+	rm_check( 'example' === $request['body']['company_code'] && 'sync-test.invalid' === $request['body']['site_url'] && ! array_key_exists( 'partner_token', $request['body'] ), 'Proxy request bodies must omit the partner token: ' . $route );
 	if ( 'units' === $route ) { rm_check( true === $request['body']['lease_availability'], 'Lease availability requests must remain enabled.' ); }
+}
+foreach ( $GLOBALS['rm_requests'] as $request ) {
+	rm_check( ! str_ends_with( $request['url'], '/sync-access' ), 'Unlocked clients must not depend on the new access-check endpoint before the API update arrives.' );
 }
 echo "Rent Manager client checks passed (four requests, runtime/bootstrap validation, old responses and cache cleanup; no HTTP).\n";

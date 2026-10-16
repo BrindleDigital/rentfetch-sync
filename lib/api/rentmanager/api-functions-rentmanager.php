@@ -22,6 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return  void.
  */
 function rfs_do_rentmanager_sync( $args ) {
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 	$enabled_shortnames = array_column( rfs_get_enabled_rentmanager_properties(), 'ShortName' );
 	if ( empty( $args['property_id'] ) || ! in_array( (string) $args['property_id'], $enabled_shortnames, true ) ) {
 		return;
@@ -43,6 +46,9 @@ function rfs_do_rentmanager_sync( $args ) {
 
 	// perform the API calls to get the data.
 	$property_data = rfs_rentmanager_get_property_data( $args );
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 	
 	// error_log('Got property_data for ' . ($args['property_id'] ?? 'unknown'));
 	
@@ -63,6 +69,9 @@ function rfs_do_rentmanager_sync( $args ) {
 
 	// get the unit types (floorplans) data for this property.
 	$unit_types_response = rfs_rentmanager_get_unit_types_data( $args );
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 	$unit_types_data     = isset( $unit_types_response['unit_types'] ) && is_array( $unit_types_response['unit_types'] )
 		? $unit_types_response['unit_types']
 		: array();
@@ -78,6 +87,9 @@ function rfs_do_rentmanager_sync( $args ) {
 
 	// get the units data for the property.
 	$units_response = rfs_rentmanager_get_units_data( $args );
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 	$units_data     = isset( $units_response['units'] ) && is_array( $units_response['units'] )
 		? $units_response['units']
 		: array();
@@ -199,21 +211,10 @@ function rfs_rentmanager_update_property_related_api_response( $args, $endpoint,
 function rfs_rentmanager_get_property_data( $args ) {
 	$rentmanager_company_code = $args['credentials']['rentmanager']['companycode'];
 
-	// Use the proxy endpoint instead of direct API call
-	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/properties';
-
-	$body = wp_json_encode(array(
+	$response = rfs_rentfetch_api_post( 'rentmanager/properties', array(
 		'company_code'  => $rentmanager_company_code,
 		'property_id'   => $args['property_id'],
-	));
-
-	$response = wp_remote_post( $url, array(
-		'headers' => array(
-			'Content-Type' => 'application/json',
-		),
-		'body' => $body,
-		'timeout' => 30,
-	) );
+	), 30 );
 
 	if ( is_wp_error( $response ) ) {
 		error_log( 'WP Remote error in rfs_rentmanager_get_property_data: ' . $response->get_error_message() );
@@ -411,21 +412,10 @@ function rfs_rentmanager_get_unit_types_data( $args ) {
 		);
 	}
 
-	// Use the proxy endpoint instead of direct API call
-	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/unit-types';
-
-	$body = wp_json_encode(array(
+	$response = rfs_rentfetch_api_post( 'rentmanager/unit-types', array(
 		'company_code' => $rentmanager_company_code,
 		'property_id' => $args['rentmanager_property_id']
-	));
-
-	$response = wp_remote_post( $url, array(
-		'headers' => array(
-			'Content-Type' => 'application/json',
-		),
-		'body' => $body,
-		'timeout' => 30,
-	) );
+	), 30 );
 
 	if ( is_wp_error( $response ) ) {
 		error_log( 'WP Remote error in rfs_rentmanager_get_unit_types_data: ' . $response->get_error_message() );
@@ -807,24 +797,11 @@ function rfs_rentmanager_get_units_data( $args ) {
 		);
 	}
 
-	// Use the proxy endpoint instead of direct API call
-	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/units';
-
-	$body = wp_json_encode(array(
+	$response = rfs_rentfetch_api_post( 'rentmanager/units', array(
 		'company_code'       => $rentmanager_company_code,
 		'property_id'        => $args['property_id'],
 		'lease_availability' => true,
-	));
-
-	$response = wp_remote_post( $url, array(
-		'headers' => array(
-			'Content-Type' => 'application/json',
-		),
-		'body' => $body,
-		// The proxy may need multiple documented pages from both Units and
-		// Leases, so its caller must allow more than one upstream timeout.
-		'timeout' => 120,
-	) );
+	), 120 );
 
 	if ( is_wp_error( $response ) ) {
 		error_log( 'WP Remote error in rfs_rentmanager_get_units_data: ' . $response->get_error_message() );

@@ -1,6 +1,9 @@
 <?php
 
 function rfs_get_credentials() {
+	if ( rfs_is_sync_locked() ) {
+		return array();
+	}
 	$credentials = [];
 
 	$enabled = get_option( 'rentfetch_options_enabled_integrations' );
@@ -47,5 +50,5 @@ function rfs_get_credentials() {
 		];
 	}
 	
-	return $credentials;
+	return rfs_is_sync_locked() ? array() : $credentials;
 }

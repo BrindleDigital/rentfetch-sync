@@ -42,6 +42,9 @@ function rfs_get_enabled_rentmanager_properties() {
  * @return  void
  */
 function rfs_get_rentmanager_properties_from_setting() {
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 
 	// Get the enabled integrations.
 	$enabled_integrations = get_option( 'rentfetch_options_enabled_integrations' );
@@ -53,6 +56,9 @@ function rfs_get_rentmanager_properties_from_setting() {
 
 	$credentials = rfs_get_credentials();
 
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 	if ( empty( $credentials['rentmanager']['companycode'] ) ) {
 		update_option( 'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames', 'Provide credentials to get properties list.' );
 		return;
@@ -60,24 +66,10 @@ function rfs_get_rentmanager_properties_from_setting() {
 
 	$rentmanager_company_code = $credentials['rentmanager']['companycode'];
 
-	// Use the proxy endpoint instead of direct API call
-	$url = 'https://api.rentfetch.net/wp-json/rentfetchapi/v1/rentmanager/properties-all';
-
-	$body = wp_json_encode(array(
-		'company_code' => $rentmanager_company_code,
-	));
-
-	// Prepare the headers.
-	$args = array(
-		'headers' => array(
-			'Content-Type' => 'application/json',
-		),
-		'body' => $body,
-		'timeout' => 10,
-	);
-
-	// Make the request.
-	$response = wp_remote_post( $url, $args );
+	$response = rfs_rentfetch_api_post( 'rentmanager/properties-all', array( 'company_code' => $rentmanager_company_code ), 10 );
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 
 	// Check for errors.
 	if ( is_wp_error( $response ) ) {

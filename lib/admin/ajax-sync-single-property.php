@@ -125,6 +125,10 @@ function rfs_sync_metabox( $post ) {
 	}
 	
 	printf( '<p class="post-attributes-label-wrapper menu-order-label-wrapper">%s</p>', esc_html( $text ) );
+	if ( rfs_is_sync_locked() ) {
+		echo '<p><strong>Syncing Locked.</strong> ' . esc_html( rfs_sync_locked_message() ) . '</p>';
+		return;
+	}
 	printf( '<a href="#" data-property-id="%s" data-integration="%s" class="sync-property button button-large" >Sync this %s</a>', esc_attr( $property_id ), esc_attr( $integration ), esc_html( $label ) );
 
 	// Visible status/debug area for the sync UX
@@ -148,17 +152,13 @@ function rfs_sync_metabox( $post ) {
  */
 function rfs_sync_single_property_ajax_handler() {
 	check_ajax_referer('rfs_ajax_nonce', '_ajax_nonce');
+	if ( rfs_is_sync_locked() ) {
+		wp_send_json_error( array( 'message' => rfs_sync_locked_message() ), 403 );
+	}
 
 	if (isset($_POST['property_id']) && isset($_POST['integration'])) {
 		$property_id = sanitize_text_field( wp_unslash( $_POST['property_id'] ) );
 		$integration = sanitize_text_field( wp_unslash( $_POST['integration'] ) );
-
-		// Prepare args for the scheduled action
-		$args = array(
-			'integration' => $integration,
-			'property_id' => $property_id,
-			'credentials' => rfs_get_credentials(),
-		);
 
 		// Run synchronously (do not schedule). The sync function handles its own progress updates.
 		try {
@@ -172,6 +172,10 @@ function rfs_sync_single_property_ajax_handler() {
 				),
 				500
 			);
+		}
+
+		if ( rfs_is_sync_locked() ) {
+			wp_send_json_error( array( 'message' => rfs_sync_locked_message() ), 403 );
 		}
 
 		// After completion attempt to return the progress payload so the client can pick up final state immediately
