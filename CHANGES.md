@@ -1,3 +1,11 @@
+## 0.16.10
+
+- Sync Engrain unit application links from the selected pricing process's Online Leasing resource using the required experimental flag and `sightmap.instances.read-leasing` permission.
+- Fall back to Pricing Entries' `leasing_fields.apply_url` or AppFolio's `leasing_fields.application_url` when the leasing resource is unavailable, preserving saved links when neither source provides a usable fallback.
+- Respect explicit online-leasing disablement and clear links for units omitted from a complete successful leasing response. Reject malformed or incomplete leasing responses without treating them as authoritative.
+- Keep All-In Pricing authoritative for unit availability, so leasing URLs cannot create available inventory or remove units during a pricing outage.
+- Include the leasing endpoint in property sync-status reporting, with request failures reported as partial syncs.
+
 ## 0.16.9
 
 - Check API access before every Yardi, Entrata, and Engrain property sync, including manual and accelerated runs, so cached credentials cannot bypass a newly applied lock. Unconfirmed access stops that attempt without permanently pausing the site. Rent Manager continues to enforce access through its existing proxy requests.

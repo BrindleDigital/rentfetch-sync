@@ -317,6 +317,47 @@ function rfs_engrain_get_pricing_entries( $args, $process_id ) {
 }
 
 /**
+ * Get compiled application URLs for units with online leasing enabled.
+ *
+ * @param array  $args Sync args.
+ * @param string $process_id Pricing process ID.
+ * @return array
+ */
+function rfs_engrain_get_online_leasing_urls( $args, $process_id ) {
+	if ( '' === trim( (string) $process_id ) ) {
+		return rfs_engrain_failed_response( 'missing_pricing_process_id' );
+	}
+
+	$response = rfs_engrain_get_multifamily_list(
+		$args,
+		'pricing/' . rawurlencode( (string) $process_id ) . '/leasing',
+		'online-leasing-resource'
+	);
+	if ( empty( $response['success'] ) ) {
+		return $response;
+	}
+
+	foreach ( $response['data'] as &$row ) {
+		if (
+			! is_array( $row )
+			|| empty( $row['unit_id'] )
+			|| ! is_scalar( $row['unit_id'] )
+			|| ! is_scalar( $row['asset_id'] ?? null )
+			|| (string) ( $row['asset_id'] ?? '' ) !== (string) $args['property_id']
+			|| ! is_string( $row['apply_url'] ?? null )
+			|| ! filter_var( $row['apply_url'], FILTER_VALIDATE_URL )
+			|| ! in_array( wp_parse_url( $row['apply_url'], PHP_URL_SCHEME ), array( 'http', 'https' ), true )
+		) {
+			return rfs_engrain_failed_response( 'invalid_leasing_response', $response['status_code'] );
+		}
+		$row['apply_url'] = esc_url_raw( $row['apply_url'], array( 'http', 'https' ) );
+	}
+	unset( $row );
+
+	return $response;
+}
+
+/**
  * Get SightMap instances for an asset.
  *
  * @param array $args Sync args.

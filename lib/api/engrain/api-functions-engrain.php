@@ -52,8 +52,9 @@ function rfs_do_engrain_sync( $args ) {
 	$inventory = rfs_engrain_get_inventory_sync_data( $args, $property_id );
 
 	// Get process enrichment, then authoritative All-In rent and availability.
-	$pricing_contexts = rfs_engrain_get_pricing_contexts_for_sync( $args );
+	$pricing_contexts = rfs_engrain_get_pricing_contexts_for_sync( $args, $leasing_response );
 	$pricing_contexts = rfs_engrain_add_all_in_pricing_to_contexts( $args, $pricing_contexts );
+	$pricing_contexts = rfs_engrain_merge_unit_leasing_contexts( $pricing_contexts, $leasing_response );
 
 	// Get and update the property image gallery.
 	$galleries_response = rfs_engrain_get_multifamily_list( $args, 'galleries', 'gallery-resource' );

@@ -267,8 +267,12 @@ function rfs_engrain_build_unit_pricing_contexts( $pricing_units, $pricing_entri
 		$dates              = array();
 		$specials           = '';
 		$apply_online_url   = '';
+		$leasing_disabled   = ! empty( $entries );
 
 		foreach ( $entries as $entry ) {
+			if ( false !== ( $entry['show_online_leasing'] ?? null ) ) {
+				$leasing_disabled = false;
+			}
 			$price = isset( $entry['price'] ) && is_numeric( $entry['price'] ) ? (float) $entry['price'] : 0.0;
 			$date  = rfs_engrain_normalize_availability_date( $entry['available_on'] ?? '' );
 			if ( '' !== $date ) {
@@ -282,9 +286,13 @@ function rfs_engrain_build_unit_pricing_contexts( $pricing_units, $pricing_entri
 			if (
 				'' === $apply_online_url
 				&& ( ! array_key_exists( 'show_online_leasing', $entry ) || false !== $entry['show_online_leasing'] )
-				&& ! empty( $entry['leasing_fields']['apply_url'] )
 			) {
-				$apply_online_url = esc_url_raw( (string) $entry['leasing_fields']['apply_url'] );
+				foreach ( array( 'apply_url', 'application_url' ) as $url_field ) {
+					$apply_online_url = esc_url_raw( (string) ( $entry['leasing_fields'][ $url_field ] ?? '' ), array( 'http', 'https' ) );
+					if ( '' !== $apply_online_url ) {
+						break;
+					}
+				}
 			}
 
 			if ( '' === $specials && ! empty( $entry['specials_description'] ) ) {
@@ -316,7 +324,43 @@ function rfs_engrain_build_unit_pricing_contexts( $pricing_units, $pricing_entri
 			: $specials;
 		$context['apply_online_url']               = $apply_online_url;
 		$context['apply_online_url_authoritative'] = (bool) $pricing_entries_authoritative;
+		$context['online_leasing_disabled']        = $leasing_disabled || false === ( $pricing_unit['show_online_leasing'] ?? null );
 		$contexts[ (string) $unit_id ]             = $context;
+	}
+
+	return $contexts;
+}
+
+/**
+ * Prefer compiled leasing URLs, using entry URLs only if that request failed.
+ *
+ * A complete leasing response is authoritative even when a unit is absent.
+ * Failed requests without a usable fallback preserve the saved application URL.
+ * These contexts do not establish availability; All-In Pricing still does that.
+ *
+ * @param array|null $contexts Pricing contexts keyed by unit ID.
+ * @param array      $response Validated leasing API response.
+ * @return array|null
+ */
+function rfs_engrain_merge_unit_leasing_contexts( $contexts, $response ) {
+	$success = ! empty( $response['success'] );
+	if ( ! is_array( $contexts ) ) {
+		return $contexts;
+	}
+
+	$urls     = array();
+	foreach ( $success ? $response['data'] : array() as $row ) {
+		$urls[ (string) $row['unit_id'] ] = $row['apply_url'];
+	}
+
+	foreach ( array_unique( array_merge( array_keys( $contexts ), array_keys( $urls ) ) ) as $unit_id ) {
+		$context  = $contexts[ $unit_id ] ?? rfs_engrain_empty_unit_pricing_context();
+		$disabled = ! empty( $context['online_leasing_disabled'] );
+		if ( $disabled || $success ) {
+			$context['apply_online_url'] = $disabled ? '' : ( $urls[ $unit_id ] ?? '' );
+		}
+		$context['apply_online_url_authoritative'] = $success || $disabled || ! empty( $context['apply_online_url'] );
+		$contexts[ $unit_id ]                      = $context;
 	}
 
 	return $contexts;

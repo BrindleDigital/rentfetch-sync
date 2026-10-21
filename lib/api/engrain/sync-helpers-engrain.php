@@ -78,10 +78,11 @@ function rfs_engrain_get_empty_pricing_response() {
 /**
  * Fetch unit pricing and build normalized unit pricing contexts.
  *
- * @param array $args Runtime sync args.
- * @return array
+ * @param array      $args Runtime sync args.
+ * @param array|null $leasing_response Receives the selected process's leasing response.
+ * @return array|null
  */
-function rfs_engrain_get_pricing_contexts_for_sync( $args ) {
+function rfs_engrain_get_pricing_contexts_for_sync( $args, &$leasing_response = null ) {
 	$pricing_processes_response = rfs_engrain_get_pricing_processes( $args );
 	$pricing_process            = ! empty( $pricing_processes_response['success'] )
 		? rfs_engrain_select_pricing_process( $pricing_processes_response['data'] )
@@ -92,15 +93,18 @@ function rfs_engrain_get_pricing_contexts_for_sync( $args ) {
 	if ( '' !== $pricing_process_id ) {
 		$pricing_units_response   = rfs_engrain_get_pricing_units( $args, $pricing_process_id );
 		$pricing_entries_response = rfs_engrain_get_pricing_entries( $args, $pricing_process_id );
+		$leasing_response         = rfs_engrain_get_online_leasing_urls( $args, $pricing_process_id );
 	} elseif ( ! empty( $pricing_processes_response['success'] ) ) {
 		$pricing_units_response   = $empty_pricing_response;
 		$pricing_entries_response = $empty_pricing_response;
+		$leasing_response         = $empty_pricing_response;
 	} else {
 		$pricing_units_response   = rfs_engrain_failed_response(
 			'pricing_processes_unavailable',
 			$pricing_processes_response['status_code'] ?? 0
 		);
 		$pricing_entries_response = $pricing_units_response;
+		$leasing_response         = $pricing_units_response;
 	}
 
 	$pricing_response = rfs_engrain_combine_responses(
@@ -111,13 +115,25 @@ function rfs_engrain_get_pricing_contexts_for_sync( $args ) {
 		),
 		'valid_pricing'
 	);
-	$pricing_contexts = ! empty( $pricing_units_response['success'] )
+	$pricing_contexts = ! empty( $pricing_units_response['success'] ) || ! empty( $pricing_entries_response['success'] )
 		? rfs_engrain_build_unit_pricing_contexts(
-			$pricing_units_response['data'],
+			! empty( $pricing_units_response['success'] ) ? $pricing_units_response['data'] : array(),
 			! empty( $pricing_entries_response['success'] ) ? $pricing_entries_response['data'] : array(),
 			! empty( $pricing_entries_response['success'] )
 		)
 		: null;
+
+	rfs_engrain_record_api_response(
+		$args['wordpress_property_post_id'],
+		'engrain_leasing_api',
+		$leasing_response,
+		array(
+			'selected_process_id' => $pricing_process_id,
+			'leasing_url_count'   => ! empty( $leasing_response['success'] ) ? count( $leasing_response['data'] ) : null,
+			'required_permission' => 'sightmap.instances.read-leasing',
+		),
+		true
+	);
 
 	rfs_engrain_record_api_response(
 		$args['wordpress_property_post_id'],

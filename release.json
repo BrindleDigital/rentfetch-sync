@@ -3,13 +3,13 @@
 	"slug": "rentfetch-sync",
 	"author": "<a href='https://brindledigital.com'>Brindle Digital</a>",
 	"author_profile": "https://brindledigital.com",
-	"version": "0.16.6",
+	"version": "0.16.10",
 	"requires": "6.5",
 	"tested": "6.6",
 	"requires_php": "7.4",
 	"sections": {
 		"description": "This is my plugin description.",
-		"changelog": "<h4>0.16.6</h4><ul><li>Stored Yardi unit-level image URLs in normalized <code>unit_image_urls</code> post meta for display in the Rent Fetch unit editor.</li></ul>",
+		"changelog": "<h4>0.16.10</h4><ul><li>Sync Engrain unit application links from the selected pricing process's Online Leasing resource, with Pricing Entries fallbacks for RentCafe and AppFolio.</li><li>Preserve saved links on request failures without a usable fallback; respect online-leasing disablement and clear links omitted from complete leasing responses.</li><li>Keep All-In Pricing authoritative for availability and include leasing results in property sync status.</li></ul>",
 		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
 	}
 }
