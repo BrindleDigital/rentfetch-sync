@@ -82,9 +82,6 @@ function rfs_do_rentmanager_sync( $args ) {
 	// remove floorplans with no bed or bath data (where those are both missing).
 	$unit_types_data = rfs_rentmanager_ignore_floorplans_with_no_bed_or_bath( $unit_types_data );
 
-	// delete any floorplans that no longer appear in the API (looking at our local data, then comparing to the API data).
-	rfs_rentmanager_remove_unit_types_no_longer_in_api( $args, $unit_types_data, ! empty( $unit_types_response['delete_safe'] ) );
-
 	// get the units data for the property.
 	$units_response = rfs_rentmanager_get_units_data( $args );
 	if ( rfs_is_sync_locked() ) {
@@ -94,6 +91,12 @@ function rfs_do_rentmanager_sync( $args ) {
 		? $units_response['units']
 		: array();
 	rfs_rentmanager_update_property_related_api_response( $args, 'units_api', $units_response );
+	rfs_rentmanager_record_profile_availability( $args, $units_response );
+	// A failed availability read must preserve units AND their floorplan rollups.
+	if ( empty( $units_response['success'] ) || empty( $units_response['delete_safe'] ) || empty( $unit_types_response['success'] ) || empty( $unit_types_response['delete_safe'] ) ) {
+		return;
+	}
+	rfs_rentmanager_remove_unit_types_no_longer_in_api( $args, $unit_types_data, ! empty( $unit_types_response['delete_safe'] ) );
 	
 	// error_log('Got units_data for ' . ($args['property_id'] ?? 'unknown') . ': ' . (is_array($units_data) ? count($units_data) : 'not array') . ' items');
 		
@@ -801,6 +804,7 @@ function rfs_rentmanager_get_units_data( $args ) {
 		'company_code'       => $rentmanager_company_code,
 		'property_id'        => $args['property_id'],
 		'lease_availability' => true,
+		'compact_units'      => true,
 	), 120 );
 
 	if ( is_wp_error( $response ) ) {
@@ -828,7 +832,6 @@ function rfs_rentmanager_get_units_data( $args ) {
 	}
 
 	$response_body = wp_remote_retrieve_body( $response );
-	$response_body = rentfetch_clean_json_string( $response_body );
 
 	if ( '' === trim( (string) $response_body ) ) {
 		return array(
@@ -842,6 +845,11 @@ function rfs_rentmanager_get_units_data( $args ) {
 	}
 
 	$units_data = json_decode( $response_body, true );
+	// Large properties should not allocate a second decoded copy just to pretty-print valid JSON.
+	if ( JSON_ERROR_NONE !== json_last_error() ) {
+		$response_body = rentfetch_clean_json_string( $response_body );
+		$units_data = json_decode( $response_body, true );
+	}
 	if ( json_last_error() !== JSON_ERROR_NONE ) {
 		error_log( 'JSON decode error in rfs_rentmanager_get_units_data: ' . json_last_error_msg() );
 		return array(
@@ -906,10 +914,27 @@ function rfs_rentmanager_get_units_data( $args ) {
 		);
 	}
 
+	$availability = rfs_rentmanager_get_profile_availability( $args );
+	if ( empty( $availability['success'] ) ) {
+		return array( 'success' => false, 'delete_safe' => false, 'units' => null, 'reason' => 'availability_failed', 'availability' => $availability );
+	}
+	if ( empty( $availability['fallback'] ) ) {
+		$detail_ids = array_fill_keys( array_map( 'strval', array_column( $units, 'UnitID' ) ), true );
+		if ( array_diff_key( $availability['unit_ids'], $detail_ids ) ) {
+			$availability['success'] = false;
+			$availability['reason'] = 'availability_unit_details_missing';
+			return array( 'success' => false, 'delete_safe' => false, 'units' => null, 'reason' => $availability['reason'], 'availability' => $availability );
+		}
+		foreach ( $units as $index => $unit ) {
+			$units[ $index ]['RentFetchProfileAvailable'] = isset( $availability['unit_ids'][ (string) ( $unit['UnitID'] ?? '' ) ] );
+		}
+	}
+
 	return array(
 		'success'      => true,
 		'delete_safe'  => $delete_safe,
 		'units'        => $units,
+		'availability' => $availability,
 		'reason'       => empty( $units )
 			? 'valid_empty_units_array'
 			: ( $delete_safe ? 'valid_units_array' : 'valid_units_array_with_unusable_records' ),
@@ -1170,6 +1195,25 @@ function rfs_rentmanager_derive_unit_availability( $unit, $today = null, $make_r
 			'availability_date' => null,
 			'reason'            => 'invalid_current_date',
 		);
+	}
+
+	if ( array_key_exists( 'RentFetchProfileAvailable', $unit ) ) {
+		if ( true !== $unit['RentFetchProfileAvailable'] ) {
+			return array( 'available' => false, 'availability_date' => null, 'reason' => 'excluded_by_availability_profile' );
+		}
+		unset( $unit['RentFetchProfileAvailable'] );
+		$calculated = rfs_rentmanager_derive_unit_availability( $unit, $today, $make_ready_days );
+		// Profile membership decides eligibility; leases still supply the advertised date.
+		$date = $calculated['availability_date'];
+		if ( null === $date ) {
+			$date = $today;
+			foreach ( rfs_rentmanager_normalize_leases( $unit['Leases'] ?? array() ) as $lease ) {
+				$start = rfs_rentmanager_normalize_date( $lease['MoveInDate'] );
+				$end = rfs_rentmanager_normalize_date( $lease['MoveOutDate'] );
+				if ( null !== $start && $start <= $today && null !== $end && $end > $date ) { $date = $end; }
+			}
+		}
+		return array( 'available' => true, 'availability_date' => ( new DateTimeImmutable( $date ) )->format( 'm/d/Y' ), 'reason' => 'availability_profile' );
 	}
 
 	$leases        = rfs_rentmanager_normalize_leases( $unit['Leases'] ?? array() );

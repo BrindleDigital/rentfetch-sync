@@ -1,3 +1,11 @@
+## 0.16.11
+
+- Use Rent Manager's account-default Unit Availability profile for unit eligibility, including prospect reservations, configured status exclusions, and the profile's availability window. Keep lease-derived advertised dates and pricing.
+- Use the existing lease calculation only when the central API explicitly lacks the new route or Rent Manager explicitly reports an unsupported endpoint or missing profile. Empty successful profiles are authoritative; request, permission, malformed, and incomplete-response failures preserve unit and floorplan availability.
+- Record profile/fallback diagnostics and sync status on the property. The `rfs_rentmanager_availability_profile` filter can select an account-specific API profile.
+- Request compact unit details and avoid pretty-printing valid unit JSON to reduce memory use on large properties. Older APIs may ignore the optional compact request without changing their existing contract.
+- Requires the companion Rent Fetch API 0.4.9 route for profile availability; older API versions retain calculation behavior during rolling updates. Previously released Sync clients retain their original API contract.
+
 ## 0.16.10
 
 - Sync Engrain unit application links from the selected pricing process's Online Leasing resource using the required experimental flag and `sightmap.instances.read-leasing` permission.
