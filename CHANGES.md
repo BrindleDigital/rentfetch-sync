@@ -1,3 +1,9 @@
+## 0.16.12
+
+- Import Rent Manager property marketing descriptions through the new API route. Preserve saved copy on errors or unlisted properties, accept source blanks, and record description diagnostics without blocking inventory sync.
+
+- Requires Rent Fetch API 0.4.12 for description importing. Older APIs preserve saved descriptions while property and inventory syncing continues.
+
 ## 0.16.11
 
 - Use Rent Manager's account-default Unit Availability profile for unit eligibility, including prospect reservations, configured status exclusions, and the profile's availability window. Keep lease-derived advertised dates and pricing.

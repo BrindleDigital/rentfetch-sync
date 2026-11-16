@@ -3,13 +3,13 @@
 	"slug": "rentfetch-sync",
 	"author": "<a href='https://brindledigital.com'>Brindle Digital</a>",
 	"author_profile": "https://brindledigital.com",
-	"version": "0.16.11",
+	"version": "0.16.12",
 	"requires": "6.5",
 	"tested": "6.6",
 	"requires_php": "7.4",
 	"sections": {
 		"description": "This is my plugin description.",
-		"changelog": "<h4>0.16.11</h4><ul><li>Use Rent Manager Unit Availability profiles to respect prospect reservations, future leases, unit-status exclusions, and configured availability windows.</li><li>Retain lease-based calculation when the API explicitly lacks profile support or reports a missing profile; preserve inventory on ordinary request failures.</li><li>Add profile and fallback diagnostics, protect floorplan availability during outages, and reduce memory use for large unit responses.</li><li>Compatible with rolling API updates. Rent Fetch API 0.4.9 enables profile availability; older APIs retain calculation behavior.</li></ul>",
+		"changelog": "<h4>0.16.12</h4><ul><li>Import Rent Manager property marketing descriptions from Online Listings into the existing property description field.</li><li>Preserve saved copy on failed requests or unlisted properties, and accept blank descriptions from successful responses.</li><li>Record description diagnostics without blocking property, unit, or floorplan syncing.</li><li>Requires Rent Fetch API 0.4.12 for description importing. Older APIs preserve saved copy during rolling updates.</li></ul>",
 		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
 	}
 }

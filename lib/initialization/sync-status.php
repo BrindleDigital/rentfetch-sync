@@ -170,7 +170,7 @@ function rfs_get_expected_sync_endpoints( $post_type, $source ) {
 			'yardi'       => array( 'properties_api', 'property_images_api', 'lease_fees_api' ),
 			'engrain'     => array( 'engrain_asset_api', 'engrain_inventory_api', 'engrain_pricing_api', 'engrain_leasing_api', 'engrain_all_in_pricing_api', 'engrain_galleries_api', 'engrain_unit_descriptions_api', 'engrain_marker_descriptions_api', 'engrain_expenses_api', 'engrain_pricing_disclaimers_api' ),
 			'entrata'     => array( 'properties_api', 'getMitsPropertyUnits' ),
-			'rentmanager' => array( 'properties_api', 'unit_availability_api' ),
+			'rentmanager' => array( 'properties_api', 'unit_availability_api', 'property_description_api' ),
 		),
 		'floorplans' => array(
 			'yardi'       => array( 'floorplans_api' ),
@@ -211,6 +211,7 @@ function rfs_is_partial_sync_endpoint( $endpoint ) {
 		(string) $endpoint,
 		array(
 			'property_images_api',
+			'property_description_api',
 			'lease_fees_api',
 			'engrain_pricing_api',
 			'engrain_leasing_api',

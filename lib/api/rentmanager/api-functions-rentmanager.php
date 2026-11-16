@@ -66,6 +66,10 @@ function rfs_do_rentmanager_sync( $args ) {
 
 	// get the data, then update the property post.
 	rfs_rentmanager_update_property_meta( $args, $property_data );
+	rfs_rentmanager_sync_property_description( $args );
+	if ( rfs_is_sync_locked() ) {
+		return;
+	}
 
 	// get the unit types (floorplans) data for this property.
 	$unit_types_response = rfs_rentmanager_get_unit_types_data( $args );
