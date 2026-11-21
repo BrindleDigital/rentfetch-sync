@@ -3,13 +3,13 @@
 	"slug": "rentfetch-sync",
 	"author": "<a href='https://brindledigital.com'>Brindle Digital</a>",
 	"author_profile": "https://brindledigital.com",
-	"version": "0.16.12",
+	"version": "0.16.13",
 	"requires": "6.5",
 	"tested": "6.6",
 	"requires_php": "7.4",
 	"sections": {
 		"description": "This is my plugin description.",
-		"changelog": "<h4>0.16.12</h4><ul><li>Import Rent Manager property marketing descriptions from Online Listings into the existing property description field.</li><li>Preserve saved copy on failed requests or unlisted properties, and accept blank descriptions from successful responses.</li><li>Record description diagnostics without blocking property, unit, or floorplan syncing.</li><li>Requires Rent Fetch API 0.4.12 for description importing. Older APIs preserve saved copy during rolling updates.</li></ul>",
+		"changelog": "<h4>0.16.13</h4><ul><li>Add RentEGI MITS 5 property, floor plan, rent, deposit and availability syncing through the central API, with scheduled, manual and accelerated sync support.</li><li>Preserve saved inventory on failed or incomplete feeds, retain manual specials and media, and derive public availability from published units.</li><li>Require compatible Rent Fetch Core features for RentEGI while preserving settings and keeping other integrations available during updates.</li><li>Add shared property locks, Editor and Administrator manual-sync permissions, detailed diagnostics and one cache refresh at the end of full automatic syncs.</li><li>Requires Rent Fetch API 0.4.15 and Rent Fetch 0.39.15 for RentEGI. Deploy the API first.</li></ul>",
 		"frequently asked questions": "<h4>Question<h4><p>Answer</p>"
 	}
 }

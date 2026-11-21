@@ -1,0 +1,175 @@
+<PhysicalProperty>
+  <Property>
+    <PropertyID>
+      <Identification IDType="PrimaryID" IDValue="184AST" />
+      <Identification IDType="SecondaryID" IDValue="" />
+      <MarketingName>Astoria</MarketingName>
+      <Address AddressType="property">
+        <Address>5700 23rd St E</Address>
+        <City>Fife</City>
+        <State>WA</State>
+        <PostalCode>98424</PostalCode>
+      </Address>
+      <PhoneType PhoneType="office">
+        <PhoneNumber>253-242-7177</PhoneNumber>
+      </PhoneType>
+      <Email>astoria.mgr@liveamc.com</Email>
+    </PropertyID>
+    <ILS_Identification RentalType="Unspecified" ILS_IdentificationType="Apartment" />
+    <Information>
+      <UnitCount>3</UnitCount>
+    </Information>
+    <Floorplan IDType="FloorplanID" IDValue="Adams" IDRank="primary">
+      <Name>Adams</Name>
+      <UnitCount>1</UnitCount>
+      <UnitsAvailable>1</UnitsAvailable>
+      <Room RoomType="Bedroom">
+        <Count>2</Count>
+      </Room>
+      <Room RoomType="Bathroom">
+        <Count>1.00</Count>
+      </Room>
+      <SquareFeet max="840" min="840" />
+      <EffectiveRent max="1899.00" min="1750.00" />
+      <Deposit DepositType="deposit">
+        <Amount AmountType="Actual">
+          <ValueRange Exact="500.00" />
+        </Amount>
+      </Deposit>
+    </Floorplan>
+    <Floorplan IDType="FloorplanID" IDValue="Baker" IDRank="primary">
+      <Name>Baker</Name>
+      <UnitCount>0</UnitCount>
+      <UnitsAvailable>0</UnitsAvailable>
+      <Room RoomType="Bedroom">
+        <Count>3</Count>
+      </Room>
+      <Room RoomType="Bathroom">
+        <Count>1.50</Count>
+      </Room>
+      <SquareFeet max="1050" min="1050" />
+      <EffectiveRent max="0.00" min="0.00" />
+      <Deposit DepositType="deposit">
+        <Amount AmountType="Actual">
+          <ValueRange Exact="500.00" />
+        </Amount>
+      </Deposit>
+    </Floorplan>
+    <Floorplan IDType="FloorplanID" IDValue="Rainier" IDRank="primary">
+      <Name>Rainier</Name>
+      <UnitCount>2</UnitCount>
+      <UnitsAvailable>1</UnitsAvailable>
+      <Room RoomType="Bedroom">
+        <Count>1</Count>
+      </Room>
+      <Room RoomType="Bathroom">
+        <Count>1.00</Count>
+      </Room>
+      <SquareFeet max="620" min="620" />
+      <EffectiveRent max="1599.00" min="1545.00" />
+      <Deposit DepositType="deposit">
+        <Amount AmountType="Actual">
+          <ValueRange Exact="500.00" />
+        </Amount>
+      </Deposit>
+    </Floorplan>
+    <ILS_Unit IDType="UnitID" IDValue="A01" IDRank="primary">
+      <Units>
+        <Unit>
+          <Identification IDType="UnitID" IDValue="A01" IDRank="primary" />
+          <Identification IDType="FloorplanID" IDValue="Rainier" IDRank="primary" />
+          <MarketingName>A01</MarketingName>
+          <UnitBedrooms>1</UnitBedrooms>
+          <UnitBathrooms>1.00</UnitBathrooms>
+          <UnitRent>0.00</UnitRent>
+          <UnitLeasedStatus>leased</UnitLeasedStatus>
+          <UnitOccupancyStatus>occupied</UnitOccupancyStatus>
+          <FloorplanName>Rainier</FloorplanName>
+        </Unit>
+      </Units>
+      <ChargeOfferClass Code="LEASE">
+        <ChargeOfferItem InternalCode="DEP">
+          <ChargeOfferAmount>
+            <Amounts>500.00</Amounts>
+            <TermBasis>Whole Lease</TermBasis>
+          </ChargeOfferAmount>
+        </ChargeOfferItem>
+        <ChargeOfferItem InternalCode="RENT">
+          <ChargeOfferAmount>
+            <Amounts>1545.00</Amounts>
+            <TermBasis>Whole Lease</TermBasis>
+          </ChargeOfferAmount>
+        </ChargeOfferItem>
+      </ChargeOfferClass>
+      <Availability>
+        <VacancyClass>occupied</VacancyClass>
+      </Availability>
+    </ILS_Unit>
+    <ILS_Unit IDType="UnitID" IDValue="D06" IDRank="primary">
+      <Units>
+        <Unit>
+          <Identification IDType="UnitID" IDValue="D06" IDRank="primary" />
+          <Identification IDType="FloorplanID" IDValue="Rainier" IDRank="primary" />
+          <MarketingName>D06</MarketingName>
+          <UnitBedrooms>1</UnitBedrooms>
+          <UnitBathrooms>1.00</UnitBathrooms>
+          <UnitRent>1595.00</UnitRent>
+          <UnitLeasedStatus>available</UnitLeasedStatus>
+          <UnitOccupancyStatus>vacant</UnitOccupancyStatus>
+          <FloorplanName>Rainier</FloorplanName>
+        </Unit>
+      </Units>
+      <ChargeOfferClass Code="LEASE">
+        <ChargeOfferItem InternalCode="DEP">
+          <ChargeOfferAmount>
+            <Amounts>500.00</Amounts>
+            <TermBasis>Whole Lease</TermBasis>
+          </ChargeOfferAmount>
+        </ChargeOfferItem>
+        <ChargeOfferItem InternalCode="RENT">
+          <ChargeOfferAmount>
+            <Amounts>1595.00</Amounts>
+            <TermBasis>Whole Lease</TermBasis>
+          </ChargeOfferAmount>
+        </ChargeOfferItem>
+      </ChargeOfferClass>
+      <Availability>
+        <MadeReadyDate Year="2026" Day="7" Month="7" />
+        <VacancyClass>Unoccupied</VacancyClass>
+      </Availability>
+    </ILS_Unit>
+    <ILS_Unit IDType="UnitID" IDValue="F01" IDRank="primary">
+      <Units>
+        <Unit>
+          <Identification IDType="UnitID" IDValue="F01" IDRank="primary" />
+          <Identification IDType="FloorplanID" IDValue="Adams" IDRank="primary" />
+          <MarketingName>F01</MarketingName>
+          <UnitBedrooms>2</UnitBedrooms>
+          <UnitBathrooms>1.00</UnitBathrooms>
+          <UnitRent>1895.00</UnitRent>
+          <UnitLeasedStatus>on_notice</UnitLeasedStatus>
+          <UnitOccupancyStatus>occupied</UnitOccupancyStatus>
+          <FloorplanName>Adams</FloorplanName>
+        </Unit>
+      </Units>
+      <ChargeOfferClass Code="LEASE">
+        <ChargeOfferItem InternalCode="DEP">
+          <ChargeOfferAmount>
+            <Amounts>500.00</Amounts>
+            <TermBasis>Whole Lease</TermBasis>
+          </ChargeOfferAmount>
+        </ChargeOfferItem>
+        <ChargeOfferItem InternalCode="RENT">
+          <ChargeOfferAmount>
+            <Amounts>1895.00</Amounts>
+            <TermBasis>Whole Lease</TermBasis>
+          </ChargeOfferAmount>
+        </ChargeOfferItem>
+      </ChargeOfferClass>
+      <Availability>
+        <MadeReadyDate Year="2026" Day="10" Month="8" />
+        <VacancyClass>occupied</VacancyClass>
+      </Availability>
+    </ILS_Unit>
+  </Property>
+</PhysicalProperty>

@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+require_once dirname( __DIR__ ) . '/api/configured-properties.php';
+
 /**
  * Get the option key used to store accelerated sync state.
  *
@@ -24,7 +26,7 @@ function rfs_get_accelerated_sync_state_key() {
  * @return array
  */
 function rfs_get_accelerated_sync_state() {
-	$state = get_option( rfs_get_accelerated_sync_state_key(), array() );
+	$state = rfs_get_fresh_option( rfs_get_accelerated_sync_state_key(), array() );
 
 	return is_array( $state ) ? $state : array();
 }
@@ -36,7 +38,10 @@ function rfs_get_accelerated_sync_state() {
  * @return void
  */
 function rfs_update_accelerated_sync_state( $state ) {
-	update_option( rfs_get_accelerated_sync_state_key(), is_array( $state ) ? $state : array(), false );
+	$state = is_array( $state ) ? $state : array();
+	if ( ! update_option( rfs_get_accelerated_sync_state_key(), $state, false ) && rfs_get_accelerated_sync_state() !== $state ) {
+		throw new RuntimeException( 'Unable to save accelerated sync state.' );
+	}
 }
 
 /**
@@ -74,7 +79,7 @@ function rfs_is_accelerated_sync_cancel_requested( $run_id ) {
 		return false;
 	}
 
-	return (int) get_option( rfs_get_accelerated_sync_cancel_key( $run_id ), 0 ) > 0;
+	return (int) rfs_get_fresh_option( rfs_get_accelerated_sync_cancel_key( $run_id ), 0 ) > 0;
 }
 
 /**
@@ -97,8 +102,13 @@ function rfs_clear_accelerated_sync_cancel_request( $run_id ) {
  * @return void
  */
 function rfs_unschedule_accelerated_sync_actions() {
+	wp_unschedule_hook( 'rfs_accelerated_sync_step' );
+	wp_unschedule_hook( 'rfs_finalize_accelerated_sync_item' );
+	wp_unschedule_hook( 'rfs_queue_accelerated_sync_run' );
 	if ( function_exists( 'as_unschedule_all_actions' ) ) {
 		as_unschedule_all_actions( 'rfs_accelerated_sync_step' );
+		as_unschedule_all_actions( 'rfs_finalize_accelerated_sync_item' );
+		as_unschedule_all_actions( 'rfs_queue_accelerated_sync_run' );
 	}
 }
 
@@ -138,34 +148,129 @@ function rfs_get_accelerated_sync_concurrency() {
  * @return string|false
  */
 function rfs_acquire_accelerated_sync_lock( $run_id ) {
-	$key = 'rfs_accelerated_sync_lock_' . md5( (string) $run_id );
-	$now = time();
-
-	if ( add_option( $key, $now, '', false ) ) {
-		return $key;
+	global $wpdb, $rfs_accelerated_state_lock;
+	$key = 'rfs_accelerated_' . md5( DB_NAME . ':' . $wpdb->options );
+	if ( ! empty( $rfs_accelerated_state_lock ) || '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $key ) ) ) {
+		return false;
 	}
-
-	$started = (int) get_option( $key, 0 );
-	if ( $started > 0 && ( $now - $started ) > 2 * MINUTE_IN_SECONDS ) {
-		delete_option( $key );
-		if ( add_option( $key, $now, '', false ) ) {
-			return $key;
-		}
-	}
-
-	return false;
+	$rfs_accelerated_state_lock = $key;
+	return $key;
 }
 
-/**
- * Release the accelerated sync state lock.
- *
- * @param string|false $lock_key Lock key.
- * @return void
- */
+/** Release only the connection-owned state mutex acquired by this request. */
 function rfs_release_accelerated_sync_lock( $lock_key ) {
-	if ( $lock_key ) {
-		delete_option( $lock_key );
+	global $wpdb, $rfs_accelerated_state_lock;
+	if ( $lock_key && $rfs_accelerated_state_lock === $lock_key ) {
+		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_key ) );
+		$rfs_accelerated_state_lock = null;
 	}
+}
+
+/** Retain terminal results before waiting for the shared state mutex. */
+function rfs_accelerated_sync_result_key( $run_id, $item_index ) {
+	return 'rfs_accelerated_result_' . md5( (string) $run_id ) . '_' . (int) $item_index;
+}
+
+function rfs_retry_accelerated_sync_action( $hook, $args ) {
+	if ( rfs_get_fresh_option( 'rfs_sync_deactivated', false ) ) { return; }
+	if ( function_exists( 'as_schedule_single_action' ) && function_exists( 'as_get_scheduled_actions' ) ) {
+		// The current in-progress retry must not suppress its replacement.
+		$pending = as_get_scheduled_actions( array( 'hook' => $hook, 'args' => $args, 'group' => 'rentfetch-accelerated-sync', 'status' => 'pending', 'per_page' => 1 ), 'ids' );
+		if ( $pending || as_schedule_single_action( time() + 10, $hook, $args, 'rentfetch-accelerated-sync' ) ) { return; }
+	}
+	if ( ! wp_next_scheduled( $hook, $args ) ) {
+		wp_schedule_single_event( time() + 10, $hook, $args );
+	}
+}
+
+function rfs_record_accelerated_sync_result( $run_id, $item_index, $success, $message = '', $queue_next = true ) {
+	if ( rfs_get_fresh_option( 'rfs_sync_deactivated', false ) ) { return; }
+	$key = rfs_accelerated_sync_result_key( $run_id, $item_index );
+	$result = array( 'success' => (bool) $success, 'message' => (string) $message, 'queue_next' => (bool) $queue_next );
+	if ( ! add_option( $key, $result, '', false ) && ! is_array( rfs_get_fresh_option( $key ) ) ) {
+		throw new RuntimeException( 'Unable to retain an accelerated sync result.' );
+	}
+	rfs_finalize_accelerated_sync_item( $run_id, $item_index );
+}
+
+/** Apply each durable terminal result once, even when workers finish together. */
+function rfs_finalize_accelerated_sync_item( $run_id, $item_index ) {
+	$key = rfs_accelerated_sync_result_key( $run_id, $item_index );
+	$result = rfs_get_fresh_option( $key );
+	if ( ! is_array( $result ) ) { return; }
+	$lock = rfs_acquire_accelerated_sync_lock( $run_id );
+	if ( ! $lock ) {
+		rfs_retry_accelerated_sync_action( 'rfs_finalize_accelerated_sync_item', array( $run_id, (int) $item_index ) );
+		return;
+	}
+	try {
+		$state = rfs_get_accelerated_sync_state();
+		if ( ( $state['run_id'] ?? '' ) !== $run_id || 'running' !== ( $state['status'] ?? '' ) || ! empty( $state['finished_items'][ $item_index ] ) ) {
+			delete_option( $key );
+			return;
+		}
+		if ( rfs_is_accelerated_sync_cancel_requested( $run_id ) || rfs_get_fresh_option( 'rfs_sync_deactivated', false ) ) {
+			rfs_mark_accelerated_sync_cancelled( $state );
+			delete_option( $key );
+			return;
+		}
+		$item = $state['items'][ $item_index ] ?? null;
+		if ( ! is_array( $item ) ) { delete_option( $key ); return; }
+		$state['finished_items'][ $item_index ] = true;
+		unset( $state['active_items'][ $item_index ] );
+		$field = $result['success'] ? 'completed' : 'failed';
+		$state[ $field ] = (int) ( $state[ $field ] ?? 0 ) + 1;
+		if ( 'property' === ( $item['type'] ?? '' ) ) {
+			$field = $result['success'] ? 'property_completed' : 'property_failed';
+			$state[ $field ] = (int) ( $state[ $field ] ?? 0 ) + 1;
+		}
+		if ( ! $result['success'] ) {
+			$state['errors'][] = array( 'label' => $item['label'] ?? 'Sync item', 'message' => $result['message'] );
+			$state['errors'] = array_slice( $state['errors'], -20 );
+		}
+		$state['current_label'] = implode( ', ', array_slice( array_values( $state['active_items'] ?? array() ), 0, 3 ) );
+		$state['updated_at'] = time();
+		if ( (int) $state['completed'] + (int) $state['failed'] >= (int) $state['total'] ) {
+			$state['status'] = 'complete';
+			$state['current_label'] = '';
+			$state['active_items'] = array();
+			$state['completed_at'] = time();
+			rfs_update_accelerated_sync_state( $state );
+			// Keep the mutex until the completion boundary is emitted once.
+			do_action( 'rfs_sync_cycle_finished', 'accelerated', $state );
+		} elseif ( $result['queue_next'] || ! empty( $state['dispatch_ready'] ) ) {
+			rfs_queue_accelerated_sync_workers( $state );
+		} else {
+			rfs_update_accelerated_sync_state( $state );
+		}
+		delete_option( $key );
+	} catch ( Throwable $exception ) {
+		error_log( 'Rent Fetch Sync result finalization will retry: ' . $exception->getMessage() );
+		rfs_retry_accelerated_sync_action( 'rfs_finalize_accelerated_sync_item', array( $run_id, (int) $item_index ) );
+	} finally {
+		rfs_release_accelerated_sync_lock( $lock );
+	}
+}
+add_action( 'rfs_finalize_accelerated_sync_item', 'rfs_finalize_accelerated_sync_item', 10, 2 );
+
+/** Account for a fatal or otherwise uncaught Action Scheduler worker failure. */
+function rfs_accelerated_sync_action_failed( $action_id ) {
+	$action = ActionScheduler::store()->fetch_action( $action_id );
+	if ( 'rfs_accelerated_sync_step' !== $action->get_hook() ) { return; }
+	$args = array_values( $action->get_args() );
+	if ( isset( $args[0], $args[1] ) && is_numeric( $args[1] ) ) {
+		rfs_record_accelerated_sync_result( (string) $args[0], (int) $args[1], false, 'The background worker ended before completing this item.' );
+	}
+}
+add_action( 'action_scheduler_failed_execution', 'rfs_accelerated_sync_action_failed' );
+add_action( 'action_scheduler_unexpected_shutdown', 'rfs_accelerated_sync_action_failed' );
+
+/** Clean only this run's retained result options after cancellation/replacement. */
+function rfs_clear_accelerated_sync_results( $run_id ) {
+	global $wpdb;
+	$prefix = 'rfs_accelerated_result_' . md5( (string) $run_id ) . '_';
+	$keys = $wpdb->get_col( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( $prefix ) . '%' ) );
+	foreach ( $keys as $key ) { delete_option( $key ); }
 }
 
 /**
@@ -205,7 +310,7 @@ function rfs_get_accelerated_sync_manifest() {
 		if ( ! empty( $yardi_properties ) ) {
 			$items[] = array(
 				'hook'        => 'rfs_yardi_do_delete_orphans',
-				'args'        => array( $yardi_properties ),
+				'args'        => array(),
 				'type'        => 'cleanup',
 				'integration' => 'yardi',
 				'property_id' => '',
@@ -237,7 +342,7 @@ function rfs_get_accelerated_sync_manifest() {
 
 		$items[] = array(
 			'hook'        => 'rfs_engrain_do_delete_orphans',
-			'args'        => array( $engrain_assets ),
+			'args'        => array(),
 			'type'        => 'cleanup',
 			'integration' => 'engrain',
 			'property_id' => '',
@@ -269,7 +374,7 @@ function rfs_get_accelerated_sync_manifest() {
 		if ( ! empty( $entrata_properties ) ) {
 			$items[] = array(
 				'hook'        => 'rfs_entrata_do_delete_orphans',
-				'args'        => array( $entrata_properties ),
+				'args'        => array(),
 				'type'        => 'cleanup',
 				'integration' => 'entrata',
 				'property_id' => '',
@@ -323,6 +428,26 @@ function rfs_get_accelerated_sync_manifest() {
 		}
 	}
 
+	if ( in_array( 'rentegi', $enabled_integrations, true ) && rfs_rentegi_core_is_compatible() ) {
+		$items[] = array(
+			'hook'        => 'rfs_rentegi_do_delete_orphans',
+			'args'        => array(),
+			'type'        => 'cleanup',
+			'integration' => 'rentegi',
+			'property_id' => '',
+			'label'       => 'RentEGI orphan cleanup',
+		);
+
+		foreach ( rfs_rentegi_get_property_codes() as $property_code ) {
+			$items[] = array(
+				'hook' => 'rfs_do_sync',
+				'args' => array( array( 'integration' => 'rentegi', 'property_id' => $property_code ) ),
+				'type' => 'property', 'integration' => 'rentegi', 'property_id' => $property_code,
+				'label' => sprintf( 'RentEGI property %s', $property_code ),
+			);
+		}
+	}
+
 	return apply_filters( 'rfs_accelerated_sync_manifest', $items );
 }
 
@@ -346,7 +471,11 @@ function rfs_accelerated_sync_has_scheduled_work( $run_id ) {
  * @param array $state Current sync state.
  * @return array Updated sync state.
  */
+/** @internal Caller holds the accelerated state mutex. */
 function rfs_queue_accelerated_sync_workers( $state ) {
+	if ( ! empty( $state['run_id'] ) && ( rfs_get_fresh_option( 'rfs_sync_deactivated', false ) || rfs_is_accelerated_sync_cancel_requested( $state['run_id'] ) ) ) {
+		return rfs_mark_accelerated_sync_cancelled( $state );
+	}
 	if ( empty( $state['run_id'] ) || empty( $state['status'] ) || 'running' !== $state['status'] ) {
 		return $state;
 	}
@@ -372,7 +501,10 @@ function rfs_queue_accelerated_sync_workers( $state ) {
 	rfs_update_accelerated_sync_state( $state );
 
 	foreach ( $to_enqueue as $item_index ) {
-		as_enqueue_async_action( 'rfs_accelerated_sync_step', array( $state['run_id'], $item_index ), 'rentfetch-accelerated-sync', false );
+		if ( rfs_get_fresh_option( 'rfs_sync_deactivated', false ) || rfs_is_accelerated_sync_cancel_requested( $state['run_id'] ) ) { break; }
+		if ( ! as_enqueue_async_action( 'rfs_accelerated_sync_step', array( $state['run_id'], $item_index ), 'rentfetch-accelerated-sync', false ) ) {
+			rfs_retry_accelerated_sync_action( 'rfs_accelerated_sync_step', array( $state['run_id'], $item_index ) );
+		}
 	}
 
 	return $state;
@@ -385,108 +517,92 @@ function rfs_queue_accelerated_sync_workers( $state ) {
  */
 function rfs_start_accelerated_sync() {
 	if ( rfs_is_sync_locked() ) {
-		// An explicit sync request should recover immediately after the API unlocks this site.
 		$access = rfs_check_sync_access();
-		if ( is_wp_error( $access ) ) {
-			return $access;
-		}
+		if ( is_wp_error( $access ) ) { return $access; }
 	}
-	update_option( 'rentfetch_options_data_sync', 'updatesync' );
-	delete_transient( 'rentfetchsync_properties_limit' );
-
-	if ( function_exists( 'rfs_clear_rentfetch_api_info_cache' ) ) {
-		rfs_clear_rentfetch_api_info_cache();
-	} else {
-		delete_transient( 'rentfetch_api_info' );
-		delete_transient( 'rentfetch_api_info_error' );
-		delete_option( 'rentfetch_api_info_refresh_lock' );
-	}
-
 	$can_start = rfs_can_start_accelerated_sync();
-	if ( is_wp_error( $can_start ) ) {
-		return $can_start;
-	}
-
-	$current_state = rfs_get_accelerated_sync_state();
-	if (
-		isset( $current_state['status'], $current_state['run_id'] )
-		&& 'running' === $current_state['status']
-		&& rfs_accelerated_sync_has_scheduled_work( $current_state['run_id'] )
-	) {
-		return $current_state;
-	}
-
-	$items = rfs_get_accelerated_sync_manifest();
-	if ( empty( $items ) ) {
-		return new WP_Error( 'empty_manifest', 'No synced properties are configured.' );
-	}
-
-	$property_total = count(
-		array_filter(
-			$items,
-			function( $item ) {
-				return isset( $item['type'] ) && 'property' === $item['type'];
-			}
-		)
-	);
-	$now            = time();
-	$run_id         = wp_generate_uuid4();
-	rfs_clear_accelerated_sync_cancel_request( $run_id );
-	$state  = array(
-		'run_id'             => $run_id,
-		'status'             => 'running',
-		'items'              => array_values( $items ),
-		'total'              => count( $items ),
-		'property_total'     => $property_total,
-		'current_index'      => 0,
-		'queued'             => 0,
-		'completed'          => 0,
-		'property_completed' => 0,
-		'failed'             => 0,
-		'property_failed'    => 0,
-		'errors'             => array(),
-		'current_label'      => '',
-		'active_items'       => array(),
-		'started_at'         => $now,
-		'updated_at'         => $now,
-		'completed_at'       => 0,
-	);
-
-	rfs_update_accelerated_sync_state( $state );
-
-	if ( apply_filters( 'rfs_accelerated_sync_process_first_item_immediately', true, $state ) && ! empty( $state['items'][0] ) ) {
-		$immediate_until = 0;
-		foreach ( $state['items'] as $item_index => $item ) {
-			if ( isset( $item['type'] ) && 'property' === $item['type'] ) {
-				$immediate_until = (int) $item_index;
-				break;
-			}
+	if ( is_wp_error( $can_start ) ) { return $can_start; }
+	if ( function_exists( 'rfs_maybe_migrate_sync_action_args' ) ) { rfs_maybe_migrate_sync_action_args(); }
+	$lock = rfs_acquire_accelerated_sync_lock( 'start' );
+	if ( ! $lock ) { return new WP_Error( 'sync_state_busy', 'A sync state update is in progress. Try again shortly.' ); }
+	try {
+		$current = rfs_get_accelerated_sync_state();
+		if ( 'running' === ( $current['status'] ?? '' ) && ! rfs_is_accelerated_sync_cancel_requested( $current['run_id'] ) && ( ! empty( $current['active_items'] ) || rfs_accelerated_sync_has_scheduled_work( $current['run_id'] ) ) ) {
+			return $current;
 		}
-
-		$state['queued']        = $immediate_until + 1;
-		$state['current_index'] = $state['queued'];
-		$state['updated_at']    = time();
+		$items = rfs_get_accelerated_sync_manifest();
+		if ( ! $items ) { return new WP_Error( 'empty_manifest', 'No synced properties are configured.' ); }
+		rfs_unschedule_accelerated_sync_actions();
+		if ( ! empty( $current['run_id'] ) ) { rfs_clear_accelerated_sync_results( $current['run_id'] ); }
+		update_option( 'rentfetch_options_data_sync', 'updatesync' );
+		delete_transient( 'rentfetchsync_properties_limit' );
+		if ( function_exists( 'rfs_clear_rentfetch_api_info_cache' ) ) {
+			rfs_clear_rentfetch_api_info_cache();
+		} else {
+			delete_transient( 'rentfetch_api_info' );
+			delete_transient( 'rentfetch_api_info_error' );
+			delete_option( 'rentfetch_api_info_refresh_lock' );
+		}
+		$run_id = wp_generate_uuid4();
+		rfs_clear_accelerated_sync_cancel_request( $run_id );
+		$state = array(
+			'run_id' => $run_id, 'status' => 'running', 'items' => array_values( $items ),
+			'total' => count( $items ),
+			'property_total' => count( array_filter( $items, static function( $item ) { return 'property' === ( $item['type'] ?? '' ); } ) ),
+			'current_index' => 0, 'queued' => 0, 'completed' => 0, 'property_completed' => 0,
+			'failed' => 0, 'property_failed' => 0, 'errors' => array(), 'current_label' => '',
+			'active_items' => array(), 'finished_items' => array(), 'dispatch_ready' => false,
+			'started_at' => time(), 'updated_at' => time(), 'completed_at' => 0,
+		);
+		$immediate = (bool) apply_filters( 'rfs_accelerated_sync_process_first_item_immediately', true, $state );
+		if ( $immediate ) {
+			$immediate_until = 0;
+			foreach ( $state['items'] as $index => $item ) {
+				if ( 'property' === ( $item['type'] ?? '' ) ) { $immediate_until = $index; break; }
+			}
+			$state['queued'] = $immediate_until + 1;
+			$state['current_index'] = $state['queued'];
+		}
 		rfs_update_accelerated_sync_state( $state );
-
-		for ( $item_index = 0; $item_index <= $immediate_until; ++$item_index ) {
-			rfs_process_accelerated_sync_step( $run_id, $item_index, false );
-
-			$state = rfs_get_accelerated_sync_state();
-			if ( empty( $state['status'] ) || 'running' !== $state['status'] ) {
-				break;
-			}
+	} finally {
+		rfs_release_accelerated_sync_lock( $lock );
+	}
+	if ( $immediate ) {
+		for ( $index = 0; $index <= $immediate_until; ++$index ) {
+			rfs_process_accelerated_sync_step( $run_id, $index, false );
 		}
-
+	}
+	$lock = rfs_acquire_accelerated_sync_lock( $run_id );
+	if ( ! $lock ) {
+		rfs_retry_accelerated_sync_action( 'rfs_queue_accelerated_sync_run', array( $run_id ) );
+		return rfs_get_accelerated_sync_state();
+	}
+	try {
 		$state = rfs_get_accelerated_sync_state();
-		if ( ! empty( $state['status'] ) && 'running' === $state['status'] ) {
+		if ( $run_id === ( $state['run_id'] ?? '' ) && 'running' === ( $state['status'] ?? '' ) ) {
+			$state['dispatch_ready'] = true;
 			$state = rfs_queue_accelerated_sync_workers( $state );
 		}
-	} else {
-		$state = rfs_queue_accelerated_sync_workers( $state );
+		return $state;
+	} finally {
+		rfs_release_accelerated_sync_lock( $lock );
 	}
-
-	return $state;
 }
+
+/** Complete initial queue dispatch if another worker temporarily held the mutex. */
+function rfs_queue_accelerated_sync_run( $run_id ) {
+	if ( rfs_get_fresh_option( 'rfs_sync_deactivated', false ) ) { return; }
+	$lock = rfs_acquire_accelerated_sync_lock( $run_id );
+	if ( ! $lock ) { rfs_retry_accelerated_sync_action( 'rfs_queue_accelerated_sync_run', array( $run_id ) ); return; }
+	try {
+		$state = rfs_get_accelerated_sync_state();
+		if ( $run_id === ( $state['run_id'] ?? '' ) && 'running' === ( $state['status'] ?? '' ) && ! rfs_is_accelerated_sync_cancel_requested( $run_id ) ) {
+			$state['dispatch_ready'] = true;
+			rfs_queue_accelerated_sync_workers( $state );
+		}
+	} finally { rfs_release_accelerated_sync_lock( $lock ); }
+}
+add_action( 'rfs_queue_accelerated_sync_run', 'rfs_queue_accelerated_sync_run' );
 
 /**
  * Cancel an accelerated sync.
@@ -495,14 +611,15 @@ function rfs_start_accelerated_sync() {
  */
 function rfs_cancel_accelerated_sync() {
 	$state = rfs_get_accelerated_sync_state();
-
-	if ( isset( $state['run_id'] ) ) {
-		rfs_request_accelerated_sync_cancel( $state['run_id'] );
-	}
-
+	if ( ! empty( $state['run_id'] ) ) { rfs_request_accelerated_sync_cancel( $state['run_id'] ); }
 	rfs_unschedule_accelerated_sync_actions();
-
-	return rfs_mark_accelerated_sync_cancelled( $state );
+	$lock = rfs_acquire_accelerated_sync_lock( $state['run_id'] ?? '' );
+	if ( ! $lock ) { return $state; }
+	try {
+		$state = rfs_mark_accelerated_sync_cancelled( rfs_get_accelerated_sync_state() );
+		if ( ! empty( $state['run_id'] ) ) { rfs_clear_accelerated_sync_results( $state['run_id'] ); }
+		return $state;
+	} finally { rfs_release_accelerated_sync_lock( $lock ); }
 }
 
 /**
@@ -514,165 +631,53 @@ function rfs_cancel_accelerated_sync() {
  * @return void
  */
 function rfs_process_accelerated_sync_step( $run_id, $item_index = null, $queue_next = true ) {
-	if ( rfs_is_sync_locked() ) {
-		return;
-	}
-	$state = rfs_get_accelerated_sync_state();
-
-	if (
-		empty( $state['run_id'] )
-		|| $state['run_id'] !== $run_id
-		|| empty( $state['status'] )
-		|| 'running' !== $state['status']
-	) {
-		return;
-	}
-
-	if ( rfs_is_accelerated_sync_cancel_requested( $run_id ) ) {
-		rfs_mark_accelerated_sync_cancelled( $state );
-		return;
-	}
-
-	$items = isset( $state['items'] ) && is_array( $state['items'] ) ? $state['items'] : array();
-
-	if ( null === $item_index ) {
-		$lock = rfs_acquire_accelerated_sync_lock( $run_id );
-		if ( ! $lock ) {
-			return;
-		}
-
-		$state      = rfs_get_accelerated_sync_state();
-		if (
-			empty( $state['run_id'] )
-			|| $state['run_id'] !== $run_id
-			|| empty( $state['status'] )
-			|| 'running' !== $state['status']
-			|| rfs_is_accelerated_sync_cancel_requested( $run_id )
-		) {
-			rfs_release_accelerated_sync_lock( $lock );
-			return;
-		}
-
-		$item_index = isset( $state['queued'] ) ? (int) $state['queued'] : (int) ( $state['current_index'] ?? 0 );
-
-		if ( isset( $items[ $item_index ] ) ) {
-			$state['queued']        = $item_index + 1;
-			$state['current_index'] = $item_index + 1;
-			$state['updated_at']    = time();
-			rfs_update_accelerated_sync_state( $state );
-		}
-
-		rfs_release_accelerated_sync_lock( $lock );
-	} else {
-		$item_index = (int) $item_index;
-	}
-
-	if ( ! isset( $items[ $item_index ] ) ) {
-		return;
-	}
-
-	$item  = $items[ $item_index ];
-	$label = isset( $item['label'] ) ? (string) $item['label'] : 'Sync item';
-	$lock  = rfs_acquire_accelerated_sync_lock( $run_id );
-
-	if ( $lock ) {
-		$state = rfs_get_accelerated_sync_state();
-		if (
-			empty( $state['run_id'] )
-			|| $state['run_id'] !== $run_id
-			|| empty( $state['status'] )
-			|| 'running' !== $state['status']
-			|| rfs_is_accelerated_sync_cancel_requested( $run_id )
-		) {
-			rfs_release_accelerated_sync_lock( $lock );
-			return;
-		}
-
-		if ( empty( $state['active_items'] ) || ! is_array( $state['active_items'] ) ) {
-			$state['active_items'] = array();
-		}
-		$state['active_items'][ $item_index ] = $label;
-		$state['current_label']               = implode( ', ', array_slice( array_values( $state['active_items'] ), 0, 3 ) );
-		$state['updated_at']                  = time();
-		rfs_update_accelerated_sync_state( $state );
-		rfs_release_accelerated_sync_lock( $lock );
-	}
-
-	try {
-		if ( empty( $item['hook'] ) || empty( $item['args'] ) || ! is_array( $item['args'] ) ) {
-			throw new RuntimeException( 'Accelerated sync item is missing a hook or args.' );
-		}
-
-		do_action_ref_array( $item['hook'], $item['args'] );
-		$success = true;
-	} catch ( Throwable $exception ) {
-		$success = false;
-		$error   = $exception->getMessage();
-	}
-
+	if ( rfs_is_sync_locked() || rfs_get_fresh_option( 'rfs_sync_deactivated', false ) ) { return; }
 	$lock = rfs_acquire_accelerated_sync_lock( $run_id );
 	if ( ! $lock ) {
+		rfs_retry_accelerated_sync_action( 'rfs_accelerated_sync_step', array( $run_id, $item_index ) );
 		return;
 	}
-
-	$state = rfs_get_accelerated_sync_state();
-	if (
-		empty( $state['run_id'] )
-		|| $state['run_id'] !== $run_id
-		|| empty( $state['status'] )
-		|| 'running' !== $state['status']
-		|| rfs_is_accelerated_sync_cancel_requested( $run_id )
-	) {
+	try {
+		$state = rfs_get_accelerated_sync_state();
+		if ( ( $state['run_id'] ?? '' ) !== $run_id || 'running' !== ( $state['status'] ?? '' ) ) { return; }
 		if ( rfs_is_accelerated_sync_cancel_requested( $run_id ) ) {
 			rfs_mark_accelerated_sync_cancelled( $state );
+			return;
 		}
-		rfs_release_accelerated_sync_lock( $lock );
-		return;
-	}
-
-	if ( empty( $state['active_items'] ) || ! is_array( $state['active_items'] ) ) {
-		$state['active_items'] = array();
-	}
-	unset( $state['active_items'][ $item_index ] );
-
-	if ( $success ) {
-		++$state['completed'];
-		if ( isset( $item['type'] ) && 'property' === $item['type'] ) {
-			$state['property_completed'] = isset( $state['property_completed'] ) ? (int) $state['property_completed'] + 1 : 1;
+		if ( null === $item_index ) {
+			$item_index = (int) ( $state['queued'] ?? $state['current_index'] ?? 0 );
+			$state['queued'] = $item_index + 1;
+			$state['current_index'] = $state['queued'];
 		}
-	} else {
-		++$state['failed'];
-		if ( isset( $item['type'] ) && 'property' === $item['type'] ) {
-			$state['property_failed'] = isset( $state['property_failed'] ) ? (int) $state['property_failed'] + 1 : 1;
+		$item_index = (int) $item_index;
+		$item = $state['items'][ $item_index ] ?? null;
+		if ( ! is_array( $item ) || ! empty( $state['finished_items'][ $item_index ] ) ) { return; }
+		if ( is_array( rfs_get_fresh_option( rfs_accelerated_sync_result_key( $run_id, $item_index ) ) ) ) {
+			rfs_retry_accelerated_sync_action( 'rfs_finalize_accelerated_sync_item', array( $run_id, $item_index ) );
+			return;
 		}
-		$state['errors'][] = array(
-			'label'   => $label,
-			'message' => $error,
-		);
-		$state['errors'] = array_slice( $state['errors'], -20 );
-	}
-
-	$state['current_label'] = implode( ', ', array_slice( array_values( $state['active_items'] ), 0, 3 ) );
-	$state['updated_at']    = time();
-
-	if ( ( (int) $state['completed'] + (int) $state['failed'] ) >= (int) $state['total'] ) {
-		$state['status']        = 'complete';
-		$state['current_label'] = '';
-		$state['active_items']  = array();
-		$state['completed_at']  = time();
+		if ( isset( $state['active_items'][ $item_index ] ) ) { return; }
+		$state['active_items'][ $item_index ] = $item['label'] ?? 'Sync item';
+		$state['current_label'] = implode( ', ', array_slice( array_values( $state['active_items'] ), 0, 3 ) );
+		$state['updated_at'] = time();
 		rfs_update_accelerated_sync_state( $state );
+	} finally {
 		rfs_release_accelerated_sync_lock( $lock );
-		return;
 	}
-
-	if ( $queue_next ) {
-		$state = rfs_queue_accelerated_sync_workers( $state );
-	} else {
-		rfs_update_accelerated_sync_state( $state );
+	try {
+		if ( empty( $item['hook'] ) || ! isset( $item['args'] ) || ! is_array( $item['args'] ) ) {
+			throw new RuntimeException( 'Accelerated sync item is missing a hook or args.' );
+		}
+		do_action_ref_array( $item['hook'], $item['args'] );
+		$success = true;
+		$error = '';
+	} catch ( Throwable $exception ) {
+		$success = false;
+		$error = $exception->getMessage();
 	}
-
-	rfs_release_accelerated_sync_lock( $lock );
+	rfs_record_accelerated_sync_result( $run_id, $item_index, $success, $error, $queue_next );
 }
+
 add_action( 'rfs_accelerated_sync_step', 'rfs_process_accelerated_sync_step', 10, 2 );
 
 /**

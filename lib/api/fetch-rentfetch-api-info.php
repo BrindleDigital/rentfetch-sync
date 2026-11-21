@@ -268,6 +268,13 @@ function rfs_refresh_info_from_rentfetch_api() {
 		);
 	}
 	
+	if ( in_array( 'rentegi', $apis_enabled, true ) ) {
+		$apis_used['rentegi'] = array(
+			'property_codes' => rfs_rentegi_get_property_codes(),
+			'number_of_properties' => rfs_get_number_of_properties( 'rentegi' ),
+		);
+	}
+
 	// get the Manual integration settings. This won't be in the array, so we need to add it.
 	$apis_used['manual'] = array(
 		'number_of_properties' => rfs_get_number_of_properties( null ),

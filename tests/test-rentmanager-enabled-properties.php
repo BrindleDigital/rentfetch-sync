@@ -1,6 +1,7 @@
 <?php
 
 define( 'ABSPATH', __DIR__ );
+function add_action( ...$args ) {}
 
 $rfs_test_options = array(
 	'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' => array(
@@ -38,6 +39,12 @@ function wp_delete_post( $post_id, $force_delete = false ) {
 	$rfs_test_deleted[] = $post_id;
 }
 
+function rfs_is_sync_locked() { return false; }
+function wp_cache_delete( ...$args ) {}
+function wp_cache_get( ...$args ) { return false; }
+function wp_cache_set( ...$args ) {}
+require_once dirname( __DIR__ ) . '/lib/api/configured-properties.php';
+function rfs_delete_sync_posts( $integration, $posts ) { foreach ( $posts as $post ) { wp_delete_post( $post->ID, true ); } }
 require_once dirname( __DIR__ ) . '/lib/api/rentmanager/get-properties-from-setting.php';
 require_once dirname( __DIR__ ) . '/lib/api/rentmanager/remove-posts-when-property-no-longer-should-sync.php';
 

@@ -9,7 +9,7 @@ function esc_url_raw( $url ) {
 	return filter_var( $url, FILTER_VALIDATE_URL ) ? $url : '';
 }
 
-require_once dirname( __DIR__ ) . '/lib/api/yardi/api-functions-yardi.php';
+require_once dirname( __DIR__ ) . '/lib/api/yardi/v2/get-synced-tours-yardi-v2.php';
 
 $matterport = 'https://my.matterport.com/show/?m=RbRMQVyf2sL&play=1';
 $matterport_two = 'https://my.matterport.com/show/?m=gsAWyyW5ezo';

@@ -13,14 +13,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Remove any orphaned properties, floorplans, and units from WordPress (which aren't in the settings)
  */
 add_action( 'rfs_yardi_do_delete_orphans', 'rfs_yardi_delete_orphans_properties_floorplans_units', 10, 1 );
-function rfs_yardi_delete_orphans_properties_floorplans_units( $yardi_properties_in_settings_box ) {
+function rfs_yardi_delete_orphans_properties_floorplans_units( $yardi_properties_in_settings_box = null ) {
 	if ( rfs_is_sync_locked() ) {
 		return;
 	}
 		
-	if ( !is_array( $yardi_properties_in_settings_box ) )
-		return;
-	
+	$yardi_properties_in_settings_box = rfs_get_configured_property_ids( 'yardi' );
+
+	$orphans = array();
+
 	//* Properties
 	$property_deletion_query_args = array(
 		'post_type' => 'properties',
@@ -33,11 +34,9 @@ function rfs_yardi_delete_orphans_properties_floorplans_units( $yardi_properties
 					'key' => 'property_source',
 					'value' => 'yardi',
 				),
-				array(
-					'key'   => 'property_id',
-					'value' => $yardi_properties_in_settings_box,
-					'compare' => 'NOT IN',
-				),
+				empty( $yardi_properties_in_settings_box )
+					? array( 'key' => 'property_id', 'compare' => 'EXISTS' )
+					: array( 'key' => 'property_id', 'value' => $yardi_properties_in_settings_box, 'compare' => 'NOT IN' ),
 			),
 		),
 	);
@@ -45,9 +44,7 @@ function rfs_yardi_delete_orphans_properties_floorplans_units( $yardi_properties
 	// delete all properties found
 	$properties_in_wordpress_not_in_settings = get_posts( $property_deletion_query_args );
 	
-	foreach ( $properties_in_wordpress_not_in_settings as $post_in_wordpress ) {
-		wp_delete_post( $post_in_wordpress->ID, true );
-	}
+	$orphans = array_merge( $orphans, $properties_in_wordpress_not_in_settings );
 	
 	//* Floorplans
 	$floorplan_deletion_query_args = array(
@@ -61,11 +58,9 @@ function rfs_yardi_delete_orphans_properties_floorplans_units( $yardi_properties
 					'key' => 'floorplan_source',
 					'value' => 'yardi',
 				),
-				array(
-					'key'   => 'property_id',
-					'value' => $yardi_properties_in_settings_box,
-					'compare' => 'NOT IN',
-				),
+				empty( $yardi_properties_in_settings_box )
+					? array( 'key' => 'property_id', 'compare' => 'EXISTS' )
+					: array( 'key' => 'property_id', 'value' => $yardi_properties_in_settings_box, 'compare' => 'NOT IN' ),
 			),
 		),
 	);
@@ -73,9 +68,7 @@ function rfs_yardi_delete_orphans_properties_floorplans_units( $yardi_properties
 	// delete all floorplans found
 	$floorplans_in_wordpress_not_in_settings = get_posts( $floorplan_deletion_query_args );
 	
-	foreach ( $floorplans_in_wordpress_not_in_settings as $post_in_wordpress ) {
-		wp_delete_post( $post_in_wordpress->ID, true );
-	}
+	$orphans = array_merge( $orphans, $floorplans_in_wordpress_not_in_settings );
 	
 	//* Units
 	$unit_deletion_query_args = array(
@@ -89,11 +82,9 @@ function rfs_yardi_delete_orphans_properties_floorplans_units( $yardi_properties
 					'key' => 'unit_source',
 					'value' => 'yardi',
 				),
-				array(
-					'key'   => 'property_id',
-					'value' => $yardi_properties_in_settings_box,
-					'compare' => 'NOT IN',
-				),
+				empty( $yardi_properties_in_settings_box )
+					? array( 'key' => 'property_id', 'compare' => 'EXISTS' )
+					: array( 'key' => 'property_id', 'value' => $yardi_properties_in_settings_box, 'compare' => 'NOT IN' ),
 			),
 		),
 	);
@@ -101,8 +92,6 @@ function rfs_yardi_delete_orphans_properties_floorplans_units( $yardi_properties
 	// delete all units found
 	$units_in_wordpress_not_in_settings = get_posts( $unit_deletion_query_args );
 	
-	foreach ( $units_in_wordpress_not_in_settings as $post_in_wordpress ) {
-		wp_delete_post( $post_in_wordpress->ID, true );
-	}
-	
+	$orphans = array_merge( $orphans, $units_in_wordpress_not_in_settings );
+	rfs_delete_sync_posts( 'yardi', $orphans, true );
 }

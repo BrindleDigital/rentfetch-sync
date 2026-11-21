@@ -143,9 +143,7 @@ function rfs_save_disabled_rentmanager_properties() {
 
 	update_option( 'rentfetch_options_rentmanager_disabled_property_shortnames', array_values( $disabled ) );
 
-	rfs_rentmanager_remove_units_that_shouldnt_be_synced_property_deleted();
-	rfs_rentmanager_remove_floorplans_that_shouldnt_be_synced_property_deleted();
-	rfs_rentmanager_remove_properties_that_shouldnt_be_synced_property_deleted();
+	rfs_rentmanager_remove_records_that_shouldnt_be_synced_property_deleted();
 }
 add_action( 'rentfetch_save_settings', 'rfs_save_disabled_rentmanager_properties', 5 );
 
@@ -411,11 +409,6 @@ function rentfetch_settings_sync() {
 							<input type="text" name="rentfetch_options_yardi_integration_creds_yardi_company_code" id="rentfetch_options_yardi_integration_creds_yardi_company_code" value="<?php echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_company_code' ) ); ?>">				
 						</div>
 					</div>
-					<!-- <div class="white-box">
-						<label for="rentfetch_options_yardi_integration_creds_yardi_voyager_code">Yardi Voyager Codes</label>
-						<textarea rows="10" style="width: 100%;" name="rentfetch_options_yardi_integration_creds_yardi_voyager_code" id="rentfetch_options_yardi_integration_creds_yardi_voyager_code"><?php // echo esc_attr( get_option( 'rentfetch_options_yardi_integration_creds_yardi_voyager_code' ) ); ?></textarea>
-						<p class="description">Multiple property codes should be entered separated by commas. Please note that on save, these will be automatically converted to property codes. If you have hundreds, this can take a minute or two.</p>
-					</div> -->
 					<?php
 					rfs_render_property_tag_field(
 						array(
@@ -466,6 +459,34 @@ function rentfetch_settings_sync() {
 			</div>
 		</div>
 		
+		<?php
+		$rentegi_core_compatible = rfs_rentegi_core_is_compatible();
+		$rentegi_enabled = in_array( 'rentegi', get_option( 'rentfetch_options_enabled_integrations', array() ), true );
+		?>
+		<div class="row integration rentegi">
+			<div class="section">
+				<label for="rentfetch_options_enabled_integrations_rentegi" class="label-large toggle-label" style="margin-bottom: 0 !important;">
+					<input type="checkbox" id="rentfetch_options_enabled_integrations_rentegi" name="rentfetch_options_enabled_integrations[]" value="rentegi" <?php checked( $rentegi_enabled ); ?> <?php disabled( ! $rentegi_core_compatible ); ?>>
+					RentEGI
+				</label>
+				<?php if ( ! $rentegi_core_compatible ) : ?>
+					<?php if ( $rentegi_enabled ) : ?>
+						<input type="hidden" name="rentfetch_options_enabled_integrations[]" value="rentegi">
+					<?php endif; ?>
+					<p class="description"><?php echo esc_html( rfs_rentegi_core_update_message() ); ?></p>
+				<?php else : ?>
+				<div class="integration-settings">
+					<?php rfs_render_property_tag_field( array(
+						'name' => 'rentfetch_options_rentegi_property_codes',
+						'label' => 'RentEGI Property Codes',
+						'integration' => 'rentegi',
+						'description' => 'Enter property codes separated by commas, spaces, or line breaks. RentEGI must authorize each property for your agency credentials.',
+					) ); ?>
+				</div>
+				<?php endif; ?>
+			</div>
+		</div>
+
 		<div class="row integration entrata">
 			<div class="section">
 				<label for="rentfetch_options_enabled_integrations_entrata" class="label-large toggle-label" style="margin-bottom: 0 !important;">

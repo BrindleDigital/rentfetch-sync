@@ -3,7 +3,7 @@
 	Plugin Name:   Rent Fetch Sync
 	Plugin URI:    https://github.com/jonschr/rentfetch-sync
 	Description:   An addon for Rent Fetch that syncs properties, floorplans, and units
-	Version:       0.16.12
+	Version:       0.16.13
 	Author:        Brindle Digital
 	Author URI:    https://www.brindledigital.com/
 
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define the version of the plugin.
-define( 'RENTFETCHSYNC_VERSION', '0.16.12' );
+define( 'RENTFETCHSYNC_VERSION', '0.16.13' );
 
 // Plugin directory.
 define( 'RENTFETCHSYNC_DIR', plugin_dir_path( __FILE__ ) );
@@ -40,10 +40,27 @@ register_deactivation_hook( __FILE__, 'rfs_deactivate_actions' );
  * @return void.
  */
 function rfs_deactivate_actions() {
-	as_unschedule_all_actions( 'rfs_do_sync' );
-	as_unschedule_all_actions( 'rfs_yardi_do_delete_orphans' );
-	as_unschedule_all_actions( 'rfs_entrata_do_delete_orphans' );
-	as_unschedule_all_actions( 'rfs_engrain_do_delete_orphans' );
+	update_option( 'rfs_sync_deactivated', true, false );
+	if ( function_exists( 'rfs_cancel_accelerated_sync' ) ) {
+		rfs_cancel_accelerated_sync();
+	}
+	$hooks = array(
+		'rfs_do_sync', 'rfs_yardi_do_delete_orphans', 'rfs_entrata_do_delete_orphans',
+		'rfs_engrain_do_delete_orphans', 'rfs_rentegi_do_delete_orphans',
+		'rfs_accelerated_sync_step', 'rfs_finalize_accelerated_sync_item',
+		'rfs_queue_accelerated_sync_run', 'rfs_record_sync_cache_completion', 'rfs_delete_synced_data_step',
+	);
+	foreach ( $hooks as $hook ) {
+		if ( function_exists( 'as_unschedule_all_actions' ) ) { as_unschedule_all_actions( $hook ); }
+		wp_unschedule_hook( $hook );
+	}
+	$delete_state = get_option( 'rfs_delete_synced_data_state', array() );
+	if ( is_array( $delete_state ) && 'running' === ( $delete_state['status'] ?? '' ) ) {
+		$delete_state['status'] = 'cancelled';
+		update_option( 'rfs_delete_synced_data_state', $delete_state, false );
+	}
+	delete_option( 'rfs_recurring_sync_cache_cycle' );
+	delete_option( 'rfs_scheduled_property_manifest' );
 }
 
 // include action scheduler.
@@ -105,6 +122,7 @@ function rfs_boot_plugin() {
 		return;
 	}
 
+	delete_option( 'rfs_sync_deactivated' );
 	rfs_require_files_recursive( RENTFETCHSYNC_DIR . 'lib' );
 	if ( rfs_is_sync_locked() ) {
 		rfs_purge_rentfetch_api_credentials();

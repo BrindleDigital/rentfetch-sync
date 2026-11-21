@@ -9,6 +9,10 @@
  */
 function rfs_maybe_create_floorplan( $args ) {
 
+	if ( isset( $args['property_sync_lock'] ) ) {
+		rfs_assert_property_sync_lock( $args['integration'], (string) $args['property_id'] );
+	}
+
 	// bail if there's no floorplan ID.
 	if ( ! isset( $args['floorplan_id'] ) || ! $args['floorplan_id'] ) {
 		return;

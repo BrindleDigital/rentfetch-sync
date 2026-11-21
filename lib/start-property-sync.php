@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+require_once __DIR__ . '/api/configured-properties.php';
+
 /**
  * Sync a single property
  *
@@ -33,7 +35,12 @@ function rfs_sync_single_property( $property_id, $integration ) {
 		'floorplan_id' => null,
 	];
 
-	do_action( 'rfs_do_sync', $args );
+	try {
+		do_action( 'rfs_do_sync', $args );
+	} finally {
+		// A failed manual attempt may still have saved some records.
+		do_action( 'rfs_manual_sync_finished', $args );
+	}
 }
 
 /**
@@ -42,7 +49,7 @@ function rfs_sync_single_property( $property_id, $integration ) {
  * @return string
  */
 function rfs_get_sync_action_args_version() {
-	return '3';
+	return '4';
 }
 
 /**
@@ -62,6 +69,11 @@ function rfs_maybe_migrate_sync_action_args() {
 	as_unschedule_all_actions( 'rfs_yardi_do_delete_orphans' );
 	as_unschedule_all_actions( 'rfs_entrata_do_delete_orphans' );
 	as_unschedule_all_actions( 'rfs_engrain_do_delete_orphans' );
+	as_unschedule_all_actions( 'rfs_rentegi_do_delete_orphans' );
+	if ( function_exists( 'rfs_get_accelerated_sync_state' ) && function_exists( 'rfs_cancel_accelerated_sync' ) ) {
+		$state = rfs_get_accelerated_sync_state();
+		if ( 'running' === ( $state['status'] ?? '' ) ) { rfs_cancel_accelerated_sync(); }
+	}
 	update_option( 'rfs_sync_action_args_version', $target_version, false );
 }
 
@@ -198,14 +210,13 @@ function rfs_set_sync_progress( $integration, $property_id, $step, $total, $mess
  * Returns JSON.
  */
 function rfs_get_sync_progress_ajax_handler() {
-	check_ajax_referer('rfs_ajax_nonce', '_ajax_nonce');
-
-	if ( ! isset( $_POST['property_id'] ) || ! isset( $_POST['integration'] ) ) {
-		wp_send_json_error( array( 'message' => 'Invalid request' ), 400 );
+	check_ajax_referer( 'rfs_ajax_nonce', '_ajax_nonce' );
+	$target = rfs_authorize_manual_sync_request();
+	if ( is_wp_error( $target ) ) {
+		wp_send_json_error( array( 'message' => $target->get_error_message() ), $target->get_error_data()['status'] ?? 403 );
 	}
-
-	$property_id = sanitize_text_field( wp_unslash( $_POST['property_id'] ) );
-	$integration = sanitize_text_field( wp_unslash( $_POST['integration'] ) );
+	$property_id = $target['property_id'];
+	$integration = $target['integration'];
 
 	$key = 'rfs_sync_progress_' . md5( $integration . '_' . $property_id );
 	$data = get_transient( $key );
@@ -214,8 +225,6 @@ function rfs_get_sync_progress_ajax_handler() {
 		wp_send_json_error( array( 'message' => 'no-progress' ), 404 );
 	}
 
-	wp_send_json_success( $data );
-	
 	// If the progress indicates completion, clear the stored transient so it doesn't linger.
 	$step = isset( $data['step'] ) ? (int) $data['step'] : 0;
 	$total = isset( $data['total'] ) ? (int) $data['total'] : 0;
@@ -224,7 +233,7 @@ function rfs_get_sync_progress_ajax_handler() {
 		delete_transient( $key );
 	}
 
-	
+	wp_send_json_success( $data );
 }
 add_action('wp_ajax_rfs_get_sync_progress', 'rfs_get_sync_progress_ajax_handler');
 
@@ -263,6 +272,7 @@ function rfs_perform_syncs() {
 		as_unschedule_all_actions( 'rfs_yardi_do_delete_orphans' );
 		as_unschedule_all_actions( 'rfs_entrata_do_delete_orphans' );
 		as_unschedule_all_actions( 'rfs_engrain_do_delete_orphans' );
+		as_unschedule_all_actions( 'rfs_rentegi_do_delete_orphans' );
 		
 		return;
 	}
@@ -275,6 +285,8 @@ function rfs_perform_syncs() {
 		$enabled_integrations = array();
 	}
 		
+	rfs_prune_removed_property_sync_actions( $enabled_integrations );
+
 	// Get the sync timeline, setting it to hourly as a default
 	$sync_time = (int) apply_filters( 'rentfetch_sync_timeline', '86400' );
 	$sync_index = 0;
@@ -289,8 +301,8 @@ function rfs_perform_syncs() {
 		$yardi_properties = array_filter( explode( ',', $yardi_properties ) );
 	
 		// remove orphaned properties, floorplans, and units (this only deletes properties that are no longer in the settings and their associated floorplans and units)
-		if ( false === as_has_scheduled_action( 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' ) ) {
-			as_schedule_recurring_action( rfs_get_staggered_sync_start_time( $sync_index ), (int) $sync_time, 'rfs_yardi_do_delete_orphans', array( $yardi_properties ), 'rentfetch' );
+		if ( false === as_has_scheduled_action( 'rfs_yardi_do_delete_orphans', array(), 'rentfetch' ) ) {
+			as_schedule_recurring_action( rfs_get_staggered_sync_start_time( $sync_index ), (int) $sync_time, 'rfs_yardi_do_delete_orphans', array(), 'rentfetch' );
 		}	
 		++$sync_index;
 			
@@ -314,12 +326,12 @@ function rfs_perform_syncs() {
 			? rfs_engrain_get_configured_asset_ids()
 			: array();
 
-		if ( false === as_has_scheduled_action( 'rfs_engrain_do_delete_orphans', array( $engrain_assets ), 'rentfetch' ) ) {
+		if ( false === as_has_scheduled_action( 'rfs_engrain_do_delete_orphans', array(), 'rentfetch' ) ) {
 			as_schedule_recurring_action(
 				rfs_get_staggered_sync_start_time( $sync_index ),
 				(int) $sync_time,
 				'rfs_engrain_do_delete_orphans',
-				array( $engrain_assets ),
+				array(),
 				'rentfetch'
 			);
 		}
@@ -345,8 +357,8 @@ function rfs_perform_syncs() {
 		$entrata_properties = array_filter( explode( ',', $entrata_properties ) );
 
 		// remove orphaned properties, floorplans, and units that are no longer in the Entrata settings.
-		if ( false === as_has_scheduled_action( 'rfs_entrata_do_delete_orphans', array( $entrata_properties ), 'rentfetch' ) ) {
-			as_schedule_recurring_action( rfs_get_staggered_sync_start_time( $sync_index ), (int) $sync_time, 'rfs_entrata_do_delete_orphans', array( $entrata_properties ), 'rentfetch' );
+		if ( false === as_has_scheduled_action( 'rfs_entrata_do_delete_orphans', array(), 'rentfetch' ) ) {
+			as_schedule_recurring_action( rfs_get_staggered_sync_start_time( $sync_index ), (int) $sync_time, 'rfs_entrata_do_delete_orphans', array(), 'rentfetch' );
 		}
 		++$sync_index;
 		
@@ -363,6 +375,22 @@ function rfs_perform_syncs() {
 			
 	}
 		
+	if ( ! rfs_rentegi_core_is_compatible() ) {
+		as_unschedule_all_actions( 'rfs_rentegi_do_delete_orphans' );
+	}
+	if ( in_array( 'rentegi', $enabled_integrations, true ) && rfs_rentegi_core_is_compatible() ) {
+		$rentegi_properties = rfs_rentegi_get_property_codes();
+		if ( false === as_has_scheduled_action( 'rfs_rentegi_do_delete_orphans', array(), 'rentfetch' ) ) {
+			as_schedule_recurring_action( rfs_get_staggered_sync_start_time( $sync_index ), (int) $sync_time, 'rfs_rentegi_do_delete_orphans', array(), 'rentfetch' );
+		}
+		++$sync_index;
+
+		foreach ( $rentegi_properties as $property_code ) {
+			rfs_schedule_property_sync_action( array( 'integration' => 'rentegi', 'property_id' => $property_code ), $sync_time, $sync_index );
+			++$sync_index;
+		}
+	}
+
 	//* Rent Manager
 		
 	if ( in_array( 'rentmanager', $enabled_integrations ) ) {
@@ -401,64 +429,82 @@ function rfs_trigger_specific_api_sync( $args ) {
 	if ( rfs_is_sync_locked() ) {
 		return;
 	}
-	
+
 	// bail if there's no integration
 	if ( !isset($args['integration']) || !$args['integration'] )
 		return;
-		
+
 	// bail if there's no property id
 	if ( !isset($args['property_id']) || !$args['property_id'] )
 		return;
 
-	if ( in_array( $args['integration'], array( 'yardi', 'entrata', 'engrain' ), true ) ) {
-		$access = rfs_verify_sync_access_before_sync();
-		if ( is_wp_error( $access ) ) {
-			if ( rfs_is_sync_locked() ) {
-				return;
-			}
-			throw new RuntimeException( $access->get_error_message() );
+	if ( ! in_array( $args['integration'], array( 'yardi', 'rentmanager', 'entrata', 'rentegi', 'engrain' ), true ) ) {
+		return;
+	}
+
+	$lock = rfs_acquire_property_sync_lock( $args['integration'], (string) $args['property_id'] );
+	try {
+		$args['property_sync_lock'] = $lock;
+		if ( ! rfs_is_property_configured_for_sync( $args['integration'], (string) $args['property_id'] ) ) {
+			return;
 		}
+		if ( in_array( $args['integration'], array( 'yardi', 'entrata', 'engrain', 'rentegi' ), true ) ) {
+			$access = rfs_verify_sync_access_before_sync();
+			if ( is_wp_error( $access ) ) {
+				if ( rfs_is_sync_locked() ) {
+					return;
+				}
+				throw new RuntimeException( $access->get_error_message() );
+			}
+		}
+
+		$args['credentials'] = rfs_get_credentials();
+		if ( rfs_is_sync_locked() ) {
+			return;
+		}
+		$credentials_error   = rfs_get_runtime_sync_credentials_error( $args['integration'], $args['credentials'] );
+		if ( rfs_is_sync_locked() ) {
+			return;
+		}
+
+		if ( '' !== $credentials_error ) {
+			throw new RuntimeException( $credentials_error );
+		}
+
+		rfs_assert_property_sync_lock( $args['integration'], (string) $args['property_id'] );
+		switch ( $args['integration'] ) {
+			case 'yardi':
+
+				rfs_do_yardi_sync( $args );
+
+				break;
+			case 'rentmanager':
+
+				rfs_do_rentmanager_sync( $args );
+
+				break;
+			case 'entrata':
+
+				rfs_do_entrata_sync( $args );
+
+				break;
+			case 'rentegi':
+				rfs_do_rentegi_sync( $args );
+				break;
+			case 'engrain':
+
+				rfs_do_engrain_sync( $args );
+
+				break;
+			default:
+				// Handle other integration cases or show an error message.
+				break;
+
+		}
+
+	} finally {
+		rfs_release_property_sync_lock( $lock );
 	}
 
-	$args['credentials'] = rfs_get_credentials();
-	if ( rfs_is_sync_locked() ) {
-		return;
-	}
-	$credentials_error   = rfs_get_runtime_sync_credentials_error( $args['integration'], $args['credentials'] );
-	if ( rfs_is_sync_locked() ) {
-		return;
-	}
-
-	if ( '' !== $credentials_error ) {
-		throw new RuntimeException( $credentials_error );
-	}
-
-	switch ( $args['integration'] ) {
-		case 'yardi':
-			
-			rfs_do_yardi_sync( $args );
-						
-			break;
-		case 'rentmanager':
-			
-			rfs_do_rentmanager_sync( $args );
-						
-			break;
-		case 'entrata':
-			
-			rfs_do_entrata_sync( $args );
-			
-			break;
-		case 'engrain':
-
-			rfs_do_engrain_sync( $args );
-
-			break;
-		default:
-			// Handle other integration cases or show an error message.
-			break;
-			
-	}
-	
 }
 add_action( 'rfs_do_sync', 'rfs_trigger_specific_api_sync', 10, 1 );

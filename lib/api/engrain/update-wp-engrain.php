@@ -1104,21 +1104,18 @@ function rfs_engrain_delete_orphan_records( $post_type, $source_key, $id_key, $p
  * @param array $configured_asset_ids Authoritative configured asset IDs.
  * @return void
  */
-function rfs_engrain_delete_unconfigured_assets( $configured_asset_ids ) {
+function rfs_engrain_delete_unconfigured_assets( $configured_asset_ids = null ) {
 	if ( rfs_is_sync_locked() ) {
 		return;
 	}
-	if ( ! is_array( $configured_asset_ids ) ) {
-		return;
-	}
-
-	$configured_asset_ids = array_values( array_unique( array_filter( array_map( 'strval', $configured_asset_ids ) ) ) );
+	$configured_asset_ids = rfs_get_configured_property_ids( 'engrain' );
 	$types                = array(
 		'properties' => 'property_source',
 		'floorplans' => 'floorplan_source',
 		'units'      => 'unit_source',
 	);
 
+	$orphans = array();
 	foreach ( $types as $post_type => $source_key ) {
 		$meta_query = array(
 			array(
@@ -1146,9 +1143,8 @@ function rfs_engrain_delete_unconfigured_assets( $configured_asset_ids ) {
 			)
 		);
 
-		foreach ( $post_ids as $post_id ) {
-			wp_delete_post( $post_id, true );
-		}
+		$orphans = array_merge( $orphans, $post_ids );
 	}
+	rfs_delete_sync_posts( 'engrain', $orphans, true );
 }
 add_action( 'rfs_engrain_do_delete_orphans', 'rfs_engrain_delete_unconfigured_assets', 10, 1 );

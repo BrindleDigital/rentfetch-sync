@@ -12,6 +12,7 @@ function as_enqueue_async_action( ...$args ) {
 }
 require_once $root . '/lib/api/fetch-rentfetch-api-info.php';
 require_once $root . '/lib/api/get-credentials.php';
+require_once $root . '/lib/api/property-sync-lock.php';
 require_once $root . '/lib/start-property-sync.php';
 require_once $root . '/lib/admin/accelerated-sync.php';
 require_once $root . '/lib/admin/sync-lock.php';
@@ -23,7 +24,7 @@ require_once $root . '/lib/api/engrain/update-wp-engrain.php';
 function rfs_lock_check( $condition, $message ) {
 	if ( ! $condition ) { throw new RuntimeException( $message ); }
 }
-$keys = array( 'rfs_api_sync_locked', 'rentfetch_options_data_sync', 'rentfetch_options_enabled_integrations', 'rentfetch_api_info_last_success', 'rentfetch_api_info_refresh_lock', rfs_get_accelerated_sync_state_key() );
+$keys = array( 'rfs_sync_deactivated', 'rfs_api_sync_locked', 'rentfetch_options_data_sync', 'rentfetch_options_enabled_integrations', 'rentfetch_api_info_last_success', 'rentfetch_api_info_refresh_lock', rfs_get_accelerated_sync_state_key() );
 $original = array();
 $missing = 'missing-' . wp_generate_uuid4();
 foreach ( $keys as $key ) { $original[$key] = get_option( $key, $missing ); }
@@ -45,6 +46,7 @@ $cached = array( 'monitoring' => array(), 'entrata' => array( 'api_key' => 'fixt
 $run_id = 'sync-lock-' . wp_generate_uuid4();
 add_filter( 'pre_http_request', $mock_http, PHP_INT_MAX, 3 );
 try {
+	delete_option( 'rfs_sync_deactivated' );
 	rfs_update_accelerated_sync_state( array( 'run_id' => $run_id, 'status' => 'running' ) );
 	rfs_lock_check( str_ends_with( rfs_get_rentfetch_api_url( 'rentmanager/units' ), '/rentmanager/units' ) && str_starts_with( rfs_get_rentfetch_api_url( 'rentmanager/units' ), preg_replace( '#/data/?$#', '', RENTFETCH_API_URL ) ), 'Proxy requests must respect the configured central API URL.' );
 	delete_option( 'rfs_api_sync_locked' );
@@ -230,6 +232,7 @@ try {
 	$fixture_credential = function() { return 'fixture'; };
 	add_filter( 'pre_option_rentfetch_options_yardi_integration_creds_yardi_api_key', $fixture_credential );
 	add_filter( 'pre_option_rentfetch_options_yardi_integration_creds_yardi_company_code', $fixture_credential );
+	add_filter( 'pre_option_rentfetch_options_yardi_integration_creds_yardi_property_code', $fixture_credential );
 	try {
 		rfs_clear_rentfetch_api_info_cache();
 		$respond( 403, $locked );
@@ -238,6 +241,7 @@ try {
 	} finally {
 		remove_filter( 'pre_option_rentfetch_options_yardi_integration_creds_yardi_api_key', $fixture_credential );
 		remove_filter( 'pre_option_rentfetch_options_yardi_integration_creds_yardi_company_code', $fixture_credential );
+		remove_filter( 'pre_option_rentfetch_options_yardi_integration_creds_yardi_property_code', $fixture_credential );
 	}
 
 } finally {

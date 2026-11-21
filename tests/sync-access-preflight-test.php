@@ -4,6 +4,8 @@ $root = dirname( __DIR__ );
 require_once dirname( $root ) . '/rentfetch/lib/common/json-utils.php';
 require_once $root . '/lib/api/fetch-rentfetch-api-info.php';
 require_once $root . '/lib/api/get-credentials.php';
+require_once $root . '/lib/api/property-sync-lock.php';
+require_once $root . '/lib/api/rentmanager/get-properties-from-setting.php';
 require_once $root . '/lib/start-property-sync.php';
 function as_unschedule_all_actions( $hook ) {}
 function rfs_do_yardi_sync( $args ) { $GLOBALS['preflight_provider_calls'][] = 'yardi'; }
@@ -14,6 +16,11 @@ function preflight_check( $condition, $message ) {
 	if ( ! $condition ) { throw new RuntimeException( $message ); }
 }
 $settings = array(
+	'rentfetch_options_yardi_integration_creds_yardi_property_code' => 'fixture',
+	'rentfetch_options_entrata_integration_creds_entrata_property_ids' => 'fixture',
+	'rentfetch_options_engrain_integration_creds_engrain_asset_ids' => 'fixture',
+	'rentfetch_options_rentmanager_integration_creds_rentmanager_property_shortnames' => array( array( 'ShortName' => 'fixture' ) ),
+	'rentfetch_options_rentmanager_disabled_property_shortnames' => array(),
 	'rentfetch_options_yardi_integration_creds_yardi_api_key' => 'fixture-client-key',
 	'rentfetch_options_yardi_integration_creds_yardi_company_code' => 'fixture-company',
 	'rentfetch_options_entrata_integration_creds_entrata_subdomain' => 'fixture',
@@ -60,6 +67,8 @@ try {
 	foreach ( array( 'yardi', 'entrata', 'engrain' ) as $integration ) {
 		$args = array( 'integration' => $integration, 'property_id' => 'fixture' );
 		$seed( $integration );
+		rfs_trigger_specific_api_sync( array( 'integration' => $integration, 'property_id' => 'removed-fixture' ) );
+		preflight_check( array() === $requests && array() === $GLOBALS['preflight_provider_calls'], 'A stale queued property must stop before access or provider work.' );
 		$access_response = $lock;
 		rfs_trigger_specific_api_sync( $args );
 		preflight_check( array( 'sync-access' ) === $requests && array() === $GLOBALS['preflight_provider_calls'], 'The first locked sync must stop before the provider despite cached credentials: ' . $integration );
@@ -94,6 +103,8 @@ try {
 		}
 	}
 	$seed( 'rentmanager' );
+	rfs_trigger_specific_api_sync( array( 'integration' => 'rentmanager', 'property_id' => 'removed-fixture' ) );
+	preflight_check( array() === $requests && array() === $GLOBALS['preflight_provider_calls'], 'Removed Rent Manager jobs must not recreate inventory.' );
 	rfs_trigger_specific_api_sync( array( 'integration' => 'rentmanager', 'property_id' => 'fixture' ) );
 	preflight_check( array() === $requests && array( 'rentmanager' ) === $GLOBALS['preflight_provider_calls'], 'Rent Manager must not add an access request; its proxies already enforce locks.' );
 } finally {

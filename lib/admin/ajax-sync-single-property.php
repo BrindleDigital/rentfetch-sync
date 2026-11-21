@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function rfs_sync_properties_sync_metabox() {
 	
 	global $post;
+	if ( ! $post || is_wp_error( rfs_get_manual_sync_target( $post->ID ) ) ) { return; }
 	
 	// get the post type of the current post
 	$post_type = get_post_type( $post->ID );
@@ -74,6 +75,7 @@ add_action( 'add_meta_boxes', 'rfs_sync_properties_sync_metabox' );
  * @return  void.
  */
 function rfs_sync_metabox( $post ) {
+	if ( is_wp_error( rfs_get_manual_sync_target( $post->ID ) ) ) { return; }
 	
 	wp_enqueue_script( 'rentfetch-ajax-property-sync' );
 
@@ -129,7 +131,7 @@ function rfs_sync_metabox( $post ) {
 		echo '<p><strong>Syncing Locked.</strong> ' . esc_html( rfs_sync_locked_message() ) . '</p>';
 		return;
 	}
-	printf( '<a href="#" data-property-id="%s" data-integration="%s" class="sync-property button button-large" >Sync this %s</a>', esc_attr( $property_id ), esc_attr( $integration ), esc_html( $label ) );
+	printf( '<a href="#" data-property-id="%s" data-integration="%s" data-post-id="%s" class="sync-property button button-large" >Sync this %s</a>', esc_attr( $property_id ), esc_attr( $integration ), esc_attr( $post->ID ), esc_html( $label ) );
 
 	// Visible status/debug area for the sync UX
 	echo '<div class="rfs-sync-status" style="margin-top:8px;font-size:12px;color:#666">';
@@ -152,50 +154,50 @@ function rfs_sync_metabox( $post ) {
  */
 function rfs_sync_single_property_ajax_handler() {
 	check_ajax_referer('rfs_ajax_nonce', '_ajax_nonce');
+	$target = rfs_authorize_manual_sync_request();
+	if ( is_wp_error( $target ) ) {
+		wp_send_json_error( array( 'message' => $target->get_error_message() ), $target->get_error_data()['status'] ?? 403 );
+	}
 	if ( rfs_is_sync_locked() ) {
 		wp_send_json_error( array( 'message' => rfs_sync_locked_message() ), 403 );
 	}
 
-	if (isset($_POST['property_id']) && isset($_POST['integration'])) {
-		$property_id = sanitize_text_field( wp_unslash( $_POST['property_id'] ) );
-		$integration = sanitize_text_field( wp_unslash( $_POST['integration'] ) );
+	$property_id = $target['property_id'];
+	$integration = $target['integration'];
 
-		// Run synchronously (do not schedule). The sync function handles its own progress updates.
-		try {
-			rfs_sync_single_property( $property_id, $integration );
-		} catch ( Throwable $exception ) {
-			wp_send_json_error(
-				array(
-					'integration' => $integration,
-					'property_id' => $property_id,
-					'message'     => $exception->getMessage(),
-				),
-				500
-			);
-		}
-
-		if ( rfs_is_sync_locked() ) {
-			wp_send_json_error( array( 'message' => rfs_sync_locked_message() ), 403 );
-		}
-
-		// After completion attempt to return the progress payload so the client can pick up final state immediately
-		$key = 'rfs_sync_progress_' . md5( $integration . '_' . $property_id );
-		$data = get_transient( $key );
-
-		if ( $data && is_array( $data ) ) {
-			wp_send_json_success( $data );
-		} else {
-			// Fallback: return a minimal completed payload
-			wp_send_json_success( array(
+	// Run synchronously (do not schedule). The sync function handles its own progress updates.
+	try {
+		rfs_sync_single_property( $property_id, $integration );
+	} catch ( Throwable $exception ) {
+		wp_send_json_error(
+			array(
 				'integration' => $integration,
 				'property_id' => $property_id,
-				'step' => 1,
-				'total' => 1,
-				'message' => 'Completed',
-			) );
-		}
+				'message'     => $exception->getMessage(),
+			),
+			500
+		);
+	}
+
+	if ( rfs_is_sync_locked() ) {
+		wp_send_json_error( array( 'message' => rfs_sync_locked_message() ), 403 );
+	}
+
+	// After completion attempt to return the progress payload so the client can pick up final state immediately
+	$key = 'rfs_sync_progress_' . md5( $integration . '_' . $property_id );
+	$data = get_transient( $key );
+
+	if ( $data && is_array( $data ) ) {
+		wp_send_json_success( $data );
 	} else {
-		wp_die('Invalid request');
+		// Fallback: return a minimal completed payload
+		wp_send_json_success( array(
+			'integration' => $integration,
+			'property_id' => $property_id,
+			'step' => 1,
+			'total' => 1,
+			'message' => 'Completed',
+		) );
 	}
 }
 add_action('wp_ajax_rfs_sync_single_property', 'rfs_sync_single_property_ajax_handler');

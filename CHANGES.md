@@ -1,3 +1,25 @@
+## 0.16.13
+
+- Pause only RentEGI when its required Rent Fetch Core features are unavailable, preserving saved settings and inventory while other integrations continue syncing.
+
+- Refresh RentEGI configuration and recheck record ownership before deleting unconfigured inventory, preserving changes made while cleanup waits for its lock.
+
+- Remove the retired Yardi Voyager-code converter and its unused settings field.
+
+- Restrict manual property sync and progress to Editors and Administrators with permission to edit the clicked record and its verified parent property.
+- Refresh configured-property lists under the execution lock before cleanup, skip obsolete jobs, and remove all owned scheduled work on deactivation.
+- Coordinate concurrent accelerated completions with fresh state, durable item results and retries so a completed full run triggers one frontend cache refresh.
+- Derive RentEGI availability from published units, including manual attachments and zero counts; retain provider counts and bounded source context in diagnostics. Use targeted identity lookups with duplicate detection.
+
+- Serialize manual, recurring and accelerated property syncs across all active integrations with shared integration/property locks; configured-property cleanup respects the same locks.
+
+- Add RentEGI MITS 5 property, floor plan, pricing and availability syncing through the companion central API proxy. Support recurring, manual and accelerated syncs without storing provider credentials on websites.
+- Read unit rent from the RENT charge, validate complete inventory before writing, preserve manual fields/media absent from the feed, and delete unavailable or removed provider records consistently with the other integrations.
+- Organize RentEGI fetching, record updates and retirement around a readable main sync function. Move Yardi v2 tour normalization into its own helper file.
+- Verify RentEGI metadata writes, finalize property success after dependent saves, serialize overlapping property syncs, and clear withdrawn availability dates.
+- Refresh Rent Fetch frontend caches after manual sync attempts or a full recurring/accelerated pass, rather than after individual background properties.
+- Clean up unconfigured RentEGI properties and dependent records using the existing integrations' deletion behavior; clear finished progress before returning AJAX success.
+
 ## 0.16.12
 
 - Import Rent Manager property marketing descriptions through the new API route. Preserve saved copy on errors or unlisted properties, accept source blanks, and record description diagnostics without blocking inventory sync.

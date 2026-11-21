@@ -17,51 +17,29 @@ add_action( 'rfs_entrata_do_delete_orphans', 'rfs_entrata_delete_orphans_propert
  * @param array $entrata_properties_in_settings_box Entrata property IDs currently configured for sync.
  * @return void
  */
-function rfs_entrata_delete_orphans_properties_floorplans_units( $entrata_properties_in_settings_box ) {
+function rfs_entrata_delete_orphans_properties_floorplans_units( $entrata_properties_in_settings_box = null ) {
 	if ( rfs_is_sync_locked() ) {
 		return;
 	}
-	if ( ! is_array( $entrata_properties_in_settings_box ) ) {
-		return;
-	}
+	$entrata_properties_in_settings_box = rfs_get_configured_property_ids( 'entrata' );
 
-	$entrata_properties_in_settings_box = array_values(
-		array_filter(
-			array_map( 'strval', $entrata_properties_in_settings_box ),
-			static function ( $property_id ) {
-				return '' !== trim( $property_id );
-			}
-		)
+	$orphans = array_merge(
+		rfs_entrata_get_orphan_post_ids_for_type( 'properties', 'property_source', $entrata_properties_in_settings_box ),
+		rfs_entrata_get_orphan_post_ids_for_type( 'floorplans', 'floorplan_source', $entrata_properties_in_settings_box ),
+		rfs_entrata_get_orphan_post_ids_for_type( 'units', 'unit_source', $entrata_properties_in_settings_box )
 	);
-
-	rfs_entrata_delete_orphan_posts_for_type(
-		'properties',
-		'property_source',
-		$entrata_properties_in_settings_box
-	);
-
-	rfs_entrata_delete_orphan_posts_for_type(
-		'floorplans',
-		'floorplan_source',
-		$entrata_properties_in_settings_box
-	);
-
-	rfs_entrata_delete_orphan_posts_for_type(
-		'units',
-		'unit_source',
-		$entrata_properties_in_settings_box
-	);
+	rfs_delete_sync_posts( 'entrata', $orphans, true );
 }
 
 /**
- * Delete posts of one synced post type whose property ID is no longer configured.
+ * Find posts of one synced post type whose property ID is no longer configured.
  *
  * @param string $post_type Post type to clean.
  * @param string $source_meta_key Meta key that stores the integration source for the post type.
  * @param array  $property_ids_to_keep Entrata property IDs currently configured for sync.
- * @return void
+ * @return int[] Post IDs.
  */
-function rfs_entrata_delete_orphan_posts_for_type( $post_type, $source_meta_key, $property_ids_to_keep ) {
+function rfs_entrata_get_orphan_post_ids_for_type( $post_type, $source_meta_key, $property_ids_to_keep ) {
 	$meta_query = array(
 		'relation' => 'AND',
 		array(
@@ -93,7 +71,5 @@ function rfs_entrata_delete_orphan_posts_for_type( $post_type, $source_meta_key,
 		)
 	);
 
-	foreach ( $posts_to_delete as $post_id ) {
-		wp_delete_post( $post_id, true );
-	}
+	return $posts_to_delete;
 }

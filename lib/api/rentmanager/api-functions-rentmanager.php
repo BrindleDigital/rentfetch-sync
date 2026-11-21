@@ -36,9 +36,7 @@ function rfs_do_rentmanager_sync( $args ) {
 	// error_log('Starting rfs_do_rentmanager_sync for property: ' . ($args['property_id'] ?? 'unknown'));
 	
 	// remove various data that shouldn't still exist if the property should no longer be synced.
-	rfs_rentmanager_remove_properties_that_shouldnt_be_synced_property_deleted();
-	rfs_rentmanager_remove_floorplans_that_shouldnt_be_synced_property_deleted();
-	rfs_rentmanager_remove_units_that_shouldnt_be_synced_property_deleted();
+	rfs_rentmanager_remove_records_that_shouldnt_be_synced_property_deleted();
 
 	// ~ With just the property ID, we can get property data, property images, and the floorplan data.
 	// create a new post if needed, adding the post ID to the args if we do (don't need any API calls for this).

@@ -38,7 +38,7 @@ function rfs_apply_sync_lock() {
 	update_option( 'rentfetch_options_data_sync', 'nosync' );
 	rfs_purge_rentfetch_api_credentials();
 	if ( function_exists( 'as_unschedule_all_actions' ) ) {
-		foreach ( array( 'rfs_do_sync', 'rfs_yardi_do_delete_orphans', 'rfs_entrata_do_delete_orphans', 'rfs_engrain_do_delete_orphans', 'rfs_accelerated_sync_step' ) as $hook ) {
+		foreach ( array( 'rfs_do_sync', 'rfs_yardi_do_delete_orphans', 'rfs_entrata_do_delete_orphans', 'rfs_engrain_do_delete_orphans', 'rfs_rentegi_do_delete_orphans', 'rfs_accelerated_sync_step' ) as $hook ) {
 			as_unschedule_all_actions( $hook );
 		}
 	}

@@ -5,6 +5,7 @@ jQuery(document).ready(function ($) {
 		var $link = $(this);
 		var propertyId = $link.data('property-id');
 		var integration = $link.data('integration');
+		var postId = $link.data('post-id');
 
 		// Prevent double-click while a sync is in progress for this link
 		if ($link.data('syncing')) {
@@ -38,6 +39,7 @@ jQuery(document).ready(function ($) {
 		$.post(ajaxUrl, {
 			action: 'rfs_sync_single_property',
 			property_id: propertyId,
+			post_id: postId,
 			integration: integration,
 			_ajax_nonce:
 				typeof rfs_ajax_object !== 'undefined'
@@ -70,7 +72,7 @@ jQuery(document).ready(function ($) {
 					// Handle server-side error
 					$('.rfs-sync-status-message').text('Sync failed');
 					$('.rfs-sync-status-meta').text(
-						'Error: ' + (response.data || 'Unknown error occurred')
+						'Error: ' + ((response.data && response.data.message) || response.data || 'Unknown error occurred')
 					);
 					$('.rfs-sync-progress-fill').css('width', '0%');
 
@@ -84,7 +86,7 @@ jQuery(document).ready(function ($) {
 				// Handle AJAX error
 				$('.rfs-sync-status-message').text('Sync failed');
 				$('.rfs-sync-status-meta').text(
-					'Network error: ' + error + ' (Status: ' + xhr.status + ')'
+					(xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) || ('Network error: ' + error + ' (Status: ' + xhr.status + ')')
 				);
 				$('.rfs-sync-progress-fill').css('width', '0%');
 

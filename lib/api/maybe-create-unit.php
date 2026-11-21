@@ -8,6 +8,10 @@
  * @return  [type]  $args   return the args with the wordpress unit ID added (whether we created one or just found that there was one already)
  */
 function rfs_maybe_create_unit( $args ) {
+
+	if ( isset( $args['property_sync_lock'] ) ) {
+		rfs_assert_property_sync_lock( $args['integration'], (string) $args['property_id'] );
+	}
 	
 	// bail if there's no unit ID
 	if ( !isset( $args['unit_id'] ) || !$args['unit_id'] )
